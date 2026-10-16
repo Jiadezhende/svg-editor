@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import Workspace from '../../../src/backend/receiver/workspace/Workspace';
 import StubCommand from '../../support/StubCommand';
 
 function run(...args: string[]): string[] {
-  return [...new StubCommand(args).execute().lines()];
+  return [...new StubCommand(new Workspace(), args).execute().lines()];
 }
 
 describe('Command 通用参数校验', () => {
@@ -12,8 +13,8 @@ describe('Command 通用参数校验', () => {
   });
 
   it('参数个数不符时报错并附语法', () => {
-    expect(() => new StubCommand(['a'])).toThrow('wrong number of arguments. usage: stub <name> <n> [warn]');
-    expect(() => new StubCommand(['a', '1', 'warn', 'x'])).toThrow('usage: stub <name> <n> [warn]');
+    expect(() => new StubCommand(new Workspace(), ['a'])).toThrow('wrong number of arguments. usage: stub <name> <n> [warn]');
+    expect(() => new StubCommand(new Workspace(), ['a', '1', 'warn', 'x'])).toThrow('usage: stub <name> <n> [warn]');
   });
 
   it('负数与浮点为合法数字', () => {
@@ -25,7 +26,7 @@ describe('Command 通用参数校验', () => {
   });
 
   it.each(['a', '', '1e3', 'Infinity', 'NaN', '0x10', '1.2.3', '-', '1 '])('非数字 %j 报错', (token) => {
-    expect(() => new StubCommand(['a', token])).toThrow(`not a number: ${token}`);
+    expect(() => new StubCommand(new Workspace(), ['a', token])).toThrow(`not a number: ${token}`);
   });
 });
 

@@ -2,10 +2,11 @@ import CommandResult from './command/CommandResult';
 import EditorError from './error/EditorError';
 import type Command from './command/Command';
 import Invoker from './invoker/Invoker';
+import Workspace from './receiver/workspace/Workspace';
 
 /** 可注册的 ConcreteCommand 类：静态部分即定义，构造函数即工厂。 */
 type ConcreteCommandClass = Pick<typeof Command, 'command' | 'usage'> &
-  (new (args: readonly string[]) => Command);
+  (new (workspace: Workspace, args: readonly string[]) => Command);
 
 /** 内置命令：操作会话自身（命令表、历史、生命周期），不经过 Invoker。 */
 interface BuiltinEntry {
@@ -15,12 +16,13 @@ interface BuiltinEntry {
 
 /**
  * 后端唯一入口，Command 模式中的 Client。
- * 按命令名查表分派：先内置命令，再 ConcreteCommand；创建 ConcreteCommand 后交给 Invoker 执行。
+ * 按命令名查表分派：先内置命令，再 ConcreteCommand；创建 ConcreteCommand 时交给它 Receiver（Workspace），再交给 Invoker 执行。
  *
  * 待重构：按名分派是课程允许的两处之一（命令分发），见 doc/update/20261016_FEAT_CLI_REPL.md。
  */
 export default class Client {
   private readonly invoker = new Invoker();
+  private readonly workspace = new Workspace();
   private readonly builtins = new Map<string, BuiltinEntry>();
   private readonly commands = new Map<string, ConcreteCommandClass>();
   private exitRequested = false;
@@ -61,7 +63,7 @@ export default class Client {
     if (!cls) {
       throw new EditorError(`unknown command: ${name}`);
     }
-    return this.invoker.execute(new cls(args));
+    return this.invoker.execute(new cls(this.workspace, args));
   }
 
   isExitRequested(): boolean {

@@ -1,7 +1,7 @@
 # REFACT：去掉 common，由 App 负责前后端之间的转换
 
 - 提案时间：2026-10-16
-- 完成时间：（开发完成后填写）
+- 完成时间：2026-10-16
 - 类型：REFACT
 - 关联 prd：doc/prd/phase1/20261016_CLI_REPL.md
 
@@ -71,10 +71,16 @@ app --> backend
 
 ## 测试与验证
 
+`npm test`：8 个测试文件、64 个用例全部通过；`npm run typecheck` 无错误。
+
 | 用例 | 验证方式 | 结果 |
 | --- | --- | --- |
-| | | |
+| 对外行为不变：CLI_REPL 的全部 cases（输出格式、报错文案、报错优先级、脚本回放） | 原有端到端测试（App、main.test）原样通过 | 通过 |
+| 引号未闭合时 Tokenizer 抛出 `ParseError` | 单元测试（Tokenizer） | 通过 |
+| `ParseError` 经 App 输出为 `error: unclosed quote`，之后继续读取 | 端到端（App） | 通过 |
+| ResultPrinter 接收两组字符串，先警告后结果行 | 单元测试（ResultPrinter） | 通过 |
+| frontend 与 backend 互不引用，`src/common/` 已删除 | 检索 `src/frontend` 中对 backend、`src/backend` 中对 frontend 的 import，均无结果 | 通过 |
 
 ## 遗留问题
 
-- （开发完成后填写）
+- 前后端互不依赖目前靠代码审查与检索保证，没有自动化检查；若后续模块增多，可补一条检查 import 方向的测试。

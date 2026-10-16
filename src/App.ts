@@ -1,12 +1,14 @@
 import type Client from './backend/Client';
-import EditorError from './common/EditorError';
+import EditorError from './backend/error/EditorError';
 import CommandReader from './frontend/CommandReader';
 import type InputSource from './frontend/io/InputSource';
 import type OutputSink from './frontend/io/OutputSink';
+import ParseError from './frontend/ParseError';
 import ResultPrinter from './frontend/ResultPrinter';
 
 /**
- * 前后端通信与主循环：前端负责读入与展示，后端负责执行，两者只经由 App 交互。
+ * 前后端通信与主循环：前端负责读入与展示，后端负责执行，两者互不依赖。
+ * 前后端之间的数据转换只在这里进行：参数数组交给后端，CommandResult 拆成字符串交给前端，两侧的错误统一输出。
  */
 export default class App {
   private readonly reader: CommandReader;
@@ -30,9 +32,10 @@ export default class App {
         if (tokens === null) {
           return;
         }
-        this.printer.printResult(this.client.execute(tokens));
+        const result = this.client.execute(tokens);
+        this.printer.printResult(result.warnings(), result.lines());
       } catch (error) {
-        if (!(error instanceof EditorError)) {
+        if (!(error instanceof ParseError || error instanceof EditorError)) {
           throw error;
         }
         this.printer.printError(error.message);

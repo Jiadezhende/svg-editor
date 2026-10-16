@@ -1,5 +1,5 @@
-import CommandResult from '../../common/CommandResult';
-import EditorError from '../../common/EditorError';
+import CommandResult from './CommandResult';
+import EditorError from '../error/EditorError';
 import Command from './Command';
 
 /**

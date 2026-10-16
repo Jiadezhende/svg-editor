@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import Client from '../../src/backend/Client';
 import Command from '../../src/backend/command/Command';
 import PlaceholderCommand from '../../src/backend/command/PlaceholderCommand';
-import CommandResult from '../../src/common/CommandResult';
-import EditorError from '../../src/common/EditorError';
+import CommandResult from '../../src/backend/command/CommandResult';
+import EditorError from '../../src/backend/error/EditorError';
 import StubCommand from '../support/StubCommand';
 
 class PendingCommand extends PlaceholderCommand {

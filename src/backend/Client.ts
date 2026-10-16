@@ -1,5 +1,5 @@
-import CommandResult from '../common/CommandResult';
-import EditorError from '../common/EditorError';
+import CommandResult from './command/CommandResult';
+import EditorError from './error/EditorError';
 import type Command from './command/Command';
 import Invoker from './invoker/Invoker';
 

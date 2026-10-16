@@ -18,7 +18,7 @@ export default class CommandReader {
     private readonly output: OutputSink,
   ) {}
 
-  /** 返回下一条命令的参数数组；输入结束时返回 null；引号未闭合时抛出 EditorError。 */
+  /** 返回下一条命令的参数数组；输入结束时返回 null；引号未闭合时抛出 ParseError。 */
   async next(): Promise<string[] | null> {
     for (;;) {
       if (this.input.interactive) {

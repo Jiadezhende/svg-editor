@@ -1,4 +1,4 @@
-import type CommandResult from '../../common/CommandResult';
+import type CommandResult from '../command/CommandResult';
 import type Command from '../command/Command';
 
 /**

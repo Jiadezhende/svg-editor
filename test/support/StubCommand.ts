@@ -1,4 +1,4 @@
-import CommandResult from '../../src/common/CommandResult';
+import CommandResult from '../../src/backend/command/CommandResult';
 import Command from '../../src/backend/command/Command';
 
 /**

@@ -1,6 +1,7 @@
 import CommandResult from './CommandResult';
 import EditorError from '../error/EditorError';
 import Command from './Command';
+import type Workspace from '../receiver/workspace/Workspace';
 
 /**
  * 占位命令：命令名与语法已完整注册，执行时报"尚未实现"。
@@ -8,8 +9,8 @@ import Command from './Command';
  * 全部命令替换完成后删除本类。
  */
 export default abstract class PlaceholderCommand extends Command {
-  /** 占位期间不解析参数。 */
-  constructor(_args: readonly string[]) {
+  /** 占位期间不解析参数，也不访问 Receiver。 */
+  constructor(_workspace: Workspace, _args: readonly string[]) {
     super();
   }
 

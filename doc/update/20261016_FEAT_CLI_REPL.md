@@ -1,7 +1,7 @@
 # FEAT：命令行交互框架（REPL）
 
 - 提案时间：2026-10-16
-- 完成时间：（开发完成后填写）
+- 完成时间：2026-10-16
 - 类型：FEAT
 - 关联 prd：doc/prd/phase1/20261016_CLI_REPL.md
 
@@ -284,10 +284,35 @@ C --> App : CommandResult
 
 ## 测试与验证
 
+`npm test`：8 个测试文件、62 个用例全部通过；`npm run typecheck` 无错误。
+
 | 用例 | 验证方式 | 结果 |
 | --- | --- | --- |
-| | | |
+| 启动打印横幅 `svg-editor 0.1 — type 'help' for commands`，交互模式提示符 `svg> ` | 单元测试（ResultPrinter、CommandReader）+ 端到端（App 交互模式） | 通过 |
+| 注释与空行不执行；脚本模式下注释行回显、空行不回显 | 单元测试（CommandReader）+ 端到端（App） | 通过 |
+| `create text t1 20 40 "My Diagram"` 分词为 6 个参数，引号不计入值 | 单元测试（Tokenizer） | 通过 |
+| `help` 列出全部 21 个命令及语法 | 子进程运行真实入口（main.test） | 通过 |
+| `exit` / `quit` 后不再读取；EOF 结束；进程正常退出 | 端到端（App）+ 子进程（main.test） | 通过 |
+| `npm run cli < script.txt` 不打印提示符，逐行回显 `svg> <原始行>` 后输出结果；CRLF 脚本与 LF 一致 | 子进程（main.test）+ 手工 | 通过 |
+| 警告 `warning: <消息>` 先于结果行输出 | 单元测试（ResultPrinter）+ 端到端（App，经 StubCommand） | 通过 |
+| 数字参数 `-10`、`0.5` 合法；`a`、`1e3`、`Infinity` 等报"不是数字" | 单元测试（Command，经 StubCommand） | 通过 |
+| 数值输出 `130`、`0.1+0.2`→`0.3`、`-0`→`0`、最多 6 位小数 | 单元测试（Command） | 通过 |
+| 占位命令（如 `move r1 10 0`）报"尚未实现"，与未知命令区分 | 单元测试（Client）+ 子进程（main.test） | 通过 |
+| `foo` 报未知命令 | 单元测试（Client）+ 端到端 | 通过 |
+| 参数个数不符时报错并附语法（含内置命令带多余参数） | 单元测试（Command、Client）+ 端到端 | 通过 |
+| `create text t1 0 0 "abc` 报引号未闭合 | 单元测试（Tokenizer、CommandReader）+ 端到端 | 通过 |
+| 任一命令失败只输出一行 `error: …`，之后继续读取 | 端到端（App） | 通过 |
+| 注册校验：命令名 / usage 为空、与内置或已注册命令重名时启动即失败 | 单元测试（Client） | 通过 |
+
+实现中补齐的细节（未改动已确认的决策）：
+
+- `OutputSink` 增加 `write(text)`（不换行），用于输出提示符；
+- `ConsoleInputSource` 增加 `close()`，由 `main.ts` 在主循环结束后调用，释放 stdin 使进程在 `exit` / `quit` 后正常结束；
+- `main.ts` 按文件名排序扫描 `impl/`，因此 `help` 先按字母序列出 ConcreteCommand，再按 help、undo、redo、exit、quit 列出内置命令；
+- 错误文案：`unknown command: <name>`、`command not implemented yet: <name>`、`wrong number of arguments. usage: <usage>`、`not a number: <token>`、`unclosed quote`。
 
 ## 遗留问题
 
-- （开发完成后填写）
+- 控制台输入未启用 readline 的终端模式（否则 readline 重绘行时会抹掉由 CommandReader 输出的提示符），行编辑交给终端本身：无历史记录、方向键不可用；Windows 控制台下 EOF 为 Ctrl+Z 回车而非 Ctrl+D。若需要更好的交互体验，可由 InputSource 接管提示符，届时再讨论。
+- `npm run cli` 会先输出 npm 自身的两行脚本信息（`> svg-editor@0.1.0 cli` 等），属于 npm 行为；需要纯净输出时使用 `npm run -s cli`。
+- `main.ts` 的扫描逻辑与控制台 IO 不计入覆盖率（经子进程测试验证，覆盖率工具不统计子进程）。

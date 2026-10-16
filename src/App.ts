@@ -1,5 +1,5 @@
 import type Client from './backend/Client';
-import EditorError from './backend/EditorError';
+import EditorError from './backend/error/EditorError';
 import CommandReader from './frontend/CommandReader';
 import type InputSource from './frontend/io/InputSource';
 import type OutputSink from './frontend/io/OutputSink';

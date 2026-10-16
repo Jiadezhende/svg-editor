@@ -11,9 +11,10 @@
 
 | 议题 | 选项 | 决定 | 理由 |
 | --- | --- | --- | --- |
-| `init` / `canvas` 的参数个数 | A：只接受 0 个或 2 个，1 个报 usage；B：只给 w 时 h 取默认值 | 待定（推荐 A） | 语义明确 |
-| 修改尺寸时 `viewBox` 如何处理 | A：同步改为 `0 0 w h`；B：保持不变 | 待定（推荐 A） | 保持 1 单位 = 1px，图形不随画布尺寸被拉伸 |
+| `init` / `canvas` 的参数个数 | A：只接受 0 个或 2 个，1 个报 usage；B：只给 w 时 h 取默认值 | A | 语义明确 |
+| 修改尺寸时 `viewBox` 如何处理 | A：同步改为 `0 0 w h`；B：保持不变 | B | 文档坐标系不因改尺寸而改变（含 read 读入的自定义 viewBox）；图形随画布尺寸按比例缩放显示 |
 | `init` 覆盖已有文档是否提示 | A：直接覆盖；B：打印 warning 后覆盖 | B | 覆盖会丢弃未保存的内容，至少要提示；不做确认交互，脚本仍可回放 |
+| 无文档时 `undo` / `redo` 是否报"无文档" | A：报"无文档"；B：不检查，按空栈报"无可撤销" / "无可重做" | B | 无文档时历史必然为空，空栈报错已能说明问题 |
 
 ## 职责边界
 
@@ -30,10 +31,12 @@
 | 正常 | 已有文档，`canvas 1024 768` | 画布尺寸更新，随后 `canvas` 显示 1024x768 |
 | 边界 | 已有文档，再次 `init` | 先输出一行 `warning: …`（提示旧文档被丢弃），再输出 `canvas <w>x<h> created`；旧文档被替换 |
 | 边界 | `init 100.5 200` | `canvas 100.5x200 created` |
-| 边界 | 无文档时执行 `canvas a 0` | 只报"无文档"（无文档先于参数格式） |
+| 边界 | 无文档时执行 `canvas a 0` | 只报参数不是数字（参数格式先于无文档） |
 | 边界 | 已有文档，`canvas 0 600` 失败 | 画布尺寸不变 |
-| 异常 | 无文档，执行 init / read / help / exit / quit 以外的命令 | `error: no document. use 'init' or 'read' first` |
-| 异常 | `init 400` | 报错：参数个数不符，并提示语法（取决于决策） |
+| 边界 | `init 200 100` 后 `canvas 400 300` | viewBox 保持 `0 0 200 100` |
+| 边界 | 无文档，`undo` / `redo` | 按空栈报"无可撤销" / "无可重做"，不报"无文档" |
+| 异常 | 无文档，执行 init / read / help / undo / redo / exit / quit 以外的命令 | `error: no document. use 'init' or 'read' first` |
+| 异常 | `init 400` / `canvas 400` | 报错：参数个数不符，并提示语法 |
 | 异常 | `init a 600` | 报错：参数不是数字 |
 | 异常 | `init 0 600` / `canvas -1 600` | 报错：尺寸须为正数 |
 
@@ -45,5 +48,5 @@
 | canvas | `canvas` | 显示类 | 当前尺寸 |
 | canvas | `canvas <w> <h>` | 文档类 | 修改后的尺寸 |
 
-- 画布尺寸对应 SVG 根元素的 `width` / `height`，须为正数
-- "无文档"错误：`error: no document. use 'init' or 'read' first`；不要求文档的命令：init、read、help、exit、quit
+- 画布尺寸对应 SVG 根元素的 `width` / `height`，须为正数；`init` 创建的文档 viewBox 为 `0 0 w h`，`canvas <w> <h>` 不改动 viewBox
+- "无文档"错误：`error: no document. use 'init' or 'read' first`；不要求文档的命令：init、read、help、undo、redo、exit、quit

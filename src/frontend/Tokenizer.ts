@@ -1,4 +1,4 @@
-import EditorError from '../common/EditorError';
+import ParseError from './ParseError';
 
 /**
  * 分词器：按空白分隔参数；双引号内的内容（含空白）属于同一个参数，引号本身不计入值。
@@ -28,7 +28,7 @@ export default class Tokenizer {
     }
 
     if (quoted) {
-      throw new EditorError('unclosed quote');
+      throw new ParseError('unclosed quote');
     }
     if (inToken) {
       tokens.push(current);

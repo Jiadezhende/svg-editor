@@ -1,4 +1,3 @@
-import type CommandResult from '../common/CommandResult';
 import type OutputSink from './io/OutputSink';
 
 /** 输出约定的唯一实现处：横幅、结果（先警告后结果行）与错误。 */
@@ -11,11 +10,12 @@ export default class ResultPrinter {
     this.output.writeLine(ResultPrinter.BANNER);
   }
 
-  printResult(result: CommandResult): void {
-    for (const message of result.warnings()) {
+  /** 先逐条输出警告，再输出结果行。 */
+  printResult(warnings: readonly string[], lines: readonly string[]): void {
+    for (const message of warnings) {
       this.output.writeLine(`warning: ${message}`);
     }
-    for (const text of result.lines()) {
+    for (const text of lines) {
       this.output.writeLine(text);
     }
   }

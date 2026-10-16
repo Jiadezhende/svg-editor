@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import ParseError from '../../src/frontend/ParseError';
 import Tokenizer from '../../src/frontend/Tokenizer';
 
 const tokenizer = new Tokenizer();
@@ -35,7 +36,9 @@ describe('Tokenizer', () => {
     expect(tokenizer.tokenize('   ')).toEqual([]);
   });
 
-  it('引号未闭合时报错', () => {
-    expect(() => tokenizer.tokenize('create text t1 0 0 "abc')).toThrow('unclosed quote');
+  it('引号未闭合时抛出 ParseError', () => {
+    const parse = () => tokenizer.tokenize('create text t1 0 0 "abc');
+    expect(parse).toThrow(ParseError);
+    expect(parse).toThrow('unclosed quote');
   });
 });

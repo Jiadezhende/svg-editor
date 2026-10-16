@@ -1,5 +1,5 @@
-import CommandResult from '../../common/CommandResult';
-import EditorError from '../../common/EditorError';
+import CommandResult from '../CommandResult';
+import EditorError from '../EditorError';
 
 /**
  * Command 模式中的抽象命令。

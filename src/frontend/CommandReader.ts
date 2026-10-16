@@ -5,9 +5,11 @@ import Tokenizer from './Tokenizer';
 /**
  * 读取下一条命令：交互模式下打印提示符，脚本模式下回显 `svg> <原始行>`；
  * 跳过注释与空行（脚本模式下注释行仍回显）；分词后返回参数数组。
+ * 输出端支持彩色时，提示符（含回显中的提示符）以粗体青色高亮。
  */
 export default class CommandReader {
   private static readonly PROMPT = 'svg> ';
+  private static readonly HIGHLIGHTED_PROMPT = '\x1b[1;36msvg>\x1b[0m ';
 
   private readonly tokenizer = new Tokenizer();
 
@@ -20,7 +22,7 @@ export default class CommandReader {
   async next(): Promise<string[] | null> {
     for (;;) {
       if (this.input.interactive) {
-        this.output.write(CommandReader.PROMPT);
+        this.output.write(this.prompt());
       }
 
       const line = await this.input.next();
@@ -36,12 +38,16 @@ export default class CommandReader {
         continue;
       }
       if (!this.input.interactive) {
-        this.output.writeLine(CommandReader.PROMPT + line);
+        this.output.writeLine(this.prompt() + line);
       }
       if (trimmed.startsWith('#')) {
         continue;
       }
       return this.tokenizer.tokenize(line);
     }
+  }
+
+  private prompt(): string {
+    return this.output.colorful ? CommandReader.HIGHLIGHTED_PROMPT : CommandReader.PROMPT;
   }
 }

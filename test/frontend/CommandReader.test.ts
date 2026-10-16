@@ -55,3 +55,21 @@ describe('CommandReader 脚本模式', () => {
     expect(output.lines()).toEqual(['svg> create text t1 0 0 "abc']);
   });
 });
+
+describe('CommandReader 提示符高亮', () => {
+  const HIGHLIGHTED = '\x1b[1;36msvg>\x1b[0m ';
+
+  it('输出端支持彩色时，交互提示符高亮', async () => {
+    const output = new MemoryOutputSink(true);
+    const reader = new CommandReader(new MemoryInputSource(['help'], true), output);
+    await reader.next();
+    expect(output.text()).toBe(HIGHLIGHTED);
+  });
+
+  it('输出端支持彩色时，脚本回显中的提示符高亮，原始行不变', async () => {
+    const output = new MemoryOutputSink(true);
+    const reader = new CommandReader(new MemoryInputSource(['help'], false), output);
+    await reader.next();
+    expect(output.lines()).toEqual([`${HIGHLIGHTED}help`]);
+  });
+});

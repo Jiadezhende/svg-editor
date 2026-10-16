@@ -4,6 +4,8 @@ import type OutputSink from '../../src/frontend/io/OutputSink';
 export default class MemoryOutputSink implements OutputSink {
   private buffer = '';
 
+  constructor(readonly colorful = false) {}
+
   write(text: string): void {
     this.buffer += text;
   }

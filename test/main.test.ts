@@ -58,6 +58,44 @@ describe('main 入口（脚本回放）', () => {
     ]);
   });
 
+  it('文档生命周期与画布：无文档、init、覆盖警告、查看与修改尺寸', () => {
+    const script = [
+      'canvas',
+      'canvas a 0',
+      'init 400',
+      'init a 600',
+      'init 0 600',
+      'init',
+      'init 100.5 200',
+      'canvas 1024 768',
+      'canvas 0 600',
+      'canvas',
+    ];
+    expect(runCli(script.join('\n') + '\n').slice(1)).toEqual([
+      'svg> canvas',
+      "error: no document. use 'init' or 'read' first",
+      'svg> canvas a 0',
+      'error: not a number: a',
+      'svg> init 400',
+      'error: wrong number of arguments. usage: init [w] [h]',
+      'svg> init a 600',
+      'error: not a number: a',
+      'svg> init 0 600',
+      'error: canvas size must be positive',
+      'svg> init',
+      'canvas 800x600 created',
+      'svg> init 100.5 200',
+      'warning: previous document discarded',
+      'canvas 100.5x200 created',
+      'svg> canvas 1024 768',
+      'canvas resized to 1024x768',
+      'svg> canvas 0 600',
+      'error: canvas size must be positive',
+      'svg> canvas',
+      'canvas 1024x768',
+    ]);
+  });
+
   it('CRLF 换行的脚本与 LF 结果一致', () => {
     expect(runCli('# c\r\nquit\r\n')).toEqual(["svg-editor 0.1 — type 'help' for commands", 'svg> # c', 'svg> quit']);
   });

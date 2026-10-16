@@ -18,19 +18,24 @@ doc/
 │   └── phaseN/          # 按阶段归档：阶段需求原文 + 拆分后的需求文档
 └── update/
     ├── _TEMPLATE.md     # 更新记录模板
-    └── YYYYMMDD_<TOPIC>.md
+    └── YYYYMMDD_<FEAT|REFACT|FIX>_<TOPIC>.md
 ```
+
+## 工作流程
+
+1. **需求分析**：在 doc/prd/phaseN/ 中撰写需求文档（命名 `YYYYMMDD_<TOPIC>.md`），要求需求之间低耦合，包括时间、需求背景、决策记录、职责边界、cases 处理策略、接口契约。模板：doc/prd/_TEMPLATE.md
+2. **提案**：与开发者讨论，在 doc/update/ 中新建 update 文档（命名 `YYYYMMDD_<FEAT|REFACT|FIX>_<TOPIC>.md`，日期取提案日），写出动因、决策记录、数据模型、架构/流程设计，决策点由开发者逐一确认。模板：doc/update/_TEMPLATE.md
+3. **开发**：决策点全部确认后才进入开发；开发时严格按提案实现，补齐细节而不改动已确认的决策。
+4. **补齐**：开发完成后填写完成时间、测试与验证、遗留问题。
 
 ## 留档
 
-需求分析阶段，在 doc/prd/phaseN/ 中撰写对应需求文档（命名 `YYYYMMDD_<TOPIC>.md`），要求需求之间低耦合，包括时间、需求背景、cases 处理策略、接口契约。模板：doc/prd/_TEMPLATE.md
-
-每个需求开发完毕，在 doc/update/ 中撰写一个更新记录（命名 `YYYYMMDD_<TOPIC>.md`），包括完成时间、关联 prd、分块陈述更新细节（数据模型、架构/流程设计、特殊 cases 验收情况）。模板：doc/update/_TEMPLATE.md
-
-- 新需求需要新建文档
-- 同需求直接更新对应的文档
+- 类型前缀：FEAT 新功能、REFACT 重构、FIX 问题修正（含 AI 产出中发现并纠正的问题）
+- 新需求新建 prd；同需求直接更新对应 prd，不另设修订记录（提交历史即 CHANGELOG）
+- update 与 prd 多对一：每份 update 只关联一份 prd，不做其他交叉引用
+- 开发者做出的决策记入对应文档的"决策记录"
 - 代码开发需要留档，文档更新等杂项不需要
-- 实现与 doc/README.md 架构方案不一致时，提醒开发者并记入修订记录
+- 架构方案写在 update 的"架构/流程设计"中；实现中发现架构不合适时，停下询问开发者，不得自行偏离
 
 ## 编码约束（课程硬性要求）
 

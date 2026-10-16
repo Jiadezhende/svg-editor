@@ -1,7 +1,7 @@
 # FEAT：文档生命周期与画布
 
 - 提案时间：2026-10-16
-- 完成时间：（开发完成后填写）
+- 完成时间：2026-10-16
 - 类型：FEAT
 - 关联 prd：doc/prd/phase1/20261016_DOCUMENT_CANVAS.md
 
@@ -134,10 +134,29 @@ C --> App : CommandResult
 
 ## 测试与验证
 
+`npm test`：12 个测试文件、92 个用例全部通过；`npm run typecheck` 无错误；新增的 Document、Workspace、InitCommand、CanvasCommand 行与分支覆盖率均为 100%。
+
 | 用例 | 验证方式 | 结果 |
 | --- | --- | --- |
-| | | |
+| 无文档时 `init` 输出 `canvas 800x600 created`，不产生警告 | 单元测试（InitCommand）+ 子进程（main.test） | 通过 |
+| `init 400 200` / `init 100.5 200` 按给定尺寸新建并按数值格式回显 | 单元测试（InitCommand）+ 子进程 | 通过 |
+| 已有文档时再次 `init`：先输出一行 `warning: …`，再输出 `canvas <w>x<h> created`，旧文档被替换 | 单元测试（InitCommand、Workspace）+ 子进程 | 通过 |
+| `canvas` 显示当前尺寸；`canvas 1024 768` 修改后再 `canvas` 显示 1024x768 | 单元测试（CanvasCommand）+ 子进程 | 通过 |
+| 修改尺寸不改动 viewBox（`init 200 100` 后 `canvas 400 300`，viewBox 仍为 `0 0 200 100`） | 单元测试（Document、CanvasCommand） | 通过 |
+| `init 0 600` / `canvas -1 600` 报尺寸须为正数；失败时当前文档与画布尺寸不变 | 单元测试（Document、InitCommand、CanvasCommand）+ 子进程 | 通过 |
+| `init 400` / `canvas 400` 报参数个数不符并附语法；`init a 600` 报参数不是数字 | 单元测试（InitCommand、CanvasCommand）+ 子进程 | 通过 |
+| 无文档时 `canvas` / `canvas 1024 768` 报 `error: no document. use 'init' or 'read' first` | 单元测试（Workspace、CanvasCommand）+ 子进程 | 通过 |
+| 无文档时 `canvas a 0` 只报参数不是数字（参数格式先于无文档）；`init 0 a` 先报参数格式 | 单元测试（CanvasCommand、InitCommand）+ 子进程 | 通过 |
+| Client 构造 ConcreteCommand 时传入 Workspace，原有分派、占位、注册校验行为不变 | 单元测试（Client、Command、Invoker）+ 端到端（App） | 通过 |
+
+实现中补齐的细节（未改动已确认的决策）：
+
+- Client 自行创建并持有 Workspace（与 Invoker 一致），`main.ts` 无需改动；
+- Document 以方法暴露 `width()`、`height()`、`viewBox()`（四元组 `[min-x, min-y, width, height]`）；
+- 文案：尺寸非正数 `canvas size must be positive`；覆盖警告 `previous document discarded`；`canvas` 无参回显 `canvas <w>x<h>`，带参回显 `canvas resized to <w>x<h>`。
 
 ## 遗留问题
 
-- （开发完成后填写）
+- "命令在 `execute` 中取 Document"是约定而非类型约束：若某命令在构造函数中调用 `workspace.document()`，无文档会先于参数格式报出。后续命令按此约定编写，评审时留意。
+- 占位命令（含 read）不取 Document，无文档时仍报"尚未实现"；各命令替换为真实实现后自然报"无文档"。
+- `undo` / `redo` 仍为占位，无文档时报"尚未实现"；PRD 规定的"按空栈报错"随撤销需求实现。

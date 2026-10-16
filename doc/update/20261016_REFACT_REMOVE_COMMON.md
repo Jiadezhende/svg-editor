@@ -20,7 +20,7 @@ CLI_REPL 落地后，`common` 中只有 `CommandResult` 与 `EditorError` 两个
 | 议题 | 选项 | 决定 | 理由 |
 | --- | --- | --- | --- |
 | common 的去留 | A：去掉 common，`CommandResult` / `EditorError` 归后端，前端只认字符串，由 App 负责转换；B：保留，改名为 `protocol` 表明是边界数据 | A | B 只改名，前端依赖后端类型的问题仍在；A 下前后端真正互不依赖，App 的"负责通信"落到实处 |
-| 两个类在后端的位置 | A：`backend/` 根目录，与 `Client` 并列；B：新建 `backend/api/` | A | 它们是 Client 对外签名的一部分，与入口放在一起；目前只有两个类，不值得单独分包 |
+| 两个类在后端的位置 | A：`backend/` 根目录，与 `Client` 并列；B：新建 `backend/api/`；C：按归属拆分，`CommandResult` 归入 `command/`，`EditorError` 独立为 `backend/error/` | C | 两者的使用者主要是后端下层（Command、Invoker，以及后续做业务校验的 receiver），放在根目录会让上层入口与底层类型混放，下层模块反向引用根目录；`CommandResult` 是 Command 角色的执行结果；`EditorError` 须位于依赖关系最底层，receiver 不能依赖 command，因此不能放进 `command/`。根目录只保留入口 Client |
 | 前端的分词错误 | A：前端自有异常 `ParseError`，App 同时捕获 `ParseError` 与 `EditorError`；B：Tokenizer 不抛异常而返回错误值 | A | 与后端的报错方式一致；两类错误输出格式相同，在 App 一处合并 |
 | ResultPrinter 的入参 | A：`printResult(warnings, lines)`，接收两组字符串；B：逐条 `printWarning` / `printLine`，由 App 控制顺序 | A | "先警告后结果行"与 `warning:` 前缀的规则仍只在 ResultPrinter 一处 |
 
@@ -28,8 +28,8 @@ CLI_REPL 落地后，`common` 中只有 `CommandResult` 与 `EditorError` 两个
 
 | 类 | 变更 | 说明 |
 | --- | --- | --- |
-| `CommandResult` | 移动：`common/` → `backend/` | 职责不变 |
-| `EditorError` | 移动：`common/` → `backend/` | 只承载后端错误 |
+| `CommandResult` | 移动：`common/` → `backend/command/` | 职责不变；作为 Command 的执行结果 |
+| `EditorError` | 移动：`common/` → `backend/error/` | 只承载后端错误 |
 | `ParseError` | 新增：`frontend/` | 前端输入无法解析时抛出（目前只有引号未闭合） |
 | `Tokenizer` | 修改 | 引号未闭合时改抛 `ParseError` |
 | `ResultPrinter` | 修改 | `printResult(result)` 改为 `printResult(warnings, lines)`，不再依赖 `CommandResult` |
@@ -56,7 +56,14 @@ app --> backend
 
 - frontend 与 backend 互不依赖，也没有共享模块；两者之间的数据转换只在 App 中进行。
 - frontend 对外只交出参数数组与 `ParseError`，只接收字符串；backend 对外只有 `Client`、`CommandResult`、`EditorError`。
-- backend 内部的依赖规则不变；`CommandResult`、`EditorError` 位于 backend 根目录，backend 内各模块均可依赖。
+- backend 根目录只保留入口 `Client`。
+
+backend 内部依赖规则的变化（其余条目沿用 CLI_REPL 提案）：
+
+| 模块 | 可依赖 | 变化 |
+| --- | --- | --- |
+| invoker | `command/Command.ts`、`command/CommandResult.ts` | 新增 `CommandResult`：Invoker 返回命令的执行结果 |
+| error | 无 | 新增：后端各模块（Client、invoker、command、receiver）均可依赖，位于依赖关系最底层 |
 
 ### 主循环（App.run 第 3、4 步的变化）
 
@@ -79,6 +86,7 @@ app --> backend
 | 引号未闭合时 Tokenizer 抛出 `ParseError` | 单元测试（Tokenizer） | 通过 |
 | `ParseError` 经 App 输出为 `error: unclosed quote`，之后继续读取 | 端到端（App） | 通过 |
 | ResultPrinter 接收两组字符串，先警告后结果行 | 单元测试（ResultPrinter） | 通过 |
+| `CommandResult` 位于 `backend/command/`、`EditorError` 位于 `backend/error/`，backend 根目录只有 `Client.ts` | 检查目录结构与 import | 通过 |
 | frontend 与 backend 互不引用，`src/common/` 已删除 | 检索 `src/frontend` 中对 backend、`src/backend` 中对 frontend 的 import，均无结果 | 通过 |
 
 ## 遗留问题

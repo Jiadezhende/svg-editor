@@ -1,7 +1,7 @@
 # FEAT：命令行交互框架（REPL）
 
 - 提案时间：2026-10-16
-- 完成时间：（开发完成后填写）
+- 完成时间：2026-10-16
 - 类型：FEAT
 - 关联 prd：doc/prd/phase1/20261016_CLI_REPL.md
 
@@ -45,6 +45,7 @@
 | ConcreteCommand 的形态 | A：数据与行为同在一个类（GoF）：静态成员是定义，实例字段是本次记录，execute / undo 是执行方法；B：统一记录 `{name, args}` + 无状态处理器 | A | B 的记录是贫血模型，undo 状态无法精确定型，且 undo / redo 需要按名字找回处理器，多出一处按名分派 |
 | Receiver 交给命令的方式 | A：ConcreteCommand 构造时持有 Receiver（GoF 标准形态）；B：执行时由 Invoker 传入 | A | Invoker 只管执行与历史，不需要知道 Receiver；命令在 undo 时也能拿到 Receiver |
 | receiver 的划分 | A：按领域分子包（workspace / document / svg）；B：单一 model 包 | A | 三者变化来源不同：当前文档槽位、图形树规则、文件格式；跨领域的编排由 ConcreteCommand 完成 |
+| 提示符高亮的判定 | A：由输出端声明是否支持彩色（`OutputSink.colorful`），CommandReader 据此选择提示符；B：CommandReader 直接检测 stdout | A | 是否支持颜色是输出设备的属性；CommandReader 不依赖控制台，内存输出端可直接测试两种情况 |
 
 ## 数据模型
 
@@ -68,8 +69,8 @@
 | frontend | `Tokenizer` | 按空白分词；双引号内的内容算一个参数；引号未闭合时抛 `EditorError` |
 | frontend | `ResultPrinter` | 打印横幅；打印 `CommandResult`：先逐条输出 `warning: <消息>`，再输出结果行；打印 `error: <消息>` |
 | frontend/io | `InputSource`（接口） | `next(): Promise<string \| null>`；`interactive` 表示是否交互模式 |
-| frontend/io | `OutputSink`（接口） | `writeLine(text)` |
-| frontend/io | `ConsoleInputSource` / `ConsoleOutputSink` | 控制台实现：基于 readline，用 `stdin.isTTY` 判断是否交互 |
+| frontend/io | `OutputSink`（接口） | `writeLine(text)`；`colorful` 表示是否支持彩色输出（提示符高亮用） |
+| frontend/io | `ConsoleInputSource` / `ConsoleOutputSink` | 控制台实现：基于 readline，用 `stdin.isTTY` 判断是否交互；stdout 为终端且 `hasColors()` 为真时视为彩色输出 |
 | backend | `Client` | 后端唯一入口。持有 `Invoker`、内置命令表（命令名 → 自身方法及 usage）、ConcreteCommand 表和退出标志；`register(cls)` 校验命令名与 usage 非空、不与内置命令及已注册命令重名；`execute(tokens): CommandResult`；`isExitRequested()`；内置命令 `help`（按命令表顺序列出全部 usage）、`exit` / `quit`（请求退出）、`undo` / `redo`（本次占位，报"尚未实现"） |
 | backend/command | `Command` | protected 方法：`expectArgCount(args, ...allowed)`（个数不符时报错并附 usage）、`parseNumber(token)`、`formatNumber(n)`（整数不带小数点，浮点最多 6 位小数并去掉末尾 0，`-0` 输出 `0`） |
 | backend/command | `PlaceholderCommand` | 抽象占位基类：构造时不解析参数，`execute()` 抛出"命令尚未实现" |
@@ -284,10 +285,36 @@ C --> App : CommandResult
 
 ## 测试与验证
 
+`npm test`：8 个测试文件、64 个用例全部通过；`npm run typecheck` 无错误。
+
 | 用例 | 验证方式 | 结果 |
 | --- | --- | --- |
-| | | |
+| 启动打印横幅 `svg-editor 0.1 — type 'help' for commands`，交互模式提示符 `svg> ` | 单元测试（ResultPrinter、CommandReader）+ 端到端（App 交互模式） | 通过 |
+| 注释与空行不执行；脚本模式下注释行回显、空行不回显 | 单元测试（CommandReader）+ 端到端（App） | 通过 |
+| `create text t1 20 40 "My Diagram"` 分词为 6 个参数，引号不计入值 | 单元测试（Tokenizer） | 通过 |
+| `help` 列出全部 21 个命令及语法 | 子进程运行真实入口（main.test） | 通过 |
+| `exit` / `quit` 后不再读取；EOF 结束；进程正常退出 | 端到端（App）+ 子进程（main.test） | 通过 |
+| `npm run cli < script.txt` 不打印提示符，逐行回显 `svg> <原始行>` 后输出结果；CRLF 脚本与 LF 一致 | 子进程（main.test）+ 手工 | 通过 |
+| 输出端支持彩色时提示符（含脚本回显）以粗体青色高亮；管道输出不含颜色控制符 | 单元测试（CommandReader）+ 子进程（main.test）+ 手工 | 通过 |
+| 警告 `warning: <消息>` 先于结果行输出 | 单元测试（ResultPrinter）+ 端到端（App，经 StubCommand） | 通过 |
+| 数字参数 `-10`、`0.5` 合法；`a`、`1e3`、`Infinity` 等报"不是数字" | 单元测试（Command，经 StubCommand） | 通过 |
+| 数值输出 `130`、`0.1+0.2`→`0.3`、`-0`→`0`、最多 6 位小数 | 单元测试（Command） | 通过 |
+| 占位命令（如 `move r1 10 0`）报"尚未实现"，与未知命令区分 | 单元测试（Client）+ 子进程（main.test） | 通过 |
+| `foo` 报未知命令 | 单元测试（Client）+ 端到端 | 通过 |
+| 参数个数不符时报错并附语法（含内置命令带多余参数） | 单元测试（Command、Client）+ 端到端 | 通过 |
+| `create text t1 0 0 "abc` 报引号未闭合 | 单元测试（Tokenizer、CommandReader）+ 端到端 | 通过 |
+| 任一命令失败只输出一行 `error: …`，之后继续读取 | 端到端（App） | 通过 |
+| 注册校验：命令名 / usage 为空、与内置或已注册命令重名时启动即失败 | 单元测试（Client） | 通过 |
+
+实现中补齐的细节（未改动已确认的决策）：
+
+- `OutputSink` 增加 `write(text)`（不换行），用于输出提示符；
+- `ConsoleInputSource` 增加 `close()`，由 `main.ts` 在主循环结束后调用，释放 stdin 使进程在 `exit` / `quit` 后正常结束；
+- `main.ts` 按文件名排序扫描 `impl/`，因此 `help` 先按字母序列出 ConcreteCommand，再按 help、undo、redo、exit、quit 列出内置命令；
+- 错误文案：`unknown command: <name>`、`command not implemented yet: <name>`、`wrong number of arguments. usage: <usage>`、`not a number: <token>`、`unclosed quote`。
 
 ## 遗留问题
 
-- （开发完成后填写）
+- 控制台输入未启用 readline 的终端模式（否则 readline 重绘行时会抹掉由 CommandReader 输出的提示符），行编辑交给终端本身：无历史记录、方向键不可用；Windows 控制台下 EOF 为 Ctrl+Z 回车而非 Ctrl+D。若需要更好的交互体验，可由 InputSource 接管提示符，届时再讨论。
+- `npm run cli` 会先输出 npm 自身的两行脚本信息（`> svg-editor@0.1.0 cli` 等），属于 npm 行为；需要纯净输出时使用 `npm run -s cli`。
+- `main.ts` 的扫描逻辑与控制台 IO 不计入覆盖率（经子进程测试验证，覆盖率工具不统计子进程）。

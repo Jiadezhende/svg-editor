@@ -1,7 +1,7 @@
 # FEAT：显示命令（tree / show）
 
 - 提案时间：2026-10-20
-- 完成时间：YYYY-MM-DD（开发完成后填写）
+- 完成时间：2026-10-20
 - 类型：FEAT
 - 关联 prd：doc/prd/phase1/20261016_DISPLAY.md
 
@@ -98,10 +98,26 @@ draw(node, prefix):
 
 ## 测试与验证
 
+`npm test`：27 个测试文件、239 个用例全部通过；`npm run typecheck` 无错误；本次新增与修改的类行覆盖率均为 100%。
+
 | 用例 | 验证方式 | 结果 |
 | --- | --- | --- |
-| | | |
+| 接口契约示例文档 `tree`：首行 `svg (800x600)`，每行内联核心属性全名，不含外观属性，与示例一致 | 单元测试（TreeCommand）+ 子进程（main.test） | 通过 |
+| `tree markers` 只输出 markers 子树，首行为 `g#markers`；`tree <叶子 id>` 只输出该行 | 单元测试（TreeCommand）+ 子进程 | 通过 |
+| 多层嵌套时连线符号 `├── ` `└── ` `│   ` `    ` 正确；标签与属性间固定 2 个空格，g 行尾无空白 | 单元测试（TreeCommand） | 通过 |
+| `show c1` 与接口契约示例一致：`circle#c1  parent=g#markers` / `  cx=100 cy=100 r=20` / `  fill=red` | 单元测试（ShowCommand）+ 子进程 | 通过 |
+| show：根级图形 `parent=svg`；未设置外观属性时省略外观行；外观行按 fill / stroke / stroke-width 顺序；text 内容加双引号；g 为 `children=<n>` | 单元测试（ShowCommand、Shape、Group、Leaves） | 通过 |
+| 空文档 `tree` 只输出 `svg (<w>x<h>)`（尺寸按数值格式）；空容器 `tree g1` 只输出 `g#g1` | 单元测试（TreeCommand） | 通过 |
+| id 不存在时 `tree` / `show` 报 `error: no such shape: r9` | 单元测试（TreeCommand、ShowCommand）+ 子进程 | 通过 |
+| 无文档时报"无文档"；参数个数不符时报错并附语法 | 单元测试（TreeCommand、ShowCommand）+ 子进程 | 通过 |
+| 显示类命令不改变文档；delete 后 tree 反映新结构 | 单元测试（TreeCommand）+ 子进程 | 通过 |
+
+实现中补齐的细节（未改动已确认的决策）：
+
+- 去掉了 SHAPE_CREATE_DELETE 中只供测试使用的 `Shape.attributes()`（按属性给出名字与输出文本），由 `summary()` / `details()` 取代，相关测试改为断言显示结果；
+- TreeCommand 的首行使用 `Document.label()`（`svg`）拼接画布尺寸。
 
 ## 遗留问题
 
-- 
+- "显示类命令不进入 undo 栈、不影响 undo / redo 禁止状态"目前由"不继承 EditCommand"保证；Invoker 的具体规则随撤销需求落地后再端到端验证。
+- 属性种类的 `format` 现在表示"显示用的输出"：TextSpec 输出带引号。SVG 读写需求中，text 内容写成子文本、数值写成属性时，需要确认是否复用 `format`，或单独定义序列化方式。

@@ -120,12 +120,12 @@ export default abstract class Shape {
     return this.constructor as typeof Shape;
   }
 
-  /** specs 中已设置的属性，以 `名=值` 用空格连接。 */
+  /** specs 中已设置的属性，以 `名=展示值` 用空格连接。 */
   private joined(specs: readonly AttributeSpec[]): string {
     return specs
       .flatMap((spec) => {
         const value = this.values.get(spec.name());
-        return value === undefined ? [] : [`${spec.name()}=${spec.format(value)}`];
+        return value === undefined ? [] : [`${spec.name()}=${spec.display(value)}`];
       })
       .join(' ');
   }

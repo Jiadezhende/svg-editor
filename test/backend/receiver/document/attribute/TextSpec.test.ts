@@ -9,11 +9,15 @@ describe('TextSpec 文本内容', () => {
     expect(() => spec.check('')).not.toThrow();
   });
 
+  it('format 给出值本身，不带引号', () => {
+    expect(spec.format('My Diagram')).toBe('My Diagram');
+  });
+
   it.each([
     ['My Diagram', '"My Diagram"'],
     ['开始', '"开始"'],
     ['', '""'],
-  ])('%j 输出为 %s', (value, expected) => {
-    expect(spec.format(value)).toBe(expected);
+  ])('display %j 输出为 %s', (value, expected) => {
+    expect(spec.display(value)).toBe(expected);
   });
 });

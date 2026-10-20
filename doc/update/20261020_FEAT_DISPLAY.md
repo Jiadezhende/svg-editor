@@ -25,13 +25,15 @@ PRD 已把显示统一为：tree 只显示核心属性（全名 `名=值`），s
 | --- | --- | --- | --- |
 | 核心属性在哪里声明 | A：就是图形类已声明的 `params`（create 必填参数），不新增声明；B：在属性种类上加"是否核心"的标记 | A | 目前核心属性与必填参数完全一致，A 不引入新概念；将来若出现两者不一致的类型（如插件），再加标记 |
 | text 内容加引号放在哪 | A：新增属性种类 `TextSpec`（继承 StringSpec），输出时加双引号；B：Text 类覆盖显示方法 | A | 按属性种类的划分规则（至少一项操作行为不同就拆），text 内容与 fill / stroke 的输出格式已经不同；A 让显示保持对属性表的通用处理，叶子类不需要覆盖 |
+| 属性的取值与展示 | A：分离：`format` 给出值本身的文本形式（不做装饰），展示另用独立的 `display`（默认同 `format`），TextSpec 只覆盖 `display`；B：共用 `format`，TextSpec 的 `format` 直接带引号 | A | 取属性应取真值而非展示结果；save 等场合直接用 `format`，不必剥掉展示用的装饰 |
 | tree 连线的绘制放在哪 | A：TreeCommand 遍历图形树，通过 `asContainer()` 取子节点，负责连线符号与缩进；图形只提供本行的内联属性；B：放在 Shape / Group 中递归生成 | A | 连线符号是 tree 这一种输出的排版，不属于图形本身；遍历对容器与叶子一视同仁（叶子 `asContainer()` 为 null，即没有子节点），不需要判断类型 |
 
 ## 数据模型
 
 | 位置 | 类 | 变更 | 职责 |
 | --- | --- | --- | --- |
-| backend/receiver/document/attribute | `TextSpec` | 新增 | 继承 StringSpec，`format` 输出时加双引号（`"My Diagram"`） |
+| backend/receiver/document/attribute | `AttributeSpec` | 修改 | 新增 `display(value)`：展示用文本，默认同 `format`；`format` 明确为值本身的文本形式 |
+| backend/receiver/document/attribute | `TextSpec` | 新增 | 继承 StringSpec，覆盖 `display`，展示时加双引号（`"My Diagram"`）；`format` 仍为不带引号的原值 |
 | backend/receiver/document/shape | `Text` | 修改 | 内容 `text` 的属性种类由 StringSpec 改为 TextSpec |
 | backend/receiver/document/shape | `Shape` | 修改 | 新增 `summary(): string`（tree 内联：核心属性）、`details(): string[]`（show：核心属性行，外观属性行在有外观属性时才有）；核心属性行由 protected `coreDetail()` 生成，默认为 `params` 依次 `名=值` |
 | backend/receiver/document/shape | `Group` | 修改 | 覆盖 `coreDetail()` 为 `children=<n>`（只用于 show；tree 中 g 不内联属性） |
@@ -88,7 +90,7 @@ draw(node, prefix):
 | --- | --- |
 | 插件类型（box） | 声明 `params` 即自动获得 tree / show 显示；核心属性与必填参数不一致时，再在属性种类上加"核心"标记 |
 | set 修改属性后 | 显示直接读取当前属性值，不需要额外同步 |
-| save | text 内容在 SVG 中写成子文本，不使用 TextSpec 的带引号输出，由 SVG 读写需求处理 |
+| save | 使用 `format` 取值本身（text 内容不带引号），写成属性还是子文本由 SVG 读写需求处理 |
 
 ### 本次不做
 
@@ -98,7 +100,7 @@ draw(node, prefix):
 
 ## 测试与验证
 
-`npm test`：27 个测试文件、239 个用例全部通过；`npm run typecheck` 无错误；本次新增与修改的类行覆盖率均为 100%。
+`npm test`：27 个测试文件、240 个用例全部通过；`npm run typecheck` 无错误；本次新增与修改的类行覆盖率均为 100%。
 
 | 用例 | 验证方式 | 结果 |
 | --- | --- | --- |
@@ -120,4 +122,4 @@ draw(node, prefix):
 ## 遗留问题
 
 - "显示类命令不进入 undo 栈、不影响 undo / redo 禁止状态"目前由"不继承 EditCommand"保证；Invoker 的具体规则随撤销需求落地后再端到端验证。
-- 属性种类的 `format` 现在表示"显示用的输出"：TextSpec 输出带引号。SVG 读写需求中，text 内容写成子文本、数值写成属性时，需要确认是否复用 `format`，或单独定义序列化方式。
+- 数值的 `format` 按数值格式输出（最多 6 位小数）；save 是否沿用这一精度，由 SVG 读写需求确定。

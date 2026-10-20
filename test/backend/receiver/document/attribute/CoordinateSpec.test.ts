@@ -19,7 +19,8 @@ describe('CoordinateSpec 坐标', () => {
     expect(() => spec.parse('abc')).toThrow('not a number: abc');
   });
 
-  it('按数值格式输出', () => {
+  it('按数值格式转文本，展示与之相同', () => {
     expect(spec.format(0.1 + 0.2)).toBe('0.3');
+    expect(spec.display(0.1 + 0.2)).toBe('0.3');
   });
 });

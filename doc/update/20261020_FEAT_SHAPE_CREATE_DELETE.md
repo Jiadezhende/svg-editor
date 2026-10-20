@@ -1,7 +1,7 @@
 # FEAT：图形模型、创建与删除
 
 - 提案时间：2026-10-20
-- 完成时间：YYYY-MM-DD（开发完成后填写）
+- 完成时间：2026-10-20
 - 类型：FEAT
 - 关联 prd：doc/prd/phase1/20261016_SHAPE_CREATE_DELETE.md
 
@@ -219,10 +219,39 @@ M -> D : add(shape, parent)\nid 唯一
 
 ## 测试与验证
 
+`npm test`：24 个测试文件、211 个用例全部通过；`npm run typecheck` 无错误。本次新增与修改的类行覆盖率均为 100%，唯一例外是 CreateCommand 中"`paint` 声明了属性表里没有的属性"这一程序缺陷分支。
+
 | 用例 | 验证方式 | 结果 |
 | --- | --- | --- |
-| | | |
+| `create rect r1 10 20 100 50 #eee` 回显 `rect#r1 created`，挂在画布根末尾，写入几何属性与 fill | 单元测试（CreateCommand）+ 子进程（main.test） | 通过 |
+| `create text t1 20 40 "My Diagram"`：内容为一个参数，不含引号 | 单元测试（CreateCommand）+ 子进程 | 通过 |
+| `create g node1` 后 `create rect start … #4a90d9 in node1` 回显 `rect#start created in g#node1`，成为 node1 的最后一个子节点；容器可嵌套 | 单元测试（CreateCommand、Document、Group）+ 子进程 | 通过 |
+| 省略 fill / stroke 时不写入该属性；6 种内置类型均可创建，属性表与 prd 一致 | 单元测试（CreateCommand、Leaves、Group、Shape） | 通过 |
+| `delete box`（box 在 markers 中）回显 `rect#box deleted`；undo 回显 `rect#box restored into g#markers`，回到原位置 | 单元测试（DeleteCommand） | 通过 |
+| 根级图形删除后 undo 回显 `restored into svg`，回到原位置 | 单元测试（DeleteCommand） | 通过 |
+| delete 容器：连同子孙删除，子孙 id 均不可再访问；undo 后全部恢复，父子关系不变 | 单元测试（DeleteCommand、Group、ChildList）+ 子进程 | 通过 |
+| id 大小写敏感；`start-label` 合法；`1abc` 等不合法时报 `invalid id` | 单元测试（Shape、Document、CreateCommand）+ 子进程 | 通过 |
+| id 已存在（含容器 id、容器内子孙）报 `id already exists`，文档不变 | 单元测试（Document、CreateCommand）+ 子进程 | 通过 |
+| delete 的 id 不存在报 `no such shape`；`in` 目标不存在 / 不是容器分别报 `no such container` / `not a container` | 单元测试（Document、DeleteCommand、CreateCommand）+ 子进程 | 通过 |
+| `create hexagon h1` / `create box …` 报 `unknown shape type: … (is the plugin loaded?)` | 单元测试（ShapeFactory、CreateCommand）+ 子进程 | 通过 |
+| 参数取值：几何参数须为数字，尺寸类不得为负（0 合法），坐标可为负或浮点，颜色不校验 | 单元测试（各属性种类、Leaves、CreateCommand）+ 子进程 | 通过 |
+| 可选颜色位上的 `in` 一律视为关键字，`create rect r2 0 0 10 10 in` 报参数个数不符并附该类型语法；text 内容位上的 `in` 视为内容 | 单元测试（CreateCommand）+ 子进程 | 通过 |
+| 校验阶段：未注册类型 → 参数个数 → 数字在构造时报出（无文档也先报）；无文档先于 id 合法字符、尺寸非负、`in` 目标等业务校验 | 单元测试（CreateCommand） | 通过 |
+| create / delete 的 undo 后再次 execute（redo）回显与首次相同 | 单元测试（CreateCommand、DeleteCommand） | 通过 |
+| 数值规则抽为 DecimalFormat 后，init / canvas 与 Command 通用校验行为不变 | 单元测试（Command、DecimalFormat）+ 原有子进程用例 | 通过 |
+
+实现中补齐的细节（未改动已确认的决策）：
+
+- 数值的解析与输出规则从 Command 抽为 `DecimalFormat`（receiver/document/attribute），Command 的 `parseNumber` / `formatNumber` 与 NumericSpec 共用同一份规则；依赖方向为 command → receiver，符合既有规则；
+- Command 新增 `wrongArgCount(usage?)`：create 的参数个数随类型变化，报错时附该类型的完整语法（如 `create rect <id> <x> <y> <width> <height> [fill] [in <containerId>]`）；
+- 不得为负的校验作为 NumericSpec 的 protected 方法，由 LengthSpec 与 StrokeWidthSpec 共用；CoordinateSpec 的 `axis()` 本次已暴露，供 move 使用；
+- 父节点由 ChildList 在插入 / 摘除时经 `Shape.attachTo` / `detach` 维护；未加入文档时取 `parent()`、重复插入、摘除非子节点、execute 前 undo 均视为程序缺陷（抛普通 Error）；
+- 5 个叶子类只有声明，共用一份参数化单元测试（Leaves.test），未按类拆文件；
+- 文案：id 不合法 `invalid id: <id>`；尺寸为负 `<attr> must be non-negative`；create 的 undo 回显 `<type>#<id> removed`。
 
 ## 遗留问题
 
-- 
+- CLI 中 `undo` / `redo` 仍为占位；create / delete 的 `undo()` 与"redo 即再次 execute"只经单元测试验证，随撤销需求接入 Invoker 后才能端到端验证。
+- `Document.add` 只检查新图形自身的 id，适用于 create（新图形没有子孙）；后续若加入带子孙的图形（如 read、插件类型 box），需改为检查整棵子树的 id。
+- create 的业务校验顺序为：无文档 → `in` 目标 → id 合法字符 / 尺寸非负 → id 唯一。prd 只规定了"无文档最先"，其余顺序由实现自然决定。
+- 属性值存于 Map，读取时没有字段级的类型约束（决策时已接受的代价）；text 内容的序列化方式随 SVG 读写确定。

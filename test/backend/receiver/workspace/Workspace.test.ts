@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import Document from '../../../../src/backend/receiver/document/Document';
 import EditorError from '../../../../src/backend/error/EditorError';
+import Rect from '../../../../src/backend/receiver/document/shape/Rect';
 
 describe('Workspace 当前文档槽位', () => {
   it('无文档时取文档报"无文档"', () => {
@@ -21,5 +22,12 @@ describe('Workspace 当前文档槽位', () => {
     const next = new Document(400, 200);
     expect(workspace.replace(next)).toBe(true);
     expect(workspace.document()).toBe(next);
+  });
+
+  it('持有图形工厂：无文档时也可取用，每个 Workspace 一份', () => {
+    const workspace = new Workspace();
+    expect(workspace.shapes().lookup('rect')).toBe(Rect);
+    expect(workspace.shapes()).toBe(workspace.shapes());
+    expect(new Workspace().shapes()).not.toBe(workspace.shapes());
   });
 });

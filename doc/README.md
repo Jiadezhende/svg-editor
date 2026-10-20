@@ -39,7 +39,7 @@ SVG 是用 XML 文本描述矢量图形的格式：纯文本、树形结构（`<
 
 | 位置 | 名字 → 对象 | 翻译之后 | 待重构：条目由谁登记 |
 | --- | --- | --- | --- |
-| `Client.execute`（[Client.ts](../src/backend/Client.ts)） | 命令名 → 内置命令 / ConcreteCommand 类 | 命令对象自己解析参数、执行、撤销；Invoker 只认抽象 `Command` | 现状：`main.ts` 扫描 `command/impl/` 自动注册，新增内核命令不改 Client。待重构：内核之外的插件命令目前无法注册，需开放注册插槽 |
+| `Client.execute`（[Client.ts](../src/backend/Client.ts)） | 命令名 → 内置命令 / ConcreteCommand 类；同名多形式（如 `canvas` 与 `canvas <w> <h>`）由各形式的 `accepts` 按参数结构唯一命中 | 命令对象自己解析参数、执行、撤销；Invoker 只认抽象 `Command` | 现状：`main.ts` 扫描 `command/impl/` 自动注册，新增内核命令不改 Client。待重构：内核之外的插件命令目前无法注册，需开放注册插槽 |
 | `ShapeFactory.lookup`（[ShapeFactory.ts](../src/backend/receiver/document/shape/ShapeFactory.ts)） | 图形类型名 → 图形类（create 使用，后续 read 按元素名复用） | 查找、删除、撤销，以及后续的平移、缩放、显示、序列化，都由 Shape / Group 的覆盖和属性种类的多态完成 | 现状：内置 6 类写死在工厂的构造函数中。待重构：插件阶段改为由 ShapeProvider 各自注册，工厂只负责查表 |
 
 以下几处也比较了名字或字符，但都不是按名分派：
@@ -51,4 +51,10 @@ SVG 是用 XML 文本描述矢量图形的格式：纯文本、树形结构（`<
 | `Tokenizer` / `CommandReader` | 字符比较（引号、空行） | 词法处理 |
 | `App` | 用 `instanceof` 区分可报告的错误与程序缺陷 | 错误分类，不选择业务行为 |
 
-自查方式：以 `switch`、与字符串字面量的比较、`Map.get`、`instanceof` 为关键词检索 `src/`，逐条归类。最近一次自查于 DISPLAY 完成时（2026-10-20），新增的命中均为空串判断，后续每个需求完成时复查。
+以下一处按类型（而非名字）选择行为，属于开发者决策（见 doc/update/20261020_FEAT_UNDO_REDO.md）：
+
+| 位置 | 内容 | 说明 |
+| --- | --- | --- |
+| `Invoker.execute`（[Invoker.ts](../src/backend/invoker/Invoker.ts)） | 用 `instanceof` 分两支：EditCommand 入撤销栈，DocumentCommand 清空历史并禁止 undo / redo | 行为只有两条分支，集中在 Invoker 一处；不是课程禁止的"到处 `switch(tag)`"。新增命令类别时需在此增加分支 |
+
+自查方式：以 `switch`、与字符串字面量的比较、`Map.get`、`instanceof` 为关键词检索 `src/`，逐条归类。最近一次自查于 UNDO_REDO 完成时（2026-10-20），后续每个需求完成时复查。

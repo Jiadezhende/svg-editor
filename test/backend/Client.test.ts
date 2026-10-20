@@ -30,6 +30,54 @@ class HelpCommand extends PlaceholderCommand {
   static override readonly usage = 'help';
 }
 
+/** 同名两种形式：`pair` 与 `pair <a> <b>`。 */
+class PairShowCommand extends Command {
+  static override readonly command = 'pair';
+  static override readonly usage = 'pair';
+  static override accepts(args: readonly string[]): boolean {
+    return args.length === 0;
+  }
+  execute(): CommandResult {
+    return new CommandResult().line('show form');
+  }
+}
+
+class PairSetCommand extends Command {
+  static override readonly command = 'pair';
+  static override readonly usage = 'pair <a> <b>';
+  constructor(_workspace: unknown, args: readonly string[]) {
+    super();
+    this.expectArgCount(args, 2);
+  }
+  static override accepts(args: readonly string[]): boolean {
+    return args.length > 0;
+  }
+  execute(): CommandResult {
+    return new CommandResult().line('set form');
+  }
+}
+
+/** 与 PairShowCommand 范围重叠的形式。 */
+class PairOverlapCommand extends Command {
+  static override readonly command = 'pair';
+  static override readonly usage = 'pair [x]';
+  static override accepts(args: readonly string[]): boolean {
+    return args.length <= 1;
+  }
+  execute(): CommandResult {
+    return new CommandResult();
+  }
+}
+
+/** 同名但未覆盖 accepts 的形式。 */
+class PairDefaultCommand extends Command {
+  static override readonly command = 'pair';
+  static override readonly usage = 'pair <any…>';
+  execute(): CommandResult {
+    return new CommandResult();
+  }
+}
+
 function createClient(): Client {
   const client = new Client();
   client.register(StubCommand);
@@ -81,8 +129,11 @@ describe('Client 内置命令', () => {
     expect(client.isExitRequested()).toBe(true);
   });
 
-  it.each(['undo', 'redo'])('%s 本次占位，报"尚未实现"', (name) => {
-    expect(() => createClient().execute([name])).toThrow(`command not implemented yet: ${name}`);
+  it.each([
+    ['undo', 'nothing to undo'],
+    ['redo', 'nothing to redo'],
+  ])('%s 交给 Invoker：历史为空时报错', (name, message) => {
+    expect(() => createClient().execute([name])).toThrow(new EditorError(message));
   });
 
   it('内置命令带多余参数时报错并附语法', () => {
@@ -90,6 +141,57 @@ describe('Client 内置命令', () => {
     expect(() => client.execute(['help', 'x'])).toThrow('wrong number of arguments. usage: help');
     expect(() => client.execute(['exit', 'now'])).toThrow('usage: exit');
     expect(client.isExitRequested()).toBe(false);
+  });
+});
+
+describe('Client 同名多形式', () => {
+  function pairClient(): Client {
+    const client = new Client();
+    client.register(PairShowCommand);
+    client.register(PairSetCommand);
+    return client;
+  }
+
+  it('按参数结构选出唯一接受的形式', () => {
+    const client = pairClient();
+    expect(client.execute(['pair']).lines()).toEqual(['show form']);
+    expect(client.execute(['pair', '1', '2']).lines()).toEqual(['set form']);
+  });
+
+  it('选中形式后由其构造函数校验内容：个数不符时报该形式的语法', () => {
+    expect(() => pairClient().execute(['pair', '1'])).toThrow(new EditorError('wrong number of arguments. usage: pair <a> <b>'));
+  });
+
+  it('注册顺序不影响选择', () => {
+    const client = new Client();
+    client.register(PairSetCommand);
+    client.register(PairShowCommand);
+    expect(client.execute(['pair']).lines()).toEqual(['show form']);
+  });
+
+  it('没有形式接受时报参数个数不符，列出全部语法', () => {
+    const client = new Client();
+    client.register(PairShowCommand);
+    client.register(class extends PairSetCommand {
+      static override accepts(args: readonly string[]): boolean {
+        return args.length === 2;
+      }
+    });
+    expect(() => client.execute(['pair', '1'])).toThrow(
+      new EditorError('wrong number of arguments. usage: pair | pair <a> <b>'),
+    );
+  });
+
+  it('多个形式同时接受属于程序缺陷', () => {
+    const client = new Client();
+    client.register(PairShowCommand);
+    client.register(PairOverlapCommand);
+    expect(() => client.execute(['pair'])).toThrow('ambiguous forms of pair');
+    expect(() => client.execute(['pair'])).not.toThrow(EditorError);
+  });
+
+  it('help 逐个列出各形式的语法', () => {
+    expect(pairClient().execute(['help']).lines().slice(0, 2)).toEqual(['pair', 'pair <a> <b>']);
   });
 });
 
@@ -103,8 +205,14 @@ describe('Client 注册校验', () => {
     expect(() => new Client().register(HelpCommand)).toThrow('duplicate command: help');
   });
 
-  it('与已注册命令重名时失败', () => {
+  it('重复注册同一个类时失败', () => {
     const client = createClient();
     expect(() => client.register(StubCommand)).toThrow('duplicate command: stub');
+  });
+
+  it('同名多形式中有形式未覆盖 accepts 时失败', () => {
+    const client = new Client();
+    client.register(PairShowCommand);
+    expect(() => client.register(PairDefaultCommand)).toThrow('command pair has multiple forms; each must override static accepts');
   });
 });

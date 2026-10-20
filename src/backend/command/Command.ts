@@ -6,6 +6,7 @@ import DecimalFormat from '../receiver/document/attribute/DecimalFormat';
  * Command 模式中的抽象命令。
  *
  * 静态成员即命令定义：子类覆盖 `command`（命令名）与 `usage`（语法），注册时由 Client 校验非空；
+ * 同一命令名可有多个形式（如 `canvas` 与 `canvas <w> <h>`），各形式覆盖 `accepts` 声明自己接受的参数结构。
  * 构造函数即工厂：子类在构造时解析参数，每次执行都是一个独立对象。
  */
 export default abstract class Command {
@@ -13,6 +14,14 @@ export default abstract class Command {
   static readonly usage: string = '';
 
   private static readonly decimal = new DecimalFormat();
+
+  /**
+   * 本形式是否接受这组参数：只看结构（如个数），内容由构造函数校验。
+   * 默认接受任意参数；同名多形式时各形式须覆盖，且彼此互斥。
+   */
+  static accepts(_args: readonly string[]): boolean {
+    return true;
+  }
 
   abstract execute(): CommandResult;
 

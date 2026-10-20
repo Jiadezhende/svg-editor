@@ -38,7 +38,7 @@ describe('Shape 通用行为', () => {
     expect(() => new Rect('r1', bad)).not.toThrow(EditorError);
   });
 
-  it('属性表为必填参数加外观属性；attributes 只给出已设置的属性，按表顺序输出', () => {
+  it('属性表为必填参数加外观属性', () => {
     expect(Rect.attributes().map((spec) => spec.name())).toEqual([
       'x',
       'y',
@@ -48,13 +48,25 @@ describe('Shape 通用行为', () => {
       'stroke',
       'stroke-width',
     ]);
-    expect(new Rect('r1', new Map(geometry).set('fill', '#eee')).attributes()).toEqual([
-      ['x', '10'],
-      ['y', '20'],
-      ['width', '100'],
-      ['height', '50'],
-      ['fill', '#eee'],
+  });
+
+  it('summary 只给出核心属性（必填参数），不含外观属性', () => {
+    const rect = new Rect('r1', new Map(geometry).set('fill', '#eee'));
+    expect(rect.summary()).toBe('x=10 y=20 width=100 height=50');
+  });
+
+  it('details：核心属性行，外观属性按属性表顺序列在第二行；未设置外观属性时只有一行', () => {
+    expect(new Rect('r1', geometry).details()).toEqual(['x=10 y=20 width=100 height=50']);
+    const styled = new Map(geometry).set('stroke-width', 2.5).set('fill', 'red').set('stroke', 'black');
+    expect(new Rect('r1', styled).details()).toEqual([
+      'x=10 y=20 width=100 height=50',
+      'fill=red stroke=black stroke-width=2.5',
     ]);
+  });
+
+  it('数值按数值格式输出', () => {
+    const rect = new Rect('r1', new Map(geometry).set('x', 0.1 + 0.2).set('y', -0));
+    expect(rect.summary()).toBe('x=0.3 y=0 width=100 height=50');
   });
 
   it('attribute 按名字查属性表，没有时返回 null', () => {

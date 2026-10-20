@@ -12,7 +12,15 @@ describe('Group 容器', () => {
     expect(group.label()).toBe('g#scene');
     expect(Group.params).toEqual([]);
     expect(Group.paint).toBeNull();
-    expect(group.attributes()).toEqual([]);
+  });
+
+  it('tree 中不内联属性；show 的核心属性行为子节点个数，外观属性照常列出', () => {
+    const group = new Group('g1', new Map([['fill', 'red']]));
+    expect(group.summary()).toBe('');
+    expect(group.details()).toEqual(['children=0', 'fill=red']);
+    group.insert(circle('a'));
+    group.insert(circle('b'));
+    expect(group.details()).toEqual(['children=2', 'fill=red']);
   });
 
   it('是容器：asContainer 返回自身', () => {

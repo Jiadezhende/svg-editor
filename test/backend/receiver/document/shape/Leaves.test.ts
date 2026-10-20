@@ -31,3 +31,11 @@ describe.each<[typeof Shape, string, string[], string | null, string[]]>([
     }
   });
 });
+
+describe('Text 的显示', () => {
+  it('内容加双引号', () => {
+    const text = new Text('t1', new Map<string, number | string>([['x', 20], ['y', 40], ['text', 'My Diagram']]));
+    expect(text.summary()).toBe('x=20 y=40 text="My Diagram"');
+    expect(text.details()).toEqual(['x=20 y=40 text="My Diagram"']);
+  });
+});

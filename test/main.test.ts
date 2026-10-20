@@ -96,6 +96,73 @@ describe('main 入口（脚本回放）', () => {
     ]);
   });
 
+  it('图形创建与删除：in 子句、各类报错、容器连同子孙删除', () => {
+    const script = [
+      'create rect r1 0 0 10 10',
+      'init',
+      'create rect r1 10 20 100 50 #eee',
+      'create text t1 20 40 "My Diagram"',
+      'create g node1',
+      'create rect start 120 100 160 60 #4a90d9 in node1',
+      'create text start-label 155 135 "开始" in node1',
+      'create rect 1abc 0 0 1 1',
+      'create rect r1 0 0 1 1',
+      'create circle c1 0 0 -5',
+      'create rect r2 0 0 1 1 in node9',
+      'create rect r2 0 0 1 1 in start',
+      'create rect r2 0 0 10 10 in',
+      'create rect r2 a 0 1 1',
+      'create hexagon h1',
+      'create box n1 0 0 10 10 "t"',
+      'delete node1',
+      'delete start',
+      'delete r9',
+      'create g node1',
+    ];
+    expect(runCli(script.join('\n') + '\n').slice(1)).toEqual([
+      'svg> create rect r1 0 0 10 10',
+      "error: no document. use 'init' or 'read' first",
+      'svg> init',
+      'canvas 800x600 created',
+      'svg> create rect r1 10 20 100 50 #eee',
+      'rect#r1 created',
+      'svg> create text t1 20 40 "My Diagram"',
+      'text#t1 created',
+      'svg> create g node1',
+      'g#node1 created',
+      'svg> create rect start 120 100 160 60 #4a90d9 in node1',
+      'rect#start created in g#node1',
+      'svg> create text start-label 155 135 "开始" in node1',
+      'text#start-label created in g#node1',
+      'svg> create rect 1abc 0 0 1 1',
+      'error: invalid id: 1abc',
+      'svg> create rect r1 0 0 1 1',
+      'error: id already exists: r1',
+      'svg> create circle c1 0 0 -5',
+      'error: r must be non-negative',
+      'svg> create rect r2 0 0 1 1 in node9',
+      'error: no such container: node9',
+      'svg> create rect r2 0 0 1 1 in start',
+      'error: not a container: start',
+      'svg> create rect r2 0 0 10 10 in',
+      'error: wrong number of arguments. usage: create rect <id> <x> <y> <width> <height> [fill] [in <containerId>]',
+      'svg> create rect r2 a 0 1 1',
+      'error: not a number: a',
+      'svg> create hexagon h1',
+      'error: unknown shape type: hexagon (is the plugin loaded?)',
+      'svg> create box n1 0 0 10 10 "t"',
+      'error: unknown shape type: box (is the plugin loaded?)',
+      'svg> delete node1',
+      'g#node1 deleted',
+      'svg> delete start',
+      'error: no such shape: start',
+      'svg> delete r9',
+      'error: no such shape: r9',
+      'svg> create g node1',
+      'g#node1 created',
+    ]);
+  });
+
   it('CRLF 换行的脚本与 LF 结果一致', () => {
     expect(runCli('# c\r\nquit\r\n')).toEqual(["svg-editor 0.1 — type 'help' for commands", 'svg> # c', 'svg> quit']);
   });

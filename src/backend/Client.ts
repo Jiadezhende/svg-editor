@@ -107,11 +107,11 @@ export default class Client {
   }
 
   private undo(): CommandResult {
-    throw new EditorError('command not implemented yet: undo');
+    return this.invoker.undo();
   }
 
   private redo(): CommandResult {
-    throw new EditorError('command not implemented yet: redo');
+    return this.invoker.redo();
   }
 
   private exit(): CommandResult {

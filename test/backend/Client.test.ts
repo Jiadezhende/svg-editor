@@ -129,8 +129,11 @@ describe('Client 内置命令', () => {
     expect(client.isExitRequested()).toBe(true);
   });
 
-  it.each(['undo', 'redo'])('%s 本次占位，报"尚未实现"', (name) => {
-    expect(() => createClient().execute([name])).toThrow(`command not implemented yet: ${name}`);
+  it.each([
+    ['undo', 'nothing to undo'],
+    ['redo', 'nothing to redo'],
+  ])('%s 交给 Invoker：历史为空时报错', (name, message) => {
+    expect(() => createClient().execute([name])).toThrow(new EditorError(message));
   });
 
   it('内置命令带多余参数时报错并附语法', () => {

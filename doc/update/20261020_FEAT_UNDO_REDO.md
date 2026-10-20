@@ -1,7 +1,7 @@
 # FEAT：撤销与重做
 
 - 提案时间：2026-10-20
-- 完成时间：YYYY-MM-DD（开发完成后填写）
+- 完成时间：2026-10-20
 - 类型：FEAT
 - 关联 prd：doc/prd/phase1/20261016_UNDO_REDO.md
 
@@ -122,10 +122,29 @@ execute(command: Command): CommandResult {
 
 ## 测试与验证
 
+`npm test`：29 个测试文件、258 个用例全部通过；`npm run typecheck` 无错误；本次新增与修改的类行覆盖率均为 100%。
+
 | 用例 | 验证方式 | 结果 |
 | --- | --- | --- |
-| | | |
+| 编辑命令 → `undo` → `redo`：undo 回显为该命令的撤销回显，redo 回显与原命令相同（以 create / delete 验证，move 随其命令落地后补） | 单元测试（Invoker）+ 子进程（main.test） | 通过 |
+| 一条编辑命令 = 一个 undo 单元；undo 后文档状态（属性值、父容器、兄弟间顺序）与执行前一致（delete 容器后 undo，tree 与删除前相同；group 随其命令落地后补） | 子进程 | 通过 |
+| `undo` → 新的编辑命令 → `redo`：重做栈已清空，报 `nothing to redo` | 单元测试（Invoker） | 通过 |
+| 编辑命令执行失败（如 id 重复）：不入栈、不清空重做栈、不改变禁止状态 | 单元测试（Invoker）+ 子进程 | 通过 |
+| tree / show / help / `canvas`（无参）不影响任何 undo / redo 行为 | 单元测试（Invoker）+ 子进程 | 通过 |
+| 文档类命令（init、`canvas <w> <h>`）后 `undo` 报 `error: undo not allowed after io command`，`redo` 报 `error: redo not allowed after io command` | 单元测试（Invoker）+ 子进程 | 通过 |
+| 文档类命令后执行一次成功的编辑命令即解禁，且只能撤销之后的编辑（之前的历史已清空） | 单元测试（Invoker）+ 子进程 | 通过 |
+| 栈为空时 `undo` / `redo` 报 `nothing to undo` / `nothing to redo`；无文档时同样按空栈报错 | 单元测试（Invoker、Client）+ 子进程 | 通过 |
+| 同名多形式：按 `accepts` 唯一命中选择，与注册顺序无关；无命中报参数个数不符并列出全部语法；多个命中为程序缺陷；同名多形式中有形式未覆盖 `accepts` 时启动即失败 | 单元测试（Client） | 通过 |
+| canvas 两种形式：`canvas` 查看、`canvas 1024 768` 修改；`canvas 400` 报 `usage: canvas <w> <h>`；`canvas a b` 报 `not a number: a`；help 中各占一行 | 单元测试（CanvasShowCommand、CanvasResizeCommand）+ 子进程 | 通过 |
+
+实现中补齐的细节（未改动已确认的决策）：
+
+- 原 CanvasCommand 的测试按两个形式拆分；`canvas` 无参的回显 `canvas <w>x<h>`、带参的回显 `canvas resized to <w>x<h>` 不变；
+- CLI_REPL 的命令表中 canvas 的语法改为 `canvas`、`canvas <w> <h>` 两种形式；
+- 文案：空栈 `nothing to undo` / `nothing to redo`；禁止中的 redo 为 `redo not allowed after io command`。
 
 ## 遗留问题
 
-- 
+- PRD 中以 move、group 为例的 cases 只以 create / delete 验证了同样的规则，move、group 落地后需在其提案中补充端到端验证。
+- read / save 仍为占位，落地时须改为继承 DocumentCommand。
+- 同名形式之间的互斥目前靠各形式自己保证，重叠只在实际输入时才会作为程序缺陷暴露（canvas 的两种形式已由单元测试验证互斥）。

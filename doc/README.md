@@ -26,3 +26,27 @@ SVG 是用 XML 文本描述矢量图形的格式：纯文本、树形结构（`<
 | --- | --- |
 | Phase 1 | CLI 编辑器内核：文档读写、六种内置图形（rect / circle / ellipse / line / text / g）、编辑命令、结构树显示、undo / redo |
 | 后续阶段 | 插件化扩展，例如以 ShapeProvider 插件注册复合图形类型 `box`（带标题的矩形框），内核无需改动 |
+
+## 一致性自查
+
+### 按名分派
+
+编码约束要求：按名字分派只允许出现在命令分发和图形工厂两处，并须标注为待重构。
+
+项目中按名字选择行为的地方只有下面两处。两处都位于"文本 → 对象"的边界：用户输入的是文本，总要有一处把名字翻译成对象；翻译完成后，所有行为都由多态完成，不再查看名字。
+
+| 位置 | 名字 → 对象 | 翻译之后 | 待重构方向 |
+| --- | --- | --- | --- |
+| `Client.execute`（[Client.ts](../src/backend/Client.ts)） | 命令名 → 内置命令 / ConcreteCommand 类 | 命令对象自己解析参数、执行、撤销；Invoker 只认抽象 `Command` | 注册已经开放：`main.ts` 扫描 `command/impl/` 自动注册，新增命令不改 Client。剩下的查表是文本边界本身 |
+| `ShapeFactory.lookup`（[ShapeFactory.ts](../src/backend/receiver/document/shape/ShapeFactory.ts)） | 图形类型名 → 图形类（create 使用，后续 read 按元素名复用） | 查找、删除、撤销，以及后续的平移、缩放、显示、序列化，都由 Shape / Group 的覆盖和属性种类的多态完成 | 内置 6 类目前写死在工厂的构造函数中；插件阶段改为由 ShapeProvider 各自注册，工厂只负责查表 |
+
+以下几处也比较了名字或字符，但都不是按名分派：
+
+| 位置 | 内容 | 不属于按名分派的原因 |
+| --- | --- | --- |
+| `Shape.attribute(name)` | 按属性名在图形类声明的属性表中查找属性种类 | 查的是数据（属性表条目），不依据图形类型选择行为；取到的属性种类再以多态完成解析与校验 |
+| `CreateCommand` | 识别 `in` 关键字 | 语法解析 |
+| `Tokenizer` / `CommandReader` | 字符比较（引号、空行） | 词法处理 |
+| `App` | 用 `instanceof` 区分可报告的错误与程序缺陷 | 错误分类，不选择业务行为 |
+
+自查方式：以 `switch`、与字符串字面量的比较、`Map.get`、`instanceof` 为关键词检索 `src/`，逐条归类。最近一次自查于 SHAPE_CREATE_DELETE 完成时（2026-10-20），后续每个需求完成时复查。

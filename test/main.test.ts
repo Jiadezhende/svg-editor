@@ -17,7 +17,7 @@ function runCli(script: string): string[] {
 }
 
 describe('main 入口（脚本回放）', () => {
-  it('help 列出全部 21 个命令及语法', () => {
+  it('help 列出全部命令及语法（canvas 两种形式各占一行）', () => {
     const lines = runCli('help\n');
     expect(lines.slice(0, 2)).toEqual(["svg-editor 0.1 — type 'help' for commands", 'svg> help']);
     expect([...lines.slice(2)].sort()).toEqual(
@@ -25,7 +25,8 @@ describe('main 入口（脚本回放）', () => {
         'init [w] [h]',
         'read <file.svg>',
         'save [file.svg]',
-        'canvas [<w> <h>]',
+        'canvas',
+        'canvas <w> <h>',
         'create <type> <id> [params…] [in <containerId>]',
         'delete <id>',
         'move <id> <dx> <dy>',

@@ -10,4 +10,5 @@ export default class Line extends Shape {
     new CoordinateSpec('y2', 'y'),
   ];
   static override readonly paint = 'stroke';
+  static override readonly anchor = ['x1', 'y1'] as const;
 }

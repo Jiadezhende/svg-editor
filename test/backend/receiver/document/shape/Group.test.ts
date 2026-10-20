@@ -60,3 +60,47 @@ describe('Group 容器', () => {
     expect(outer.find('none')).toBeNull();
   });
 });
+
+describe('Group 统一操作（Composite）', () => {
+  function tree(): { outer: Group; inner: Group; a: Circle; b: Circle } {
+    const outer = new Group('outer', new Map([['fill', 'red']]));
+    const inner = new Group('inner');
+    const [a, b] = [circle('a'), circle('b')];
+    outer.insert(a);
+    outer.insert(inner);
+    inner.insert(b);
+    return { outer, inner, a, b };
+  }
+
+  it('move 递归到每个子孙', () => {
+    const { outer, a, b } = tree();
+    outer.move(10, -5);
+    expect(a.summary()).toBe('cx=10 cy=-5 r=1');
+    expect(b.summary()).toBe('cx=10 cy=-5 r=1');
+  });
+
+  it('scale 递归到每个子孙，位置与尺寸同乘', () => {
+    const { outer, b } = tree();
+    outer.move(10, 10);
+    outer.scale(2);
+    expect(b.summary()).toBe('cx=20 cy=20 r=2');
+  });
+
+  it('set 只作用于容器自身，只接受外观属性', () => {
+    const { outer, a } = tree();
+    outer.set('stroke', 'black');
+    expect(outer.details()).toEqual(['children=2', 'fill=red stroke=black']);
+    expect(a.display('stroke')).toBeNull();
+    expect(() => outer.set('x', '1')).toThrow('unknown attribute: x');
+  });
+
+  it('快照包含整棵子树，restore 后全部还原', () => {
+    const { outer, a, b } = tree();
+    const memento = outer.capture();
+    outer.move(0.1, 0.2);
+    outer.scale(3);
+    outer.set('fill', 'blue');
+    memento.restore();
+    expect([a.value('cx'), b.value('cy'), outer.value('fill')]).toEqual([0, 0, 'red']);
+  });
+});

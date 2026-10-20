@@ -39,3 +39,33 @@ describe('ShapeFactory 图形工厂', () => {
     expect(() => factory.register(Rect)).toThrow('duplicate shape type: rect');
   });
 });
+
+describe('ShapeFactory 锚点校验', () => {
+  it('锚点不是本类的 x / y 坐标属性时启动即失败', () => {
+    class Missing extends Shape {
+      static override readonly type = 'missing';
+      static override readonly params = Rect.params;
+      static override readonly anchor: readonly [string, string] = ['cx', 'cy'];
+    }
+    class Swapped extends Shape {
+      static override readonly type = 'swapped';
+      static override readonly params = Rect.params;
+      static override readonly anchor: readonly [string, string] = ['y', 'x'];
+    }
+    class NotCoordinate extends Shape {
+      static override readonly type = 'length';
+      static override readonly params = Rect.params;
+      static override readonly anchor: readonly [string, string] = ['width', 'y'];
+    }
+    const factory = new ShapeFactory();
+    expect(() => factory.register(Missing)).toThrow('missing anchor cx must be a x coordinate');
+    expect(() => factory.register(Swapped)).toThrow('swapped anchor y must be a x coordinate');
+    expect(() => factory.register(NotCoordinate)).toThrow('length anchor width must be a x coordinate');
+  });
+
+  it('没有锚点的类型可正常注册', () => {
+    const factory = new ShapeFactory();
+    factory.register(Hexagon);
+    expect(factory.lookup('hexagon').anchor).toBeNull();
+  });
+});

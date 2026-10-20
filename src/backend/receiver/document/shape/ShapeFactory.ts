@@ -9,7 +9,7 @@ import type Shape from './Shape';
 import Text from './Text';
 
 /** 可注册的图形类：静态部分即定义，构造函数即工厂。 */
-export type ShapeClass = Pick<typeof Shape, 'type' | 'params' | 'paint' | 'attributes' | 'attribute'> &
+export type ShapeClass = Pick<typeof Shape, 'type' | 'params' | 'paint' | 'anchor' | 'attributes' | 'attribute'> &
   (new (id: string, values?: ReadonlyMap<string, AttributeValue>) => Shape);
 
 /**
@@ -26,7 +26,7 @@ export default class ShapeFactory {
     }
   }
 
-  /** 注册图形类；类型名缺失或重名属于程序缺陷。 */
+  /** 注册图形类；类型名缺失、重名、锚点不是本类的 x / y 坐标属性，都属于程序缺陷。 */
   register(cls: ShapeClass): void {
     if (!cls.type) {
       throw new Error('shape class must declare static type');
@@ -34,7 +34,20 @@ export default class ShapeFactory {
     if (this.classes.has(cls.type)) {
       throw new Error(`duplicate shape type: ${cls.type}`);
     }
+    ShapeFactory.checkAnchor(cls);
     this.classes.set(cls.type, cls);
+  }
+
+  private static checkAnchor(cls: ShapeClass): void {
+    const anchor = cls.anchor;
+    if (anchor === null) {
+      return;
+    }
+    (['x', 'y'] as const).forEach((axis, i) => {
+      if (cls.attribute(anchor[i])?.axis() !== axis) {
+        throw new Error(`${cls.type} anchor ${anchor[i]} must be a ${axis} coordinate`);
+      }
+    });
   }
 
   /** 按类型名取图形类，未注册时报错。 */

@@ -16,7 +16,7 @@ describe('LengthSpec 尺寸', () => {
     expect(() => spec.check(-0.5)).toThrow(new EditorError('width must be non-negative'));
   });
 
-  it('按数值格式输出', () => {
-    expect(spec.format(100)).toBe('100');
+  it('按数值格式展示', () => {
+    expect(spec.display(100)).toBe('100');
   });
 });

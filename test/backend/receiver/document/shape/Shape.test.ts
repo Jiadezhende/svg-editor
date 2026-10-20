@@ -69,6 +69,14 @@ describe('Shape 通用行为', () => {
     expect(rect.summary()).toBe('x=0.3 y=0 width=100 height=50');
   });
 
+  it('value 取原值：数值为 number，未设置的属性为 null', () => {
+    const rect = new Rect('r1', new Map(geometry).set('x', 0.1 + 0.2).set('fill', '#eee'));
+    expect(rect.value('x')).toBe(0.1 + 0.2);
+    expect(rect.value('fill')).toBe('#eee');
+    expect(rect.value('stroke')).toBeNull();
+    expect(rect.value('r')).toBeNull();
+  });
+
   it('attribute 按名字查属性表，没有时返回 null', () => {
     expect(Rect.attribute('fill')?.name()).toBe('fill');
     expect(Rect.attribute('r')).toBeNull();

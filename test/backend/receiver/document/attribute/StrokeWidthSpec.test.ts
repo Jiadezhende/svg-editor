@@ -4,8 +4,8 @@ import StrokeWidthSpec from '../../../../../src/backend/receiver/document/attrib
 describe('StrokeWidthSpec 线宽', () => {
   const spec = new StrokeWidthSpec('stroke-width');
 
-  it('解析数字并按数值格式输出', () => {
-    expect(spec.format(spec.parse('2.50'))).toBe('2.5');
+  it('解析数字并按数值格式展示', () => {
+    expect(spec.display(spec.parse('2.50'))).toBe('2.5');
   });
 
   it('不得为负', () => {

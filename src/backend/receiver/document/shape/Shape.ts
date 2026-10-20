@@ -68,6 +68,11 @@ export default abstract class Shape {
     return `${this.type()}#${this.shapeId}`;
   }
 
+  /** 属性的原值；未设置（或不在属性表中）时为 null。 */
+  value(name: string): AttributeValue | null {
+    return this.values.get(name) ?? null;
+  }
+
   /** tree 的内联属性：核心属性（`params`）依次 `名=值`；没有核心属性时为空串。 */
   summary(): string {
     return this.joined(this.definition().params);

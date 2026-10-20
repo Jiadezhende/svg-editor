@@ -9,4 +9,10 @@ describe('StringSpec 字符串属性', () => {
     expect(() => spec.check(token)).not.toThrow();
     expect(spec.display(token)).toBe(token);
   });
+
+  it('不是坐标；平移、缩放都不变', () => {
+    expect(spec.axis()).toBeNull();
+    expect(spec.translate('red', 10, 10)).toBe('red');
+    expect(spec.scale('red', 2)).toBe('red');
+  });
 });

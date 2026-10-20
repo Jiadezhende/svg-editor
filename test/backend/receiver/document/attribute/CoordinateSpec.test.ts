@@ -22,4 +22,14 @@ describe('CoordinateSpec 坐标', () => {
   it('按数值格式展示', () => {
     expect(spec.display(0.1 + 0.2)).toBe('0.3');
   });
+
+  it('平移按轴加上偏移：x 轴加 dx，y 轴加 dy', () => {
+    expect(spec.translate(100, 30, -5)).toBe(130);
+    expect(new CoordinateSpec('cy', 'y').translate(100, 30, -5)).toBe(95);
+  });
+
+  it('缩放时乘以系数（以原点为中心）', () => {
+    expect(spec.scale(100, 2)).toBe(200);
+    expect(spec.scale(-10, 0.5)).toBe(-5);
+  });
 });

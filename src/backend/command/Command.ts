@@ -1,5 +1,6 @@
 import CommandResult from './CommandResult';
 import EditorError from '../error/EditorError';
+import DecimalFormat from '../receiver/document/attribute/DecimalFormat';
 
 /**
  * Command 模式中的抽象命令。
@@ -11,27 +12,30 @@ export default abstract class Command {
   static readonly command: string = '';
   static readonly usage: string = '';
 
+  private static readonly decimal = new DecimalFormat();
+
   abstract execute(): CommandResult;
 
   /** 参数个数不在 allowed 之中时报错，并附上该命令的语法。 */
   protected expectArgCount(args: readonly string[], ...allowed: number[]): void {
     if (!allowed.includes(args.length)) {
-      throw new EditorError(`wrong number of arguments. usage: ${this.definition().usage}`);
+      throw this.wrongArgCount();
     }
   }
 
-  /** 解析十进制数字参数：允许正负号与小数，不接受空串、指数、Infinity 等写法。 */
+  /** 参数个数不符的错误，附上语法；默认为本命令的 usage，参数随子类型变化的命令可传入更具体的语法。 */
+  protected wrongArgCount(usage: string = this.definition().usage): EditorError {
+    return new EditorError(`wrong number of arguments. usage: ${usage}`);
+  }
+
+  /** 解析十进制数字参数，规则见 DecimalFormat。 */
   protected parseNumber(token: string): number {
-    if (!/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(token)) {
-      throw new EditorError(`not a number: ${token}`);
-    }
-    return Number(token);
+    return Command.decimal.parse(token);
   }
 
-  /** 数值输出：整数不带小数点，浮点最多 6 位小数并去掉末尾 0，`-0` 输出 `0`。 */
+  /** 数值输出，规则见 DecimalFormat。 */
   protected formatNumber(n: number): string {
-    const rounded = Number(n.toFixed(6));
-    return Object.is(rounded, -0) ? '0' : String(rounded);
+    return Command.decimal.format(n);
   }
 
   /** 本实例所属命令类的静态定义。 */

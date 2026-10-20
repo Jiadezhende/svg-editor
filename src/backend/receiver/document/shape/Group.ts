@@ -27,4 +27,9 @@ export default class Group extends Shape implements Container {
   override asContainer(): Container {
     return this;
   }
+
+  /** show 的核心属性行：容器没有核心属性，显示子节点个数。 */
+  protected override coreDetail(): string {
+    return `children=${this.members.all().length}`;
+  }
 }

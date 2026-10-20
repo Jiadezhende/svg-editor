@@ -14,8 +14,9 @@ function create(workspace: Workspace, line: string): string[] {
   return [...new CreateCommand(workspace, line.split(' ')).execute().lines()];
 }
 
-function attributesOf(workspace: Workspace, id: string) {
-  return workspace.document().requireShape(id).attributes();
+/** 图形的 show 属性行：核心属性行，有外观属性时再加一行。 */
+function detailsOf(workspace: Workspace, id: string): string[] {
+  return workspace.document().requireShape(id).details();
 }
 
 describe('CreateCommand 创建', () => {
@@ -24,13 +25,7 @@ describe('CreateCommand 创建', () => {
     expect(create(workspace, 'rect r1 10 20 100 50 #eee')).toEqual(['rect#r1 created']);
     const doc = workspace.document();
     expect(doc.children().map((s) => s.id())).toEqual(['r1']);
-    expect(attributesOf(workspace, 'r1')).toEqual([
-      ['x', '10'],
-      ['y', '20'],
-      ['width', '100'],
-      ['height', '50'],
-      ['fill', '#eee'],
-    ]);
+    expect(detailsOf(workspace, 'r1')).toEqual(['x=10 y=20 width=100 height=50', 'fill=#eee']);
   });
 
   it('6 种内置类型均可创建，省略 fill / stroke 时不写入', () => {
@@ -39,31 +34,22 @@ describe('CreateCommand 创建', () => {
     expect(create(workspace, 'ellipse e1 0 0 30 10')).toEqual(['ellipse#e1 created']);
     expect(create(workspace, 'line l1 0 0 100 100 black')).toEqual(['line#l1 created']);
     expect(create(workspace, 'g scene')).toEqual(['g#scene created']);
-    expect(attributesOf(workspace, 'e1')).toEqual([
-      ['cx', '0'],
-      ['cy', '0'],
-      ['rx', '30'],
-      ['ry', '10'],
-    ]);
-    expect(attributesOf(workspace, 'l1').at(-1)).toEqual(['stroke', 'black']);
-    expect(attributesOf(workspace, 'scene')).toEqual([]);
+    expect(detailsOf(workspace, 'e1')).toEqual(['cx=0 cy=0 rx=30 ry=10']);
+    expect(detailsOf(workspace, 'l1')).toEqual(['x1=0 y1=0 x2=100 y2=100', 'stroke=black']);
+    expect(detailsOf(workspace, 'scene')).toEqual(['children=0']);
   });
 
   it('text 的内容为一个参数（含空格），不计引号', () => {
     const workspace = workspaceWithDoc();
     const command = new CreateCommand(workspace, ['text', 't1', '20', '40', 'My Diagram']);
     expect(command.execute().lines()).toEqual(['text#t1 created']);
-    expect(attributesOf(workspace, 't1')).toEqual([
-      ['x', '20'],
-      ['y', '40'],
-      ['text', 'My Diagram'],
-    ]);
+    expect(detailsOf(workspace, 't1')).toEqual(['x=20 y=40 text="My Diagram"']);
   });
 
   it('text 内容位上的 in 视为内容', () => {
     const workspace = workspaceWithDoc();
     create(workspace, 'text t1 0 0 in');
-    expect(attributesOf(workspace, 't1').at(-1)).toEqual(['text', 'in']);
+    expect(detailsOf(workspace, 't1')).toEqual(['x=0 y=0 text="in"']);
   });
 
   it('in 子句挂进指定容器末尾，回显容器', () => {
@@ -75,7 +61,7 @@ describe('CreateCommand 创建', () => {
     ]);
     const node1 = workspace.document().requireContainer('node1');
     expect(node1.children().map((s) => s.id())).toEqual(['a', 'start']);
-    expect(attributesOf(workspace, 'start').at(-1)).toEqual(['fill', '#4a90d9']);
+    expect(detailsOf(workspace, 'start')).toEqual(['x=120 y=100 width=160 height=60', 'fill=#4a90d9']);
   });
 
   it('容器可嵌套创建', () => {
@@ -88,12 +74,7 @@ describe('CreateCommand 创建', () => {
   it('负坐标、浮点合法；尺寸为 0 合法', () => {
     const workspace = workspaceWithDoc();
     create(workspace, 'rect r1 -10 0.5 0 0');
-    expect(attributesOf(workspace, 'r1')).toEqual([
-      ['x', '-10'],
-      ['y', '0.5'],
-      ['width', '0'],
-      ['height', '0'],
-    ]);
+    expect(detailsOf(workspace, 'r1')).toEqual(['x=-10 y=0.5 width=0 height=0']);
   });
 
   it('id 大小写不同视为不同 id；含 - 的 id 合法', () => {
@@ -198,12 +179,7 @@ describe('CreateCommand 撤销与再次执行', () => {
     const first = command.execute().lines();
     command.undo();
     expect(command.execute().lines()).toEqual(first);
-    expect(attributesOf(workspace, 'c1')).toEqual([
-      ['cx', '1'],
-      ['cy', '2'],
-      ['r', '3'],
-      ['fill', 'red'],
-    ]);
+    expect(detailsOf(workspace, 'c1')).toEqual(['cx=1 cy=2 r=3', 'fill=red']);
   });
 
   it('execute 之前 undo 属于程序缺陷', () => {

@@ -51,4 +51,4 @@ SVG 是用 XML 文本描述矢量图形的格式：纯文本、树形结构（`<
 | `Tokenizer` / `CommandReader` | 字符比较（引号、空行） | 词法处理 |
 | `App` | 用 `instanceof` 区分可报告的错误与程序缺陷 | 错误分类，不选择业务行为 |
 
-自查方式：以 `switch`、与字符串字面量的比较、`Map.get`、`instanceof` 为关键词检索 `src/`，逐条归类。最近一次自查于 SHAPE_CREATE_DELETE 完成时（2026-10-20），后续每个需求完成时复查。
+自查方式：以 `switch`、与字符串字面量的比较、`Map.get`、`instanceof` 为关键词检索 `src/`，逐条归类。最近一次自查于 DISPLAY 完成时（2026-10-20），新增的命中均为空串判断，后续每个需求完成时复查。

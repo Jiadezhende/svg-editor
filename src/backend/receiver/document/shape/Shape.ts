@@ -68,14 +68,20 @@ export default abstract class Shape {
     return `${this.type()}#${this.shapeId}`;
   }
 
-  /** 已设置的属性，按属性表顺序给出名字与输出文本。 */
-  attributes(): ReadonlyArray<readonly [string, string]> {
-    return this.definition()
-      .attributes()
-      .flatMap((spec) => {
-        const value = this.values.get(spec.name());
-        return value === undefined ? [] : [[spec.name(), spec.format(value)] as const];
-      });
+  /** 属性的原值；未设置（或不在属性表中）时为 null。 */
+  value(name: string): AttributeValue | null {
+    return this.values.get(name) ?? null;
+  }
+
+  /** tree 的内联属性：核心属性（`params`）依次 `名=值`；没有核心属性时为空串。 */
+  summary(): string {
+    return this.joined(this.definition().params);
+  }
+
+  /** show 的属性行：核心属性行；设置了外观属性时再加一行外观属性。 */
+  details(): string[] {
+    const appearance = this.joined(Shape.appearance);
+    return appearance === '' ? [this.coreDetail()] : [this.coreDetail(), appearance];
   }
 
   /** 父节点；只对已加入文档的图形调用。 */
@@ -109,8 +115,23 @@ export default abstract class Shape {
     return null;
   }
 
+  /** show 的核心属性行，默认与 tree 的内联属性相同。 */
+  protected coreDetail(): string {
+    return this.summary();
+  }
+
   /** 本实例所属图形类的静态定义。 */
   protected definition(): typeof Shape {
     return this.constructor as typeof Shape;
+  }
+
+  /** specs 中已设置的属性，以 `名=展示值` 用空格连接。 */
+  private joined(specs: readonly AttributeSpec[]): string {
+    return specs
+      .flatMap((spec) => {
+        const value = this.values.get(spec.name());
+        return value === undefined ? [] : [`${spec.name()}=${spec.display(value)}`];
+      })
+      .join(' ');
   }
 }

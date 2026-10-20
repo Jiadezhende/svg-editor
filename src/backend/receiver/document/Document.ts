@@ -1,16 +1,20 @@
 import EditorError from '../../error/EditorError';
+import ChildList from './ChildList';
+import type Container from './Container';
+import type Shape from './shape/Shape';
 
 /** viewBox 的四个分量：min-x、min-y、width、height。 */
 type ViewBox = readonly [number, number, number, number];
 
 /**
- * 当前文档：画布尺寸与 viewBox，图形树随 create 加入。
- * 不变量：画布宽高须为正数，校验失败时状态不变。
+ * 当前文档，即画布根 `svg`：画布尺寸、viewBox 与顶层图形；顶层图形的父节点就是 Document。
+ * 不变量：画布宽高须为正数；id 全文档唯一。校验失败时状态不变。
  */
-export default class Document {
+export default class Document implements Container {
   private canvasWidth: number;
   private canvasHeight: number;
   private readonly canvasViewBox: ViewBox;
+  private readonly roots = new ChildList(this);
 
   /** 新建文档，viewBox 为 `0 0 w h`。 */
   constructor(width: number, height: number) {
@@ -37,6 +41,57 @@ export default class Document {
     Document.checkSize(width, height);
     this.canvasWidth = width;
     this.canvasHeight = height;
+  }
+
+  label(): string {
+    return 'svg';
+  }
+
+  children(): readonly Shape[] {
+    return this.roots.all();
+  }
+
+  insert(shape: Shape, index?: number): void {
+    this.roots.insert(shape, index);
+  }
+
+  remove(shape: Shape): number {
+    return this.roots.remove(shape);
+  }
+
+  /** 在整棵图形树中按 id 查找。 */
+  find(id: string): Shape | null {
+    return this.roots.find(id);
+  }
+
+  /** 按 id 取图形，不存在时报错。 */
+  requireShape(id: string): Shape {
+    const shape = this.find(id);
+    if (shape === null) {
+      throw new EditorError(`no such shape: ${id}`);
+    }
+    return shape;
+  }
+
+  /** 按 id 取容器，不存在或不是容器时报错。 */
+  requireContainer(id: string): Container {
+    const shape = this.find(id);
+    if (shape === null) {
+      throw new EditorError(`no such container: ${id}`);
+    }
+    const container = shape.asContainer();
+    if (container === null) {
+      throw new EditorError(`not a container: ${id}`);
+    }
+    return container;
+  }
+
+  /** 把新图形追加到本文档中的 parent 末尾；id 已存在时报错。 */
+  add(shape: Shape, parent: Container): void {
+    if (this.find(shape.id()) !== null) {
+      throw new EditorError(`id already exists: ${shape.id()}`);
+    }
+    parent.insert(shape);
   }
 
   private static checkSize(width: number, height: number): void {

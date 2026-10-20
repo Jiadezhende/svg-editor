@@ -1,7 +1,7 @@
 # FEAT：平移、缩放与属性设置
 
 - 提案时间：2026-10-20
-- 完成时间：YYYY-MM-DD（开发完成后填写）
+- 完成时间：2026-10-21
 - 类型：FEAT
 - 关联 prd：doc/prd/phase1/20261016_TRANSFORM_SET.md
 
@@ -116,10 +116,33 @@ src/backend/
 
 ## 测试与验证
 
+`npm test`：34 个测试文件、322 个用例全部通过；`npm run typecheck` 无错误。本次新增与修改的类行覆盖率均为 100%，唯一的未覆盖分支是 `Shape.position()` 中"锚点属性未设置"的兜底（锚点属于必填参数，不会出现）。
+
 | 用例 | 验证方式 | 结果 |
 | --- | --- | --- |
-| | | |
+| `move c1 30 0`（c1 原在 100,100）回显 `circle#c1 moved to (130,100)`；undo 回显 `circle#c1 moved back to (100,100)`；redo 回显与原命令相同 | 单元测试（MoveCommand）+ 子进程（main.test） | 通过 |
+| `move node2 0 100`（容器）回显 `g#node2 moved by (0,100)`，其下 rect 与 text 同步平移；undo 回显 `g#node2 moved back by (0,-100)` 并还原整棵子树 | 单元测试（MoveCommand、Group）+ 子进程 | 通过 |
+| 各类型的锚点：rect / text 为 `(x,y)`，circle / ellipse 为 `(cx,cy)`，line 为起点 `(x1,y1)`；line 两端同步平移 | 单元测试（MoveCommand、Leaves） | 通过 |
+| `move r1 -10 0.5`：负数、浮点合法 | 单元测试（MoveCommand） | 通过 |
+| `scale g1 2`（容器）：所有子孙的位置与尺寸均乘以 2；叶子以原点为中心同乘坐标与尺寸，stroke-width 不缩放 | 单元测试（ScaleCommand、Shape、Group）+ 子进程 | 通过 |
+| `scale r1 0` / `scale r1 -1` 报 `error: scale factor must be positive` | 单元测试（ScaleCommand）+ 子进程 | 通过 |
+| `set title text "My Diagram v2"` 回显 `text#title updated: text="My Diagram v2"`；undo 回显 `text#title updated: text="My Diagram"` | 单元测试（SetCommand）+ 子进程 | 通过 |
+| `set r1 fill red` 回显 `rect#r1 updated: fill=red`；原本未设置的属性 undo 后恢复为未设置 | 单元测试（SetCommand、Shape）+ 子进程 | 通过 |
+| set 白名单按类型判定：`set c1 width 10` 报 `error: unknown attribute: width`；g 只接受外观属性，写在 g 自身 | 单元测试（SetCommand、Shape、Group）+ 子进程 | 通过 |
+| set 取值校验：几何须为数字，尺寸与 stroke-width 不得为负，颜色不校验；失败时属性不变 | 单元测试（SetCommand、Shape） | 通过 |
+| undo 精确还原：浮点坐标平移 / 缩放 3 倍后 undo，原值逐位相同 | 单元测试（MoveCommand、ScaleCommand、Shape、Group） | 通过 |
+| id 不存在报 `error: no such shape: r9`；无文档报"无文档"；参数个数与数字在构造时校验 | 单元测试（Move / Scale / SetCommand）+ 子进程 | 通过 |
+| 锚点注册校验：锚点不是本类的 x / y 坐标属性时启动即失败 | 单元测试（ShapeFactory） | 通过 |
+| UNDO_REDO 中以 move 为例的 case（`move c1 30 0` → `undo` → `redo`）端到端验证 | 子进程 | 通过 |
+
+实现中补齐的细节（未改动已确认的决策）：
+
+- Shape 新增 `display(name)`（属性值的展示文本，未设置时为 null），供 set 回显与锚点坐标使用；
+- 快照由 Shape 以闭包保存并恢复属性，ShapeMemento 只持有恢复动作，`with` 用于容器合并子树快照；
+- main.test 中"占位命令"用例改用仍为占位的 `front`；
+- 文案：scale 回显 `<type>#<id> scaled by <factor>`，undo 回显 `scaled back by <1/factor>`；set 的属性原本未设置时，undo 回显 `<type>#<id> updated: <attr> unset`。
 
 ## 遗留问题
 
-- 
+- 容器内图形的快照包含整棵子树，set 只改容器自身时也会快照子树；文档规模小，不影响使用。
+- `scale` 以坐标原点为中心，图形位置会随之变化（如 `scale c1 2` 使圆心从 (100,100) 移到 (200,200)），这是决策确认的语义，演示时需要说明。

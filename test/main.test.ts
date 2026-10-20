@@ -49,10 +49,10 @@ describe('main 入口（脚本回放）', () => {
   });
 
   it('占位命令与未知命令报错不同；exit 后进程正常结束', () => {
-    expect(runCli('move r1 10 0\nfoo\nexit\nhelp\n')).toEqual([
+    expect(runCli('front r1\nfoo\nexit\nhelp\n')).toEqual([
       "svg-editor 0.1 — type 'help' for commands",
-      'svg> move r1 10 0',
-      'error: command not implemented yet: move',
+      'svg> front r1',
+      'error: command not implemented yet: front',
       'svg> foo',
       'error: unknown command: foo',
       'svg> exit',

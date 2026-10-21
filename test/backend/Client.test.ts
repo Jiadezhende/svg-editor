@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import Client from '../../src/backend/Client';
 import Command from '../../src/backend/command/Command';
-import PlaceholderCommand from '../../src/backend/command/PlaceholderCommand';
 import CommandResult from '../../src/backend/command/CommandResult';
 import EditorError from '../../src/backend/error/EditorError';
 import StubCommand from '../support/StubCommand';
 
-class PendingCommand extends PlaceholderCommand {
-  static override readonly command = 'pending';
-  static override readonly usage = 'pending <id>';
+/** 第二个注册的命令，用于验证 help 的顺序。 */
+class NoopCommand extends Command {
+  static override readonly command = 'noop';
+  static override readonly usage = 'noop <id>';
+  execute(): CommandResult {
+    return new CommandResult();
+  }
 }
 
 class NamelessCommand extends Command {
@@ -25,9 +28,12 @@ class UsagelessCommand extends Command {
   }
 }
 
-class HelpCommand extends PlaceholderCommand {
+class HelpCommand extends Command {
   static override readonly command = 'help';
   static override readonly usage = 'help';
+  execute(): CommandResult {
+    return new CommandResult();
+  }
 }
 
 /** 同名两种形式：`pair` 与 `pair <a> <b>`。 */
@@ -81,7 +87,7 @@ class PairDefaultCommand extends Command {
 function createClient(): Client {
   const client = new Client();
   client.register(StubCommand);
-  client.register(PendingCommand);
+  client.register(NoopCommand);
   return client;
 }
 
@@ -100,19 +106,13 @@ describe('Client 分派', () => {
     expect(() => createClient().execute(['stub', 'a', 'x'])).toThrow('not a number: x');
     expect(() => createClient().execute(['stub'])).toThrow('usage: stub <name> <n> [warn]');
   });
-
-  it('占位命令报"尚未实现"，与未知命令区分，且不校验参数', () => {
-    const client = createClient();
-    expect(() => client.execute(['pending', 'r1', '10', '0'])).toThrow('command not implemented yet: pending');
-    expect(() => client.execute(['pending'])).toThrow('command not implemented yet: pending');
-  });
 });
 
 describe('Client 内置命令', () => {
   it('help 先按注册顺序列出 ConcreteCommand，再列出内置命令', () => {
     expect(createClient().execute(['help']).lines()).toEqual([
       'stub <name> <n> [warn]',
-      'pending <id>',
+      'noop <id>',
       'help',
       'undo',
       'redo',

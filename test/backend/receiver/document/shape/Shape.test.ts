@@ -201,3 +201,17 @@ describe('Shape 移动位置', () => {
     expect(group.children()).toEqual([a, b, c]);
   });
 });
+
+describe('Shape 写出用的取值', () => {
+  it('entries 按属性表顺序给出已设置属性的原值', () => {
+    const rect = new Rect('r1', new Map(geometry).set('fill', '#eee'));
+    expect(rect.entries()).toEqual([
+      ['x', 10],
+      ['y', 20],
+      ['width', 100],
+      ['height', 50],
+      ['fill', '#eee'],
+    ]);
+    expect(rect.content()).toBeNull();
+  });
+});

@@ -15,4 +15,8 @@ describe('StringSpec 字符串属性', () => {
     expect(spec.translate('red', 10, 10)).toBe('red');
     expect(spec.scale('red', 2)).toBe('red');
   });
+
+  it('默认值为空串', () => {
+    expect(spec.defaultValue()).toBe('');
+  });
 });

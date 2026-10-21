@@ -9,7 +9,10 @@ import type Shape from './Shape';
 import Text from './Text';
 
 /** 可注册的图形类：静态部分即定义，构造函数即工厂。 */
-export type ShapeClass = Pick<typeof Shape, 'type' | 'params' | 'paint' | 'anchor' | 'attributes' | 'attribute'> &
+export type ShapeClass = Pick<
+  typeof Shape,
+  'type' | 'params' | 'paint' | 'anchor' | 'content' | 'attributes' | 'attribute'
+> &
   (new (id: string, values?: ReadonlyMap<string, AttributeValue>) => Shape);
 
 /**
@@ -52,10 +55,15 @@ export default class ShapeFactory {
 
   /** 按类型名取图形类，未注册时报错。 */
   lookup(type: string): ShapeClass {
-    const cls = this.classes.get(type);
-    if (cls === undefined) {
+    const cls = this.find(type);
+    if (cls === null) {
       throw new EditorError(`unknown shape type: ${type} (is the plugin loaded?)`);
     }
     return cls;
+  }
+
+  /** 按类型名取图形类，未注册时为 null（read 据此跳过不支持的元素）。 */
+  find(type: string): ShapeClass | null {
+    return this.classes.get(type) ?? null;
   }
 }

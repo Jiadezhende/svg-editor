@@ -6,6 +6,10 @@ import EditorError from '../../../error/EditorError';
 export default abstract class NumericSpec extends AttributeSpec<number> {
   private static readonly decimal = new DecimalFormat();
 
+  defaultValue(): number {
+    return 0;
+  }
+
   parse(token: string): number {
     return NumericSpec.decimal.parse(token);
   }

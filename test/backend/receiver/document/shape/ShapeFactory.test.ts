@@ -69,3 +69,11 @@ describe('ShapeFactory 锚点校验', () => {
     expect(factory.lookup('hexagon').anchor).toBeNull();
   });
 });
+
+describe('ShapeFactory 查询', () => {
+  it('find 未注册时返回 null，不报错', () => {
+    const factory = new ShapeFactory();
+    expect(factory.find('rect')).toBe(Rect);
+    expect(factory.find('path')).toBeNull();
+  });
+});

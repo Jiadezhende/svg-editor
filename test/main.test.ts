@@ -48,11 +48,9 @@ describe('main 入口（脚本回放）', () => {
     );
   });
 
-  it('占位命令与未知命令报错不同；exit 后进程正常结束', () => {
-    expect(runCli('save a.svg\nfoo\nexit\nhelp\n')).toEqual([
+  it('未知命令报错；exit 后进程正常结束', () => {
+    expect(runCli('foo\nexit\nhelp\n')).toEqual([
       "svg-editor 0.1 — type 'help' for commands",
-      'svg> save a.svg',
-      'error: command not implemented yet: save',
       'svg> foo',
       'error: unknown command: foo',
       'svg> exit',

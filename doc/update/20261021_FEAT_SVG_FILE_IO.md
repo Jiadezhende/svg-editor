@@ -1,7 +1,7 @@
 # FEAT：SVG 文件读写
 
 - 提案时间：2026-10-21
-- 完成时间：YYYY-MM-DD（开发完成后填写）
+- 完成时间：2026-10-21
 - 类型：FEAT
 - 关联 prd：doc/prd/phase1/20261016_SVG_FILE_IO.md
 
@@ -121,10 +121,38 @@ shape = new cls(id 或临时占位, values)；容器 → 递归子元素
 
 ## 测试与验证
 
+`npm test`：42 个测试文件、411 个用例全部通过；`npm run typecheck` 无错误。本次新增与修改的类行覆盖率均为 100%；SvgReader 有 4 个防御性分支未覆盖（元素无 localName、解析库抛出非解析异常等不会出现的情况）。
+
 | 用例 | 验证方式 | 结果 |
 | --- | --- | --- |
-| | | |
+| 文档含 bg、title、markers{c1, box}，`save demo.svg` 回显 `saved to demo.svg (5 elements)` | 单元测试（SaveCommand）+ 子进程（main.test） | 通过 |
+| save 产物与接口契约的文件格式示例逐字一致（XML 声明、`<svg xmlns width height viewBox>`、2 空格缩进、属性顺序） | 单元测试（SvgWriter） | 通过 |
+| save 产物读回后 tree 与保存前一致，再次写出逐字相同 | 单元测试（SvgReader、ReadCommand）+ 子进程 | 通过 |
+| 读入 other.svg：先输出 `warning: assigned id rect1 to unnamed <rect>`，再输出 `read other.svg (7 elements)`；tree 与接口契约示例一致 | 单元测试（SvgReader、ReadCommand）+ 子进程 | 通过 |
+| read 后无参 `save` 保存到读入时的路径；`save <path>` 后该路径成为当前路径 | 单元测试（SaveCommand、ReadCommand、Workspace）+ 子进程 | 通过 |
+| 已有文档时 `read` 成功：读入警告之后追加 `warning: previous document discarded`，再输出读入结果 | 单元测试（ReadCommand）+ 子进程 | 通过 |
+| 自动补 id 跳过已占用的编号（已有 `rect1` 则分配 `rect2`），按文档顺序分配 | 单元测试（SvgReader） | 通过 |
+| text 内容含中文或 `<`、`&` 时正确转义，读回不乱码；属性值中的 `"` 等转义 | 单元测试（SvgWriter、SvgReader、SvgFile）+ 子进程 | 通过 |
+| 空容器输出为自闭合 `<g id="scene"/>` | 单元测试（SvgWriter） | 通过 |
+| 文件不存在报 `error: cannot read file: a.svg`，当前文档不变；不可写报 `error: cannot write file: a.svg`，当前路径不变 | 单元测试（SvgFile、ReadCommand、SaveCommand）+ 子进程 | 通过 |
+| 文件内容非法（XML 解析失败、根不是 svg、几何属性不是数字、尺寸为负、id 不合法、id 重复）时报错，当前文档与路径不变 | 单元测试（SvgReader、ReadCommand） | 通过 |
+| 文档来自 init（无路径）时无参 `save` 报错，提示指定文件名 | 单元测试（SaveCommand、Workspace）+ 子进程 | 通过 |
+| 不支持的元素（title、defs、path 等）连同子树跳过并警告，不计入元素数；未知属性丢弃；缺少的必填属性取默认值 | 单元测试（SvgReader） | 通过 |
+| 画布尺寸：width / height 纯数字；缺失或解析不了（`100%`、`10px`）时取 viewBox 的宽高；都没有时 800×600；viewBox 可用逗号分隔 | 单元测试（SvgReader） | 通过 |
+| read / save 为文档类命令：之后 `undo` 报 `undo not allowed after io command` | 单元测试（ReadCommand、SaveCommand）+ 子进程 | 通过 |
+| 解析库的错误不输出到 stderr（子进程用例断言 stderr 为空） | 子进程 | 通过 |
+
+实现中补齐的细节（未改动已确认的决策）：
+
+- DecimalFormat 新增 `tryParse`（解析不了时返回 null），用于"解析不了即视为未声明"；属性种类新增 `defaultValue()`（数值 0、字符串空串），用于缺少的必填属性；
+- SvgReader 的结果为 `{ document, warnings }`；属性值两侧的空白被忽略，text 的子文本原样保留；补 id 前先收集文件中的全部 id，保证补出的 id 不与后出现的 id 冲突；
+- 删除 PlaceholderCommand 后，Client 的测试改用普通的测试命令；main.test 中"占位命令"用例改为只验证未知命令；
+- 依赖 `@xmldom/xmldom` 单独提交（`chore`）；
+- 文案：无路径 `no file path. use 'save <file.svg>'`；不支持的元素 `skipped unsupported <tag>`；XML 非法 `invalid svg: <解析器给出的原因>`；根不是 svg `invalid svg: root element is <tag>, not <svg>`。
 
 ## 遗留问题
 
-- 
+- 不支持的元素与未知属性在读入时被跳过 / 丢弃，读入外部文件后再保存会丢失这些内容（已决策接受）。
+- 只有 viewBox 的文件读入再保存后带上明确的 width / height（已决策接受）。
+- svg 根元素上的其他属性（如 `version`）不保留。
+- 回显中的 `1 elements` 未做单复数处理。

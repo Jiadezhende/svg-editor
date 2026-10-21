@@ -11,4 +11,5 @@ export default class Ellipse extends Shape {
     new LengthSpec('ry'),
   ];
   static override readonly paint = 'fill';
+  static override readonly anchor = ['cx', 'cy'] as const;
 }

@@ -6,4 +6,5 @@ import Shape from './Shape';
 export default class Text extends Shape {
   static override readonly type = 'text';
   static override readonly params = [new CoordinateSpec('x', 'x'), new CoordinateSpec('y', 'y'), new TextSpec('text')];
+  static override readonly anchor = ['x', 'y'] as const;
 }

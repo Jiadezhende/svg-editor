@@ -6,4 +6,5 @@ export default class Circle extends Shape {
   static override readonly type = 'circle';
   static override readonly params = [new CoordinateSpec('cx', 'x'), new CoordinateSpec('cy', 'y'), new LengthSpec('r')];
   static override readonly paint = 'fill';
+  static override readonly anchor = ['cx', 'cy'] as const;
 }

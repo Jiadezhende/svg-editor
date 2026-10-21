@@ -103,3 +103,79 @@ describe('Shape 通用行为', () => {
     expect(() => new Group('g2').insert(rect)).toThrow(Error);
   });
 });
+
+describe('Shape 属性设置', () => {
+  it('set 解析并写入属性表内的属性，可新增外观属性', () => {
+    const rect = new Rect('r1', geometry);
+    rect.set('width', '120.5');
+    rect.set('fill', 'red');
+    expect(rect.value('width')).toBe(120.5);
+    expect(rect.display('fill')).toBe('red');
+  });
+
+  it('属性不在本类属性表中时报 unknown attribute，属性不变', () => {
+    const rect = new Rect('r1', geometry);
+    expect(() => rect.set('r', '10')).toThrow(new EditorError('unknown attribute: r'));
+    expect(() => rect.set('text', 'x')).toThrow('unknown attribute: text');
+    expect(rect.value('r')).toBeNull();
+  });
+
+  it('取值格式或约束不满足时报错，属性不变', () => {
+    const rect = new Rect('r1', geometry);
+    expect(() => rect.set('x', 'abc')).toThrow('not a number: abc');
+    expect(() => rect.set('height', '-1')).toThrow('height must be non-negative');
+    expect(() => rect.set('stroke-width', '-2')).toThrow('stroke-width must be non-negative');
+    expect(rect.summary()).toBe('x=10 y=20 width=100 height=50');
+  });
+
+  it('display 给出属性值的展示文本，未设置时为 null', () => {
+    const rect = new Rect('r1', geometry);
+    expect(rect.display('x')).toBe('10');
+    expect(rect.display('fill')).toBeNull();
+  });
+});
+
+describe('Shape 平移与缩放', () => {
+  it('move 只平移坐标，尺寸与外观不变', () => {
+    const rect = new Rect('r1', new Map(geometry).set('stroke-width', 2));
+    rect.move(-10, 0.5);
+    expect(rect.details()).toEqual(['x=0 y=20.5 width=100 height=50', 'stroke-width=2']);
+  });
+
+  it('scale 以原点为中心同乘坐标与尺寸，stroke-width 不缩放', () => {
+    const rect = new Rect('r1', new Map(geometry).set('stroke-width', 2));
+    rect.scale(2);
+    expect(rect.details()).toEqual(['x=20 y=40 width=200 height=100', 'stroke-width=2']);
+  });
+
+  it('position 按 anchor 给出锚点坐标', () => {
+    const rect = new Rect('r1', geometry);
+    rect.move(30, 0);
+    expect(rect.position()).toEqual(['40', '20']);
+    expect(new Group('g1').position()).toBeNull();
+  });
+});
+
+describe('Shape 快照', () => {
+  it('restore 写回快照时的属性：被修改的还原，后来新增的移除', () => {
+    const rect = new Rect('r1', geometry);
+    const memento = rect.capture();
+    rect.move(0.1, 0.2);
+    rect.scale(3);
+    rect.set('fill', 'red');
+    memento.restore();
+    expect(rect.value('x')).toBe(10);
+    expect(rect.value('y')).toBe(20);
+    expect(rect.value('fill')).toBeNull();
+  });
+
+  it('快照之后可多次恢复', () => {
+    const rect = new Rect('r1', geometry);
+    const memento = rect.capture();
+    rect.move(1, 1);
+    memento.restore();
+    rect.move(2, 2);
+    memento.restore();
+    expect(rect.position()).toEqual(['10', '20']);
+  });
+});

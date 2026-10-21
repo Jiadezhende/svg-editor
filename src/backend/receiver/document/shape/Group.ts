@@ -1,8 +1,9 @@
 import ChildList from '../ChildList';
 import type Container from '../Container';
 import Shape from './Shape';
+import type ShapeMemento from './ShapeMemento';
 
-/** Composite：容器 `g`，查找作用于整棵子树。 */
+/** Composite：容器 `g`，查找、平移、缩放、快照都作用于整棵子树。 */
 export default class Group extends Shape implements Container {
   static override readonly type = 'g';
 
@@ -22,6 +23,24 @@ export default class Group extends Shape implements Container {
 
   override find(id: string): Shape | null {
     return super.find(id) ?? this.members.find(id);
+  }
+
+  override move(dx: number, dy: number): void {
+    super.move(dx, dy);
+    for (const child of this.members.all()) {
+      child.move(dx, dy);
+    }
+  }
+
+  override scale(factor: number): void {
+    super.scale(factor);
+    for (const child of this.members.all()) {
+      child.scale(factor);
+    }
+  }
+
+  override capture(): ShapeMemento {
+    return super.capture().with(this.members.all().map((child) => child.capture()));
   }
 
   override asContainer(): Container {

@@ -40,3 +40,15 @@ describe('Text 的显示', () => {
     expect(text.value('text')).toBe('My Diagram');
   });
 });
+
+describe.each<[typeof Shape, readonly [string, string]]>([
+  [Rect, ['x', 'y']],
+  [Circle, ['cx', 'cy']],
+  [Ellipse, ['cx', 'cy']],
+  [Line, ['x1', 'y1']],
+  [Text, ['x', 'y']],
+])('%o 的锚点', (cls, anchor) => {
+  it(`为 ${anchor.join(', ')}`, () => {
+    expect(cls.anchor).toEqual(anchor);
+  });
+});

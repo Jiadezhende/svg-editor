@@ -11,4 +11,5 @@ export default class Rect extends Shape {
     new LengthSpec('height'),
   ];
   static override readonly paint = 'fill';
+  static override readonly anchor = ['x', 'y'] as const;
 }

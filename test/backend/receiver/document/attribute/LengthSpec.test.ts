@@ -19,4 +19,10 @@ describe('LengthSpec 尺寸', () => {
   it('按数值格式展示', () => {
     expect(spec.display(100)).toBe('100');
   });
+
+  it('不是坐标；平移不变，缩放时乘以系数', () => {
+    expect(spec.axis()).toBeNull();
+    expect(spec.translate(50, 10, 10)).toBe(50);
+    expect(spec.scale(50, 2)).toBe(100);
+  });
 });

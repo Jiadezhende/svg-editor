@@ -11,13 +11,13 @@
 
 | 议题 | 选项 | 决定 | 理由 |
 | --- | --- | --- | --- |
-| 容器 move / scale 的效果 | A：递归修改每个子孙的几何属性，保存的文件中不出现 `transform`；B：只修改 g 的 `transform="translate(..) scale(..)"`，子孙坐标不变 | 待定（推荐 A） | 与"scale 递归到每个子孙"的语义一致；tree 显示的坐标即渲染坐标 |
-| scale 的作用范围 | A：只缩放几何属性（以坐标原点为中心同乘），stroke-width 不缩放；B：stroke-width 一并缩放 | 待定（推荐 A） | 需求只要求缩放"位置与尺寸" |
-| set 作用于容器 | A：g 只接受 fill / stroke / stroke-width，写在 g 自身（靠 SVG 继承作用于子孙）；B：递归写入每个子孙 | 待定（推荐 A） | 符合 SVG 语义，undo 简单 |
-| set 白名单按类型判定 | A：属性不在该图形类型的白名单内即报错（如对 circle 设 width、对 rect 设 text）；B：只要在总白名单内即接受 | 待定（推荐 A） | 参考文档只定义了总白名单 |
-| set 取值校验 | A：几何属性须为数字，尺寸类不得为负；stroke-width 须为非负数；fill / stroke 不校验 | 待定（推荐 A） | 与创建时的校验一致 |
+| 容器 move / scale 的效果 | A：递归修改每个子孙的几何属性，保存的文件中不出现 `transform`；B：只修改 g 的 `transform="translate(..) scale(..)"`，子孙坐标不变 | A | 与"scale 递归到每个子孙"的语义一致；tree 显示的坐标即渲染坐标 |
+| scale 的作用范围 | A：只缩放几何属性（以坐标原点为中心同乘），stroke-width 不缩放；B：stroke-width 一并缩放 | A | 需求只要求缩放"位置与尺寸" |
+| set 作用于容器 | A：g 只接受 fill / stroke / stroke-width，写在 g 自身（靠 SVG 继承作用于子孙）；B：递归写入每个子孙 | A | 符合 SVG 语义，undo 简单 |
+| set 白名单按类型判定 | A：属性不在该图形类型的白名单内即报错（如对 circle 设 width、对 rect 设 text）；B：只要在总白名单内即接受 | A | 参考文档只定义了总白名单 |
+| set 取值校验 | A：几何属性须为数字，尺寸类不得为负；stroke-width 须为非负数；fill / stroke 不校验 | A | 与创建时的校验一致 |
 | line 的 move 回显坐标 | A：起点 `(x1,y1)`；B：两端点 `(x1,y1) -> (x2,y2)` | A | 叶子回显统一为一个点 |
-| set 原本未设置的属性后 undo | A：移除该属性，恢复为未设置；B：保留为 SVG 默认值 | 待定（推荐 A） | 准确还原，save 产物与 set 之前一致 |
+| set 原本未设置的属性后 undo | A：移除该属性，恢复为未设置；B：保留为 SVG 默认值 | A | 准确还原，save 产物与 set 之前一致 |
 
 ## 职责边界
 

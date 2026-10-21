@@ -146,6 +146,14 @@ export default abstract class Shape {
     return this.container;
   }
 
+  /** 移到 parent 的 index 处（省略时追加到末尾）；已在某个父节点中时先摘下。 */
+  relocate(parent: Container, index?: number): void {
+    if (this.container !== null) {
+      this.container.remove(this);
+    }
+    parent.insert(this, index);
+  }
+
   /** 由 ChildList 在插入时调用。 */
   attachTo(container: Container): void {
     if (this.container !== null) {

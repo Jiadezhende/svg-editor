@@ -179,3 +179,25 @@ describe('Shape 快照', () => {
     expect(rect.position()).toEqual(['10', '20']);
   });
 });
+
+describe('Shape 移动位置', () => {
+  it('relocate：未加入容器时直接插入；已在容器中时先摘下再插入', () => {
+    const rect = new Rect('r1', geometry);
+    const [g1, g2] = [new Group('g1'), new Group('g2')];
+    rect.relocate(g1);
+    expect(rect.parent()).toBe(g1);
+    rect.relocate(g2);
+    expect(g1.children()).toEqual([]);
+    expect(g2.children()).toEqual([rect]);
+  });
+
+  it('relocate 到同一父节点的指定位置', () => {
+    const group = new Group('g');
+    const [a, b, c] = [new Rect('a', geometry), new Rect('b', geometry), new Rect('c', geometry)];
+    for (const shape of [a, b, c]) shape.relocate(group);
+    a.relocate(group);
+    expect(group.children()).toEqual([b, c, a]);
+    a.relocate(group, 0);
+    expect(group.children()).toEqual([a, b, c]);
+  });
+});

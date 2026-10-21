@@ -59,6 +59,19 @@ export default class Document implements Container {
     return this.roots.remove(shape);
   }
 
+  /** 全部图形，按先序遍历（即绘制顺序）。 */
+  shapes(): Shape[] {
+    const result: Shape[] = [];
+    const visit = (children: readonly Shape[]): void => {
+      for (const shape of children) {
+        result.push(shape);
+        visit(shape.asContainer()?.children() ?? []);
+      }
+    };
+    visit(this.children());
+    return result;
+  }
+
   /** 在整棵图形树中按 id 查找。 */
   find(id: string): Shape | null {
     return this.roots.find(id);
@@ -86,12 +99,12 @@ export default class Document implements Container {
     return container;
   }
 
-  /** 把新图形追加到本文档中的 parent 末尾；id 已存在时报错。 */
-  add(shape: Shape, parent: Container): void {
+  /** 把新图形插到本文档中 parent 的 index 处（省略时追加到末尾）；id 已存在时报错。 */
+  add(shape: Shape, parent: Container, index?: number): void {
     if (this.find(shape.id()) !== null) {
       throw new EditorError(`id already exists: ${shape.id()}`);
     }
-    parent.insert(shape);
+    parent.insert(shape, index);
   }
 
   private static checkSize(width: number, height: number): void {

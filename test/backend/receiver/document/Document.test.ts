@@ -107,3 +107,25 @@ describe('Document 画布根', () => {
     expect(doc.children()).toEqual([a, b, c]);
   });
 });
+
+describe('Document 文档顺序与指定位置加入', () => {
+  it('shapes 按先序遍历给出全部图形', () => {
+    const doc = new Document(800, 600);
+    const [outer, inner] = [new Group('outer'), new Group('inner')];
+    doc.add(rect('a'), doc);
+    doc.add(outer, doc);
+    doc.add(rect('b'), outer);
+    doc.add(inner, outer);
+    doc.add(rect('c'), inner);
+    doc.add(rect('d'), doc);
+    expect(doc.shapes().map((s) => s.id())).toEqual(['a', 'outer', 'b', 'inner', 'c', 'd']);
+  });
+
+  it('add 可指定位置', () => {
+    const doc = new Document(800, 600);
+    doc.add(rect('a'), doc);
+    doc.add(rect('c'), doc);
+    doc.add(rect('b'), doc, 1);
+    expect(doc.children().map((s) => s.id())).toEqual(['a', 'b', 'c']);
+  });
+});

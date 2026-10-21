@@ -30,4 +30,25 @@ describe('Workspace 当前文档槽位', () => {
     expect(workspace.shapes()).toBe(workspace.shapes());
     expect(new Workspace().shapes()).not.toBe(workspace.shapes());
   });
+
+  it('持有文件读写', () => {
+    const workspace = new Workspace();
+    expect(workspace.files()).toBe(workspace.files());
+  });
+
+  it('文件路径：init 新建（不带路径）时没有路径，取路径报错', () => {
+    const workspace = new Workspace();
+    workspace.replace(new Document(800, 600));
+    expect(() => workspace.path()).toThrow(new EditorError("no file path. use 'save <file.svg>'"));
+  });
+
+  it('文件路径：替换时带路径即记下；setPath 另存为；再次替换时随之更新', () => {
+    const workspace = new Workspace();
+    workspace.replace(new Document(800, 600), 'a.svg');
+    expect(workspace.path()).toBe('a.svg');
+    workspace.setPath('b.svg');
+    expect(workspace.path()).toBe('b.svg');
+    workspace.replace(new Document(800, 600));
+    expect(() => workspace.path()).toThrow('no file path');
+  });
 });

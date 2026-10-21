@@ -49,6 +49,7 @@ SVG 是用 XML 文本描述矢量图形的格式：纯文本、树形结构（`<
 | `Shape.attribute(name)` | 按属性名在图形类声明的属性表中查找属性种类 | 查的是数据（属性表条目），不依据图形类型选择行为；取到的属性种类再以多态完成解析与校验 |
 | `CreateCommand` | 识别 `in` 关键字 | 语法解析 |
 | `Tokenizer` / `CommandReader` | 字符比较（引号、空行） | 词法处理 |
+| `UngroupCommand` | `shape.parent() === doc` 判断根级容器 | 对象同一性比较，不判断类型、不比较名字 |
 | `CoordinateSpec.translate` | 按自身的轴取 dx 或 dy | 二选一取数据，平移行为本身不变；坐标与其他属性的行为差异由属性种类的多态承担 |
 | `App` | 用 `instanceof` 区分可报告的错误与程序缺陷 | 错误分类，不选择业务行为 |
 
@@ -58,4 +59,4 @@ SVG 是用 XML 文本描述矢量图形的格式：纯文本、树形结构（`<
 | --- | --- | --- |
 | `Invoker.execute`（[Invoker.ts](../src/backend/invoker/Invoker.ts)） | 用 `instanceof` 分两支：EditCommand 入撤销栈，DocumentCommand 清空历史并禁止 undo / redo | 行为只有两条分支，集中在 Invoker 一处；不是课程禁止的"到处 `switch(tag)`"。新增命令类别时需在此增加分支 |
 
-自查方式：以 `switch`、与字符串字面量的比较、`Map.get`、`instanceof` 为关键词检索 `src/`，逐条归类。最近一次自查于 TRANSFORM_SET 完成时（2026-10-21），后续每个需求完成时复查。
+自查方式：以 `switch`、与字符串字面量的比较、`Map.get`、`instanceof` 为关键词检索 `src/`，逐条归类。最近一次自查于 HIERARCHY_ZORDER 完成时（2026-10-21），后续每个需求完成时复查。

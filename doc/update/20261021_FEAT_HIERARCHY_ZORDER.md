@@ -1,7 +1,7 @@
 # FEAT：层级结构与 z-order
 
 - 提案时间：2026-10-21
-- 完成时间：YYYY-MM-DD（开发完成后填写）
+- 完成时间：2026-10-21
 - 类型：FEAT
 - 关联 prd：doc/prd/phase1/20261016_HIERARCHY_ZORDER.md
 
@@ -105,10 +105,33 @@ src/backend/
 
 ## 测试与验证
 
+`npm test`：38 个测试文件、360 个用例全部通过；`npm run typecheck` 无错误；本次新增与修改的类行覆盖率均为 100%。
+
 | 用例 | 验证方式 | 结果 |
 | --- | --- | --- |
-| | | |
+| 根下依次为 bg、title、c1、box，`group markers c1 box` 回显 `g#markers created with 2 children`；根下依次为 bg、title、markers，markers 内依次为 c1、box | 单元测试（GroupCommand）+ 子进程（main.test） | 通过 |
+| group 的成员来自不同父容器：全部摘出，新容器插在文档顺序第一个成员的父容器中、该成员原来的位置；成员按文档顺序排列，与参数顺序无关 | 单元测试（GroupCommand） | 通过 |
+| group 后 `undo`：所有成员回到原父容器原位置，新容器消失（tree 与 group 前逐行相同）；`redo` 回显与结构与首次相同 | 单元测试（GroupCommand）+ 子进程 | 通过 |
+| `ungroup` 非根级容器：子图形按原顺序提升到其父级，占据原容器的位置；undo 还原 | 单元测试（UngroupCommand）+ 子进程 | 通过 |
+| `addto g1 r1`：r1 成为 g1 的最后一个子节点；目标已是父容器时移到末尾；容器连同子树移动；undo 回到原位置 | 单元测试（AddtoCommand）+ 子进程 | 通过 |
+| `front r1` / `back r1`：在同级兄弟中移到最上层（末尾）/ 最下层（开头）；undo 回到原位置 | 单元测试（FrontCommand / BackCommand）+ 子进程 | 通过 |
+| `group bad c1 markers`（c1 在 markers 中）报 `error: cannot group a container into its own descendant: markers`，文档不变 | 单元测试（GroupCommand）+ 子进程 | 通过 |
+| newGid 已存在报 `id already exists`；newGid 不合法（`1abc`）报 `invalid id` | 单元测试（GroupCommand） | 通过 |
+| 任一 id 不存在报 `error: no such shape: r9` | 单元测试（各命令） | 通过 |
+| `ungroup` 根级容器报 `error: cannot ungroup top-level container: scene`，文档不变 | 单元测试（UngroupCommand）+ 子进程 | 通过 |
+| ungroup / addto 的目标不是容器报 `error: not a container: r1` | 单元测试（UngroupCommand、AddtoCommand）+ 子进程 | 通过 |
+| addto 的目标是图形自身或其子孙时报错，文档不变 | 单元测试（AddtoCommand）+ 子进程 | 通过 |
+| group 参数中有重复 id 时在构造阶段报错 | 单元测试（GroupCommand）+ 子进程 | 通过 |
+| UNDO_REDO 中以 group 为例的 case（`group g1 r1 c1 t1` → `undo` 一次还原全部成员）端到端验证 | 单元测试（GroupCommand）+ 子进程 | 通过 |
+
+实现中补齐的细节（未改动已确认的决策）：
+
+- front、back、addto 三者都是"记下父节点与位置 → relocate 到目标 → 撤销时 relocate 回去"，只是目标不同，收拢为抽象基类 `RelocateCommand`（位于 `backend/command/`，模板方法：子类只给出目标与回显）；
+- group 直接构造 Group（命令本身就是新建 g），不经图形工厂；
+- main.test 中"占位命令"用例改用仍为占位的 `save`；
+- 文案：front / back 回显 `brought to front` / `sent to back`；addto 回显 `<type>#<id> added to g#<gid>`；三者 undo 回显 `<type>#<id> restored into <父节点>`；group 的 undo 回显 `g#<id> removed, <n> children restored`；ungroup 回显 `g#<id> ungrouped, <n> children moved to <父节点>`，undo 回显 `g#<id> restored into <父节点> with <n> children`；addto 的循环报 `cannot add a container into itself or its descendant: <id>`；重复 id 报 `duplicate id: <id>`。
 
 ## 遗留问题
 
-- 
+- 根级容器不可 ungroup（按参考文档 §4.2）：画布根下 group 出来的容器只能通过 undo 解散，save 之后则无法解散。
+- 回显中的 `1 children` 未做单复数处理。

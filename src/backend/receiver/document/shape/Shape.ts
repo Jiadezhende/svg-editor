@@ -10,7 +10,8 @@ import ShapeMemento from './ShapeMemento';
  * Composite 中的 Component：容器与叶子图形的共同抽象。
  *
  * 静态成员即定义：子类覆盖 `type`（类型名）、`params`（create 必填参数表，顺序即参数顺序）、
- * `paint`（create 的可选外观参数名）、`anchor`（move 回显的锚点：x 轴与 y 轴坐标属性名，注册时校验）；
+ * `paint`（create 的可选外观参数名）、`anchor`（move 回显的锚点：x 轴与 y 轴坐标属性名，注册时校验）、
+ * `content`（在 SVG 中写成子文本而非元素属性的那个属性名）；
  * 外观属性 fill / stroke / stroke-width 由本类统一声明。
  * 不变量：id 符合合法字符规则，各属性值满足其属性种类的约束；校验失败时不产生图形。
  */
@@ -19,6 +20,7 @@ export default abstract class Shape {
   static readonly params: readonly AttributeSpec[] = [];
   static readonly paint: string | null = null;
   static readonly anchor: readonly [string, string] | null = null;
+  static readonly content: string | null = null;
 
   private static readonly appearance: readonly AttributeSpec[] = [
     new StringSpec('fill'),
@@ -74,6 +76,23 @@ export default abstract class Shape {
   /** 属性的原值；未设置（或不在属性表中）时为 null。 */
   value(name: string): AttributeValue | null {
     return this.values.get(name) ?? null;
+  }
+
+  /** 已设置属性的原值，按属性表顺序，`content` 属性除外（供写出元素属性）。 */
+  entries(): ReadonlyArray<readonly [string, AttributeValue]> {
+    const content = this.definition().content;
+    return this.definition()
+      .attributes()
+      .flatMap((spec) => {
+        const value = this.values.get(spec.name());
+        return value === undefined || spec.name() === content ? [] : [[spec.name(), value] as const];
+      });
+  }
+
+  /** `content` 属性的原值；本类没有 `content` 时为 null（供写出子文本）。 */
+  content(): AttributeValue | null {
+    const content = this.definition().content;
+    return content === null ? null : this.value(content);
   }
 
   /** tree 的内联属性：核心属性（`params`）依次 `名=值`；没有核心属性时为空串。 */

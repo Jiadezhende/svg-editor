@@ -15,6 +15,10 @@ describe('Document 画布', () => {
     expect(doc.viewBox()).toEqual([0, 0, 100.5, 200]);
   });
 
+  it('新建时可指定 viewBox', () => {
+    expect(new Document(400, 300, [10, 20, 40, 30]).viewBox()).toEqual([10, 20, 40, 30]);
+  });
+
   it('resize 修改尺寸，不改动 viewBox', () => {
     const doc = new Document(200, 100);
     doc.resize(400, 300);

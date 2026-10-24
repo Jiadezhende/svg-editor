@@ -4,7 +4,7 @@ import type Container from './Container';
 import type Shape from './shape/Shape';
 
 /** viewBox 的四个分量：min-x、min-y、width、height。 */
-type ViewBox = readonly [number, number, number, number];
+export type ViewBox = readonly [number, number, number, number];
 
 /**
  * 当前文档，即画布根 `svg`：画布尺寸、viewBox 与顶层图形；顶层图形的父节点就是 Document。
@@ -17,11 +17,12 @@ export default class Document implements Container {
   private readonly roots = new ChildList(this);
 
   /** 新建文档，viewBox 为 `0 0 w h`。 */
-  constructor(width: number, height: number) {
+  /** viewBox 省略时为 `0 0 w h`（read 可指定文件中的 viewBox）。 */
+  constructor(width: number, height: number, viewBox?: ViewBox) {
     Document.checkSize(width, height);
     this.canvasWidth = width;
     this.canvasHeight = height;
-    this.canvasViewBox = [0, 0, width, height];
+    this.canvasViewBox = viewBox ?? [0, 0, width, height];
   }
 
   width(): number {

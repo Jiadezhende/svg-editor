@@ -32,4 +32,8 @@ describe('CoordinateSpec 坐标', () => {
     expect(spec.scale(100, 2)).toBe(200);
     expect(spec.scale(-10, 0.5)).toBe(-5);
   });
+
+  it('默认值为 0', () => {
+    expect(spec.defaultValue()).toBe(0);
+  });
 });

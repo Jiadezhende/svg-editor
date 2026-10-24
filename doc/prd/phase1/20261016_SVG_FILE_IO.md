@@ -11,11 +11,11 @@
 
 | 议题 | 选项 | 决定 | 理由 |
 | --- | --- | --- | --- |
-| 外部文件含不支持的元素（path、polygon、defs、style 等） | A：打印警告并跳过，不计入元素数；B：作为不透明节点保留，原样写回 | 待定（推荐 A） | 本阶段只要求 6 种内置类型；A 会在 save 时丢失这些元素，记为已知限制 |
-| 已支持元素上的未知属性（transform、text-anchor、font-size、class、style 等） | A：原样保留并在 save 时写回，不在 tree / show 中显示、不可 set、不参与 move / scale 计算；B：丢弃 | 待定（推荐 A） | 尽量不破坏外部文件；带 transform 的容器在 move / scale / ungroup 时可能出现视觉偏差，记为已知限制 |
-| 文件内 id 重复 | A：拒绝读入，当前文档不变；B：后出现者重命名并警告 | 待定（推荐 A） | id 唯一是全局约定 |
-| `save <path>` 后无参 save 保存到哪 | A：`save <path>` 成功后该路径成为当前路径；B：始终保存到读入时的路径 | 待定（推荐 A） | 符合"另存为"习惯 |
-| svg 根缺少 width / height | A：取 viewBox 的尺寸，都没有时用 800×600 | 待定（推荐 A） | 外部文件常见情况 |
+| 外部文件含不支持的元素（path、polygon、defs、style 等） | A：打印警告并跳过，不计入元素数；B：作为不透明节点保留，原样写回 | A | 本阶段只要求 6 种内置类型；A 会在 save 时丢失这些元素，记为已知限制 |
+| 已支持元素上的未知属性（transform、text-anchor、font-size、class、style 等） | A：原样保留并在 save 时写回，不在 tree / show 中显示、不可 set、不参与 move / scale 计算；B：丢弃 | B | read 的定位是读回本编辑器保存的文件与简单的外部文件，课程要求不涉及未知属性；丢弃使图形模型与写出保持简单。代价：读入带 transform、class 等属性的文件后再保存，这些属性丢失，记为已知限制 |
+| 文件内 id 重复 | A：拒绝读入，当前文档不变；B：后出现者重命名并警告 | A | id 唯一是全局约定 |
+| `save <path>` 后无参 save 保存到哪 | A：`save <path>` 成功后该路径成为当前路径；B：始终保存到读入时的路径 | A | 符合"另存为"习惯 |
+| svg 根缺少 width / height | A：取 viewBox 的尺寸，都没有时用 800×600；B：画布尺寸可不声明，save 时也不写出 | A | 外部文件常见情况（SVG 规范中三者均可选）；phase1 的画布按参考文档为数值尺寸，B 需改动文档生命周期与显示。代价：只有 viewBox 的文件读入再保存后带上明确的 width / height，由"随容器缩放"变为固定尺寸，记为已知限制 |
 | read 覆盖已有文档是否提示 | A：打印 warning 后覆盖；B：直接覆盖 | A | 与 init 一致：覆盖会丢弃未保存的内容，至少要提示 |
 | 文件内 id 不符合合法字符规则（`[A-Za-z_][A-Za-z0-9_.-]*`） | A：拒绝读入，当前文档不变；B：重新分配 id 并警告；C：原样接受 | A | 与 id 重复的处理一致 |
 
@@ -85,11 +85,11 @@ warning: assigned id rect1 to unnamed <rect>
 read other.svg (7 elements)
 svg> tree
 svg (400x300)
-├── rect#rect1     x=0 y=0 w=400 h=300 fill=#ffffff
-├── text#t1        (10,290) "imported"
-├── circle#c1      cx=50 cy=50 r=10
+├── rect#rect1  x=0 y=0 width=400 height=300
+├── text#t1  x=10 y=290 text="imported"
+├── circle#c1  cx=50 cy=50 r=10
 ├── g#g1
-│   ├── rect#r2    x=0 y=0 w=10 h=10
+│   ├── rect#r2  x=0 y=0 width=10 height=10
 │   └── circle#c2  cx=5 cy=5 r=2
-└── ellipse#e1     cx=1 cy=2 rx=3 ry=4
+└── ellipse#e1  cx=1 cy=2 rx=3 ry=4
 ```

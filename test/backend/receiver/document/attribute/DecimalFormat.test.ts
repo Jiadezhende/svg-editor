@@ -14,4 +14,10 @@ describe('DecimalFormat', () => {
     expect(decimal.format(0.1 + 0.2)).toBe('0.3');
     expect(decimal.format(-0)).toBe('0');
   });
+
+  it('tryParse：不符合规则时返回 null 而不报错', () => {
+    expect(decimal.tryParse('12.5')).toBe(12.5);
+    expect(decimal.tryParse('100%')).toBeNull();
+    expect(decimal.tryParse('10px')).toBeNull();
+  });
 });

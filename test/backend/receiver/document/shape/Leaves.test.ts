@@ -52,3 +52,15 @@ describe.each<[typeof Shape, readonly [string, string]]>([
     expect(cls.anchor).toEqual(anchor);
   });
 });
+
+describe('Text 的子文本', () => {
+  it('content 声明为 text：entries 不含它，content() 给出原值', () => {
+    const text = new Text('t1', new Map<string, number | string>([['x', 1], ['y', 2], ['text', 'a < b']]));
+    expect(Text.content).toBe('text');
+    expect(text.entries()).toEqual([
+      ['x', 1],
+      ['y', 2],
+    ]);
+    expect(text.content()).toBe('a < b');
+  });
+});

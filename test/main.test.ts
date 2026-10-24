@@ -1,4 +1,7 @@
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
@@ -48,11 +51,9 @@ describe('main 入口（脚本回放）', () => {
     );
   });
 
-  it('占位命令与未知命令报错不同；exit 后进程正常结束', () => {
-    expect(runCli('save a.svg\nfoo\nexit\nhelp\n')).toEqual([
+  it('未知命令报错；exit 后进程正常结束', () => {
+    expect(runCli('foo\nexit\nhelp\n')).toEqual([
       "svg-editor 0.1 — type 'help' for commands",
-      'svg> save a.svg',
-      'error: command not implemented yet: save',
       'svg> foo',
       'error: unknown command: foo',
       'svg> exit',
@@ -95,6 +96,100 @@ describe('main 入口（脚本回放）', () => {
       'svg> canvas',
       'canvas 1024x768',
     ]);
+  });
+
+  it('SVG 文件读写：save、read 外部文件并补 id、读回自己保存的文件、各类错误', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'svg-main-'));
+    try {
+      const demo = join(dir, 'demo.svg');
+      const other = join(dir, 'other.svg');
+      writeFileSync(
+        other,
+        [
+          '<?xml version="1.0" encoding="UTF-8"?>',
+          '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">',
+          '  <rect x="0" y="0" width="400" height="300" fill="#ffffff"/>',
+          '  <text id="t1" x="10" y="290">imported</text>',
+          '  <circle id="c1" cx="50" cy="50" r="10"/>',
+          '  <g id="g1">',
+          '    <rect id="r2" x="0" y="0" width="10" height="10"/>',
+          '    <circle id="c2" cx="5" cy="5" r="2"/>',
+          '  </g>',
+          '  <ellipse id="e1" cx="1" cy="2" rx="3" ry="4"/>',
+          '</svg>',
+        ].join('\n'),
+      );
+      const script = [
+        'init',
+        'save',
+        'create rect bg 0 0 800 600 #ffffff',
+        'create text title 20 40 "开始 <a> & b"',
+        'create g markers',
+        'create circle c1 100 100 20 red in markers',
+        'create rect box 200 80 60 60 #3366ff in markers',
+        `save ${demo}`,
+        'undo',
+        `read ${other}`,
+        'tree',
+        `read ${demo}`,
+        'tree',
+        'save',
+        `read ${join(dir, 'missing.svg')}`,
+        `save ${join(dir, 'nodir', 'x.svg')}`,
+      ];
+      expect(runCli(script.join('\n') + '\n').slice(1)).toEqual([
+        'svg> init',
+        'canvas 800x600 created',
+        'svg> save',
+        "error: no file path. use 'save <file.svg>'",
+        'svg> create rect bg 0 0 800 600 #ffffff',
+        'rect#bg created',
+        'svg> create text title 20 40 "开始 <a> & b"',
+        'text#title created',
+        'svg> create g markers',
+        'g#markers created',
+        'svg> create circle c1 100 100 20 red in markers',
+        'circle#c1 created in g#markers',
+        'svg> create rect box 200 80 60 60 #3366ff in markers',
+        'rect#box created in g#markers',
+        `svg> save ${demo}`,
+        `saved to ${demo} (5 elements)`,
+        'svg> undo',
+        'error: undo not allowed after io command',
+        `svg> read ${other}`,
+        'warning: assigned id rect1 to unnamed <rect>',
+        'warning: previous document discarded',
+        `read ${other} (7 elements)`,
+        'svg> tree',
+        'svg (400x300)',
+        '├── rect#rect1  x=0 y=0 width=400 height=300',
+        '├── text#t1  x=10 y=290 text="imported"',
+        '├── circle#c1  cx=50 cy=50 r=10',
+        '├── g#g1',
+        '│   ├── rect#r2  x=0 y=0 width=10 height=10',
+        '│   └── circle#c2  cx=5 cy=5 r=2',
+        '└── ellipse#e1  cx=1 cy=2 rx=3 ry=4',
+        `svg> read ${demo}`,
+        'warning: previous document discarded',
+        `read ${demo} (5 elements)`,
+        'svg> tree',
+        'svg (800x600)',
+        '├── rect#bg  x=0 y=0 width=800 height=600',
+        '├── text#title  x=20 y=40 text="开始 <a> & b"',
+        '└── g#markers',
+        '    ├── circle#c1  cx=100 cy=100 r=20',
+        '    └── rect#box  x=200 y=80 width=60 height=60',
+        'svg> save',
+        `saved to ${demo} (5 elements)`,
+        `svg> read ${join(dir, 'missing.svg')}`,
+        `error: cannot read file: ${join(dir, 'missing.svg')}`,
+        `svg> save ${join(dir, 'nodir', 'x.svg')}`,
+        `error: cannot write file: ${join(dir, 'nodir', 'x.svg')}`,
+      ]);
+      expect(readFileSync(demo, 'utf8')).toContain('<text id="title" x="20" y="40">开始 &lt;a&gt; &amp; b</text>');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('层级结构与 z-order：group / ungroup / addto / front / back 及其撤销', () => {

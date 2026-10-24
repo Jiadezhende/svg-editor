@@ -7,10 +7,16 @@ import EditorError from '../../../error/EditorError';
  */
 export default class DecimalFormat {
   parse(token: string): number {
-    if (!/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(token)) {
+    const value = this.tryParse(token);
+    if (value === null) {
       throw new EditorError(`not a number: ${token}`);
     }
-    return Number(token);
+    return value;
+  }
+
+  /** 不符合规则时返回 null，供"解析不了即视为未声明"的场合使用。 */
+  tryParse(token: string): number | null {
+    return /^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(token) ? Number(token) : null;
   }
 
   format(n: number): string {

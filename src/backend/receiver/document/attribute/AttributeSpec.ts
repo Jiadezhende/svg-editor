@@ -21,6 +21,9 @@ export default abstract class AttributeSpec<T extends AttributeValue = Attribute
     return null;
   }
 
+  /** 文件中缺少该属性时采用的值（SVG 的默认值）。 */
+  abstract defaultValue(): T;
+
   /** 解析输入文本（参数格式校验），不检查约束。 */
   abstract parse(token: string): T;
 

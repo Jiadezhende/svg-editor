@@ -122,7 +122,7 @@ execute(command: Command): CommandResult {
 
 ## 测试与验证
 
-`npm test`：29 个测试文件、258 个用例全部通过；`npm run typecheck` 无错误；本次新增与修改的类行覆盖率均为 100%。
+`npm test`：28 个测试文件、258 个用例全部通过；`npm run typecheck` 无错误；本次新增与修改的类行覆盖率均为 100%。
 
 | 用例 | 验证方式 | 结果 |
 | --- | --- | --- |

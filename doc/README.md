@@ -1,5 +1,7 @@
 # SVG Editor
 
+仓库地址：<https://github.com/Jiadezhende/svg-editor>（最终提交为 tag `final`）
+
 ## 项目背景
 
 本项目是课程 Lab1 的工程实践：用 TypeScript 实现一个**命令行 SVG 编辑器**，在 REPL（提示符 `svg>`）中通过命令创建、编辑、组织矢量图形，并以标准 SVG 文件读写。

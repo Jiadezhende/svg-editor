@@ -4,6 +4,7 @@ import type Workspace from '../../receiver/workspace/Workspace';
 
 /** `save [file.svg]`：保存当前文档；无参时保存到当前路径，带参时保存到该路径并使其成为当前路径。 */
 export default class SaveCommand extends DocumentCommand {
+  override successKind(): 'save' { return 'save'; }
   static override readonly command = 'save';
   static override readonly usage = 'save [file.svg]';
 

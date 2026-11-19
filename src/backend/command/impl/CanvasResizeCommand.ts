@@ -4,6 +4,7 @@ import type Workspace from '../../receiver/workspace/Workspace';
 
 /** `canvas <w> <h>`：修改画布尺寸（文档类），不改动 viewBox。与 CanvasShowCommand 同名，接受有参的输入。 */
 export default class CanvasResizeCommand extends DocumentCommand {
+  override successKind(): 'edit' { return 'edit'; }
   static override readonly command = 'canvas';
   static override readonly usage = 'canvas <w> <h>';
 

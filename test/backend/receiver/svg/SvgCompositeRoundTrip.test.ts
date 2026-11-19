@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AttributeHandlerRegistry, Client, Document, EditorError, Shape, ShapeFactory, SvgReader, SvgWriter, Workspace } from '../../../../src/backend';
+import { AttributeHandlerRegistry, TreeRenderer, Client, Document, EditorError, Shape, ShapeFactory, SvgReader, SvgWriter, Workspace } from '../../../../src/backend';
 import type { SvgElement, SvgShapeMapping } from '../../../../src/backend';
 import ReadCommand from '../../../../src/backend/command/impl/ReadCommand';
 import SaveCommand from '../../../../src/backend/command/impl/SaveCommand';
@@ -30,7 +30,7 @@ function sample(mapping: SvgShapeMapping = panelMapping) {
     write: vi.fn((path: string, text: string) => { storage.set(path, text); }),
   };
   const writer = new SvgWriter([mapping]);
-  const workspace = new Workspace(shapes, files, new SvgReader(shapes), writer, new AttributeHandlerRegistry());
+  const workspace = new Workspace(shapes, files, new SvgReader(shapes), writer, new AttributeHandlerRegistry(), new TreeRenderer());
   const document = new Document(100, 100);
   const panel = shapes.create(Panel.type, 'p') as Panel;
   const node = document.insert(panel);

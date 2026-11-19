@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AttributeHandlerRegistry, Client, ShapeFactory, Document, SvgReader, SvgWriter, Workspace } from '../../src/backend';
+import { AttributeHandlerRegistry, TreeRenderer, Client, ShapeFactory, Document, SvgReader, SvgWriter, Workspace } from '../../src/backend';
 import type { AttributeHandler, ShapeNode } from '../../src/backend';
 import { Marker, MarkerAttributesHandler, NudgeMarkerCommand } from '../support/PublicExtension';
 import SetCommand from '../../src/backend/command/impl/SetCommand';
@@ -35,7 +35,7 @@ describe('扩展公共入口', () => {
     const factory = new ShapeFactory();
     factory.register(Marker);
     const files = { read: () => '', write: () => {} };
-    const workspace = new Workspace(factory, files, new SvgReader(factory), new SvgWriter(), new AttributeHandlerRegistry());
+    const workspace = new Workspace(factory, files, new SvgReader(factory), new SvgWriter(), new AttributeHandlerRegistry(), new TreeRenderer());
     const doc = new Document(100, 100);
     const model = factory.create('test-marker', 'marker', new Map([['x', 1], ['y', 2]]));
     const node = doc.insert(model);
@@ -63,7 +63,7 @@ describe('扩展公共入口', () => {
     factory.register(Marker);
     const handlers = new AttributeHandlerRegistry();
     const files = { read: () => '', write: () => {} };
-    const workspace = new Workspace(factory, files, new SvgReader(factory), new SvgWriter(), handlers);
+    const workspace = new Workspace(factory, files, new SvgReader(factory), new SvgWriter(), handlers, new TreeRenderer());
     const doc = new Document(100, 100);
     const model = factory.create('test-marker', 'marker', new Map([['x', 1], ['y', 2]]));
     const node = doc.insert(model);

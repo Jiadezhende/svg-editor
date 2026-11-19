@@ -2,6 +2,9 @@ import CommandResult from './command/CommandResult';
 import EditorError from './error/EditorError';
 import Command from './command/Command';
 import Invoker from './invoker/Invoker';
+import EditCommand from './command/EditCommand';
+import DocumentCommand from './command/DocumentCommand';
+import type { TreeSuccess } from './tree/TreeLineRenderer';
 import type Workspace from './receiver/workspace/Workspace';
 
 /** 可注册的 ConcreteCommand 类：静态部分即定义，构造函数即工厂。 */
@@ -72,7 +75,10 @@ export default class Client {
       throw new EditorError(`unknown command: ${name}`);
     }
     const cls = this.select(name, forms, args);
-    return this.invoker.execute(new cls(this.workspace, args));
+    const command = new cls(this.workspace, args);
+    const kind = command instanceof EditCommand ? 'edit' : command instanceof DocumentCommand ? command.successKind() : null;
+    const result = this.invoker.execute(command);
+    return kind === null ? result : this.notify(result, kind);
   }
 
   isExitRequested(): boolean {
@@ -105,11 +111,16 @@ export default class Client {
   }
 
   private undo(): CommandResult {
-    return this.invoker.undo();
+    return this.notify(this.invoker.undo(), 'undo');
   }
 
   private redo(): CommandResult {
-    return this.invoker.redo();
+    return this.notify(this.invoker.redo(), 'redo');
+  }
+
+  private notify(result: CommandResult, kind: TreeSuccess['kind']): CommandResult {
+    for (const warning of this.workspace.treeRenderer().notify(kind, this.workspace.document())) result.warn(warning);
+    return result;
   }
 
   private exit(): CommandResult {

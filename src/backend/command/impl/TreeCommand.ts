@@ -1,6 +1,5 @@
 import Command from '../Command';
 import CommandResult from '../CommandResult';
-import type ShapeNode from '../../receiver/document/ShapeNode';
 import type Workspace from '../../receiver/workspace/Workspace';
 
 /**
@@ -26,34 +25,8 @@ export default class TreeCommand extends Command {
   execute(): CommandResult {
     const doc = this.workspace.document();
     const result = new CommandResult();
-    if (this.id === null) {
-      result.line(`${doc.label()} (${this.formatNumber(doc.width())}x${this.formatNumber(doc.height())})`);
-      this.draw(doc.children(), '', result);
-    } else {
-      const root = doc.requireNode(this.id);
-      result.line(this.describe(root));
-      this.draw(this.childrenOf(root), '', result);
-    }
+    const root = this.id === null ? null : doc.requireNode(this.id);
+    for (const line of this.workspace.treeRenderer().render(doc, root)) result.line(line);
     return result;
-  }
-
-  /** 逐个输出子节点并递归其子树；prefix 为上层累积的连线前缀。 */
-  private draw(children: readonly ShapeNode[], prefix: string, result: CommandResult): void {
-    children.forEach((child, i) => {
-      const last = i === children.length - 1;
-      result.line(`${prefix}${last ? '└── ' : '├── '}${this.describe(child)}`);
-      this.draw(this.childrenOf(child), `${prefix}${last ? '    ' : '│   '}`, result);
-    });
-  }
-
-  /** 容器的子节点；叶子没有子节点。 */
-  private childrenOf(node: ShapeNode): readonly ShapeNode[] {
-    return node.children();
-  }
-
-  /** 本行内容：`<type>#<id>`，有内联属性时隔 2 个空格接上。 */
-  private describe(node: ShapeNode): string {
-    const summary = node.value.summary();
-    return summary === '' ? node.value.label() : `${node.value.label()}  ${summary}`;
   }
 }

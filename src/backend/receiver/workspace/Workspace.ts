@@ -1,5 +1,6 @@
 import EditorError from '../../error/EditorError';
 import type AttributeHandlerRegistry from '../../handler/AttributeHandlerRegistry';
+import type TreeRenderer from '../../tree/TreeRenderer';
 import type Document from '../document/Document';
 import type ShapeFactory from '../document/shape/ShapeFactory';
 import type SvgFile from '../svg/SvgFile';
@@ -20,6 +21,7 @@ export default class Workspace {
     private readonly reader: Pick<SvgReader, 'read'>,
     private readonly writer: Pick<SvgWriter, 'register' | 'write'>,
     private readonly handlerRegistry: AttributeHandlerRegistry,
+    private readonly tree: TreeRenderer,
   ) {}
 
   /** 图形工厂，与有无文档无关。 */
@@ -31,6 +33,8 @@ export default class Workspace {
   attributeHandlerRegistry(): AttributeHandlerRegistry {
     return this.handlerRegistry;
   }
+
+  treeRenderer(): TreeRenderer { return this.tree; }
 
   /** 文件读写，与有无文档无关。 */
   files(): Pick<SvgFile, 'read' | 'write'> {

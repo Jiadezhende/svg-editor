@@ -12,8 +12,7 @@ type ShapeClass = Pick<
 /**
  * 图形工厂：内部保存类型名 → 图形类，使用侧查询规格并由工厂创建实例。
  * 初始注册表为空，具体类型由宿主选择并注册。
- *
- * 待重构：按名分派是课程允许的两处之一（图形工厂），见 doc/update/20261020_FEAT_SHAPE_CREATE_DELETE.md。
+ * 使用侧只查询规格与创建实例，具体类的选择和注册留在宿主。
  */
 export default class ShapeFactory {
   private readonly classes = new Map<string, ShapeClass>();

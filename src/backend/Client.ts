@@ -18,8 +18,7 @@ interface BuiltinEntry {
  * 后端唯一入口，Command 模式中的 Client。
  * 按命令名查表分派：先内置命令，再 ConcreteCommand；同名多形式时按 `accepts` 唯一命中选择形式。
  * 创建 ConcreteCommand 时交给它 Receiver（Workspace），再交给 Invoker 执行。
- *
- * 待重构：按名分派是课程允许的两处之一（命令分发），见 doc/update/20261016_FEAT_CLI_REPL.md。
+ * 具体命令由宿主注册，Client 不扫描或选择默认命令实现。
  */
 export default class Client {
   private readonly invoker = new Invoker();

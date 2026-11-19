@@ -110,6 +110,8 @@ Document（画布、节点树、全局约束）
 ## 依赖与装配边界
 
 - 内核定义公开领域抽象和扩展契约，通过契约调用扩展，不导入具体插件。
+- 宿主和扩展的公共导入入口为 `src/backend/index.ts`；ShapeNode 只导出类型，节点构造及关系存储不作为扩展接口。
+- ShapeFactory 初始为空；`src/host/defaults.ts` 选择默认图形、命令和服务。Client 接收 Workspace，Workspace 接收工厂、文件访问、SvgReader 与 SvgWriter 能力，不在内核创建默认服务。Invoker 不依赖 Workspace。
 - 插件只依赖内核公开契约，不依赖内核内部实现或宿主装配模块。
 - 宿主负责加载、选择和注册插件；代码装配与配置装配共用注册、声明校验及失败回滚路径。
 - 树标签、CLI 格式化等展示行为留在展示扩展中，不混入领域 Handler 或模型。

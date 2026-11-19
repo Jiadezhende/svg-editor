@@ -1,5 +1,7 @@
 # SVG Editor
 
+内核分批重构进度：已完成[第一批：Shape 与 Document 的约束边界](update/20261119_REFACT_DOMAIN_BOUNDARIES.md)。下文 Phase 1 的架构及质量数据保留为历史基线；当前批次的接口变化与验证结果见对应记录。
+
 仓库地址：<https://github.com/Jiadezhende/svg-editor>（最终提交为 tag `final`）
 
 ## 项目背景

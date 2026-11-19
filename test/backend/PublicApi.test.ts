@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Client, ShapeFactory, Document, SvgReader, SvgWriter, Workspace } from '../../src/backend';
+import { AttributeHandlers, Client, ShapeFactory, Document, SvgReader, SvgWriter, Workspace } from '../../src/backend';
 import type { ShapeNode } from '../../src/backend';
 import { Marker, NudgeMarkerCommand } from '../support/PublicExtension';
 // @ts-expect-error 注册用类型是工厂内部实现，不从公共入口导出。
@@ -34,7 +34,7 @@ describe('扩展公共入口', () => {
     const factory = new ShapeFactory();
     factory.register(Marker);
     const files = { read: () => '', write: () => {} };
-    const workspace = new Workspace(factory, files, new SvgReader(factory), new SvgWriter());
+    const workspace = new Workspace(factory, files, new SvgReader(factory), new SvgWriter(), new AttributeHandlers());
     const doc = new Document(100, 100);
     const model = factory.create('test-marker', 'marker', new Map([['x', 1], ['y', 2]]));
     const node = doc.insert(model);

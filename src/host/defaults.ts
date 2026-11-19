@@ -1,4 +1,4 @@
-import { Client, ShapeFactory, Workspace, SvgReader, SvgWriter } from '../backend';
+import { AttributeHandlers, Client, ShapeFactory, Workspace, SvgReader, SvgWriter } from '../backend';
 import SvgFile from '../backend/receiver/svg/SvgFile';
 import Rect from '../backend/receiver/document/shape/Rect';
 import Circle from '../backend/receiver/document/shape/Circle';
@@ -33,7 +33,7 @@ export function createShapeFactory(): ShapeFactory {
 
 export function createWorkspace(): Workspace {
   const factory = createShapeFactory();
-  return new Workspace(factory, new SvgFile(), new SvgReader(factory), new SvgWriter());
+  return new Workspace(factory, new SvgFile(), new SvgReader(factory), new SvgWriter(), new AttributeHandlers());
 }
 
 export function createClient(): Client {

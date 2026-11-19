@@ -7,6 +7,8 @@ describe('宿主默认装配', () => {
     const second = createWorkspace();
     expect(first).not.toBe(second);
     expect(first.shapes()).not.toBe(second.shapes());
+    expect(first.attributeHandlers()).not.toBe(second.attributeHandlers());
+    expect(first.attributeHandlers().resolve(first.shapes().create('g', 'group'), 'fill')).toBeNull();
     for (const type of ['rect', 'circle', 'ellipse', 'line', 'text', 'g']) {
       expect(createShapeFactory().has(type)).toBe(true);
     }

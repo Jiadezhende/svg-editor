@@ -1,4 +1,5 @@
 import EditorError from '../../error/EditorError';
+import type AttributeHandlers from '../../handler/AttributeHandlers';
 import type Document from '../document/Document';
 import type ShapeFactory from '../document/shape/ShapeFactory';
 import type SvgFile from '../svg/SvgFile';
@@ -18,11 +19,17 @@ export default class Workspace {
     private readonly file: Pick<SvgFile, 'read' | 'write'>,
     private readonly reader: Pick<SvgReader, 'read'>,
     private readonly writer: Pick<SvgWriter, 'register' | 'write'>,
+    private readonly handlers: AttributeHandlers,
   ) {}
 
   /** 图形工厂，与有无文档无关。 */
   shapes(): ShapeFactory {
     return this.factory;
+  }
+
+  /** 宿主按启用顺序注册的静态属性处理器。 */
+  attributeHandlers(): AttributeHandlers {
+    return this.handlers;
   }
 
   /** 文件读写，与有无文档无关。 */

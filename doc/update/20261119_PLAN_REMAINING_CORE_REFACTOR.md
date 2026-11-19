@@ -2,7 +2,7 @@
 
 更新日期：2026-11-19。依据 AGENTS.md 及《文档节点树与 Shape 职责分离》。本计划替代先前基于 Shape 通用 children、parent 和 StructureEdit 的后续安排，不回退当前节点架构。
 
-当前进度：第二批已由用户验收，代码与测试提交为 `5b62a44`；第三批已完成 ShapeFactory 使用侧接口调整及两处调用迁移，公开入口、宿主注册迁移和依赖注入尚待完成。
+当前进度：第二批已由用户验收，代码与测试提交为 `5b62a44`；第三批 ShapeFactory 使用侧接口调整及两处调用迁移已阶段性提交为 `ff139d7`。剩余工作先收紧公开 API，再完成宿主注册迁移和依赖注入。
 
 ## 当前基线与边界
 
@@ -37,14 +37,22 @@
 
 尚待完成：
 
-- 建立公开入口，导出 Shape、属性规格、ShapeClass/ShapeFactory、只读 ShapeNode、Document 公开能力、命令契约及必要的持久化映射契约；不开放关系弱映射或节点写权限。
-- 命令上下文明确区分 requireNode(id) 与 requireShape(id)：结构操作使用节点，领域操作使用模型；插件不能绕过 Document 写节点关系。
+- ShapeClass 仅作为 ShapeFactory 文件内的注册参数及存储类型，不再 export，也不从公共入口导出；注册方直接传入具体图形类，通过参数推导进行契约检查，不要求显式引用这个类型，不另建 Provider 包装。
+- Document 按 id 查询统一返回 ShapeNode：保留 findNode(id) 的可空查询和 requireNode(id) 的必须存在查询，删除返回模型的 find(id)、requireShape(id)。调用方通过 node.value 取得已有模型，不新增其他等价快捷方法。
+- 删除 shapes() 模型列表快捷入口，统一使用 nodes() 遍历；read/save 的文档元素统计改用 nodes().length，不统计复合模型映射出的内部 SVG 元素。
+- 读取节点父子关系统一使用 node.parent()/children()；删除 Document.parent(node)，Document.children() 只读取顶层节点，不再接收父节点参数。保留 indexOf(node)，以支持不额外保存 index 的根级及组内定位。
+- 删除 requireChildTarget 等目标定位包装，Command 使用统一节点查询完成用例前置检查；Document.insert/relocate 仍调用模型公开规则保证结构有效，保留现有 CLI 错误内容及检查顺序。
+- 按实际调用收缩预检查方法：仅内部使用的 checkInsert 设为 private；分组、解组批量预检查实际使用的 checkRemove/checkRelocate 暂保留，不为接口数量机械删除必要能力。
+- 建立最小公开入口，导出 Shape、属性规格、ShapeFactory、只读 ShapeNode、上述 Document 能力、命令契约及必要的持久化映射契约；不导出内部类型、关系弱映射、节点写权限或兼容别名。
+- 工厂 create 仍返回尚未加入文档的 Shape，Document.insert 接收模型并返回节点；工厂不负责创建 ShapeNode 或维护文档关系。
 - ShapeFactory 移除内置具体图形导入和枚举，由宿主注册；图形类承担课程 ShapeProvider 所对应的类型描述和构造契约。
 - Client、Workspace 接收宿主装配的工厂、文件访问及 SVG 读写能力；save 持续复用注册过映射的 writer。具体依赖的创建和默认内置集合只放在宿主。
 - 保持默认 CLI 行为及 help 顺序；现有模型行为仍直接通过模型公开方法调用。
 - 优先完善已有接口与组合装配，不为形式对称新增执行结果、历史项或服务框架；保留当前 Command 历史模型和局部快照边界。
 
 验收：空工厂、默认宿主、替换文件服务及 writer 的测试；外部测试扩展只从公开入口导入；禁止内核导入插件和宿主、插件导入关系存储实现。
+
+API 收敛验收：生产代码及公开入口不再引用导出的 ShapeClass 或模型查询快捷方法；set 等领域命令通过 requireNode(id).value 操作模型，结构命令继续操作节点。覆盖可空查询、缺失 id、容器目标错误、节点身份、父子读取、read/save 计数及 CLI 回显兼容。实施时同步 AGENTS.md 中 requireShape 及相关公开方法的旧说明，不保留双轨接口。
 
 当前 Factory 构造函数仍注册六个内置类型，Workspace 仍创建默认服务；这些仅在本批剩余装配调整中迁出，不把本次接口调整视为第三批全部完成。
 
@@ -100,7 +108,7 @@
 
 ## 推进与交付
 
-- 第二批已验收并提交；第三批继续完成公开入口、宿主注册迁移及依赖注入，每批完成代码、必要测试和变更说明后停在验收点，不连续推进未验收批次。
+- 第二批已验收并提交；第三批 Factory 接口已阶段性提交，后续按“公开 API 收敛 → 宿主注册迁移与依赖注入 → 公共入口及边界验收”推进，不连续推进未验收批次。
 - 正式 box、stats、dir、modified-star 等业务插件和 VSCode 实践仍不在本计划范围；使用独立测试扩展验证机制。
 - 不修改旧批次历史记录来掩盖架构变更；仅在用户明确要求时提交，不自动打标签或发布。
 - 每批运行相关测试、全量测试和类型检查；更新架构依赖图、ADR 及公开接口说明，后续基线以当批实际结果为准。

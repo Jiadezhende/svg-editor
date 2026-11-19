@@ -18,10 +18,17 @@ export default abstract class NumericSpec extends AttributeSpec<number> {
     return NumericSpec.decimal.format(value);
   }
 
+  override check(value: number): void {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new EditorError(`${this.name()} must be a finite number`);
+    }
+  }
+
   /** 供不得为负的子类使用。 */
   protected requireNonNegative(value: number): void {
     if (value < 0) {
       throw new EditorError(`${this.name()} must be non-negative`);
     }
   }
+
 }

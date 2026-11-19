@@ -2,7 +2,7 @@
 
 内核分批重构进度：已完成[第一批：Shape 与 Document 的约束边界](update/20261119_REFACT_DOMAIN_BOUNDARIES.md)，以及[文档节点树与 Shape 职责分离](update/20261119_REFACT_DOCUMENT_SHAPE_NODES.md)。最新设计由 Document 统一维护 ShapeNode 树，Shape 仅维护图形状态和领域行为。下文 Phase 1 的架构及质量数据保留为历史基线；当前接口变化与验证结果见最新重构记录。
 
-已完成[第二批：三类命令与局部撤销](update/20261119_REFACT_UNDO_REDO_SIMPLIFICATION.md)。后续安排见[基于 ShapeNode 架构的内核重构计划](update/20261119_PLAN_REMAINING_CORE_REFACTOR.md)，下一批为公开契约与依赖注入，按批次验收。
+已完成[第二批：三类命令与局部撤销](update/20261119_REFACT_UNDO_REDO_SIMPLIFICATION.md)。[第三批计划](update/20261119_PLAN_REMAINING_CORE_REFACTOR.md)已开始：ShapeFactory 收敛为装配侧 register，以及使用侧 has/definition/create；创建命令与 SVG 读入已统一经工厂创建，公开入口、宿主注册迁移及依赖注入仍待完成。
 
 仓库地址：<https://github.com/Jiadezhende/svg-editor>（最终提交为 tag `final`）
 

@@ -4,7 +4,6 @@ import type { AttributeValue } from '../document/attribute/AttributeSpec';
 import DecimalFormat from '../document/attribute/DecimalFormat';
 import type ShapeNode from '../document/ShapeNode';
 import Document, { type ViewBox } from '../document/Document';
-import type { ShapeClass } from '../document/shape/ShapeFactory';
 import type ShapeFactory from '../document/shape/ShapeFactory';
 
 /** 读入结果：新文档，以及读入过程中产生的警告（按出现顺序）。 */
@@ -48,13 +47,13 @@ export default class SvgReader {
       }
       const child = node as Element;
       const tag = child.localName ?? child.tagName;
-      const cls = this.factory.find(tag);
-      if (cls === null) {
+      if (!this.factory.has(tag)) {
         warnings.push(`skipped unsupported <${tag}>`);
         continue;
       }
+      const definition = this.factory.definition(tag);
       const id = child.getAttribute('id') ?? SvgReader.assign(tag, used, warnings);
-      const shape = new cls(id, SvgReader.values(cls, child));
+      const shape = this.factory.create(tag, id, SvgReader.values(definition, child));
       const created = document.insert(shape, container);
       if (shape.acceptsChildren()) {
         this.children(child, created, document, used, warnings);
@@ -63,14 +62,14 @@ export default class SvgReader {
   }
 
   /** 按属性表读取元素的属性；`content` 属性取子文本；缺少的必填属性取默认值。 */
-  private static values(cls: ShapeClass, element: Element): Map<string, AttributeValue> {
+  private static values(definition: ReturnType<ShapeFactory['definition']>, element: Element): Map<string, AttributeValue> {
     const values = new Map<string, AttributeValue>();
-    for (const spec of cls.attributes()) {
+    for (const spec of definition.attributes()) {
       const name = spec.name();
-      const raw = name === cls.content ? (element.textContent ?? '') : element.getAttribute(name)?.trim() ?? null;
+      const raw = name === definition.content ? (element.textContent ?? '') : element.getAttribute(name)?.trim() ?? null;
       if (raw !== null) {
         values.set(name, spec.parse(raw));
-      } else if (cls.params.includes(spec)) {
+      } else if (definition.params.includes(spec)) {
         values.set(name, spec.defaultValue());
       }
     }

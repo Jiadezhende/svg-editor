@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
@@ -20,6 +20,15 @@ function detailsOf(workspace: Workspace, id: string): string[] {
 }
 
 describe('CreateCommand 创建', () => {
+  it('把工厂返回的模型加入文档，不在命令内自行构造', () => {
+    const workspace = workspaceWithDoc();
+    const factory = workspace.shapes();
+    const supplied = factory.create('rect', 'r1', new Map([['x', 10], ['y', 20], ['width', 30], ['height', 40]]));
+    vi.spyOn(factory, 'create').mockReturnValue(supplied);
+    create(workspace, 'rect r1 1 2 3 4');
+    expect(workspace.document().requireShape('r1')).toBe(supplied);
+  });
+
   it('create rect 挂在画布根末尾，写入几何属性与 fill', () => {
     const workspace = workspaceWithDoc();
     expect(create(workspace, 'rect r1 10 20 100 50 #eee')).toEqual(['rect#r1 created']);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import TreeCommand from '../../../../src/backend/command/impl/TreeCommand';
 import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
 import EditorError from '../../../../src/backend/error/EditorError';
@@ -32,6 +32,17 @@ const other = svg(`  <rect x="0" y="0" width="400" height="300" fill="#ffffff"/>
   <ellipse id="e1" cx="1" cy="2" rx="3" ry="4"/>`);
 
 describe('SvgReader', () => {
+  it('使用工厂返回的实例，未知元素仍警告并跳过', () => {
+    const factory = new ShapeFactory();
+    const supplied = factory.create('rect', 'r1', new Map([['x', 10], ['y', 20], ['width', 30], ['height', 40]]));
+    const create = vi.spyOn(factory, 'create').mockReturnValue(supplied);
+    const { document, warnings } = new SvgReader(factory).read(svg('<path id="unsupported"/><rect id="r1"/>'));
+    expect(document.requireShape('r1')).toBe(supplied);
+    expect(document.find('unsupported')).toBeNull();
+    expect(warnings).toEqual(['skipped unsupported <path>']);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
   it('读入接口契约中的 other.svg：为缺 id 的 rect 补 id 并警告，结构与示例一致', () => {
     const { document, warnings } = read(other);
     expect(warnings).toEqual(['assigned id rect1 to unnamed <rect>']);

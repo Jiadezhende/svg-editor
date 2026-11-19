@@ -11,17 +11,21 @@ class Hexagon extends Shape {
 
 describe('ShapeFactory 图形工厂', () => {
   it.each(['rect', 'circle', 'ellipse', 'line', 'text', 'g'])('内置类型 %s 已注册', (type) => {
-    expect(new ShapeFactory().lookup(type).type).toBe(type);
+    expect(new ShapeFactory().definition(type).type).toBe(type);
   });
 
-  it('按类型名取到对应的图形类', () => {
+  it('按类型名和属性值创建对应的图形实例', () => {
     const factory = new ShapeFactory();
-    expect(factory.lookup('rect')).toBe(Rect);
-    expect(factory.lookup('g')).toBe(Group);
+    expect(factory.create('rect', 'r', new Map([['x', 1], ['y', 2], ['width', 3], ['height', 4]]))).toBeInstanceOf(Rect);
+    expect(factory.create('g', 'g')).toBeInstanceOf(Group);
   });
 
   it.each(['hexagon', 'box', 'Rect', ''])('未注册的类型 %j 报错', (type) => {
-    expect(() => new ShapeFactory().lookup(type)).toThrow(
+    const factory = new ShapeFactory();
+    expect(() => factory.definition(type)).toThrow(
+      new EditorError(`unknown shape type: ${type} (is the plugin loaded?)`),
+    );
+    expect(() => factory.create(type, 'id')).toThrow(
       new EditorError(`unknown shape type: ${type} (is the plugin loaded?)`),
     );
   });
@@ -29,7 +33,23 @@ describe('ShapeFactory 图形工厂', () => {
   it('可注册新类型，注册后即可查到', () => {
     const factory = new ShapeFactory();
     factory.register(Hexagon);
-    expect(factory.lookup('hexagon')).toBe(Hexagon);
+    expect(factory.create('hexagon', 'h')).toBeInstanceOf(Hexagon);
+  });
+
+  it('每次创建独立模型，属性值和校验继续由模型负责', () => {
+    const factory = new ShapeFactory();
+    const values = new Map([['x', 1], ['y', 2], ['width', 3], ['height', 4]]);
+    const first = factory.create('rect', 'r1', values);
+    const second = factory.create('rect', 'r2', values);
+    expect(first).not.toBe(second);
+    first.set('width', '10');
+    values.set('height', 99);
+    expect(second.value('width')).toBe(3);
+    expect(first.value('height')).toBe(4);
+    expect(() => factory.create('rect', '1bad', values)).toThrow('invalid id: 1bad');
+    expect(() => factory.create('rect', 'bad', new Map(values).set('width', -1)))
+      .toThrow('width must be non-negative');
+    expect(() => factory.create('rect', 'missing')).toThrow('missing attribute: x');
   });
 
   it('类型名缺失或重名属于程序缺陷', () => {
@@ -66,14 +86,38 @@ describe('ShapeFactory 锚点校验', () => {
   it('没有锚点的类型可正常注册', () => {
     const factory = new ShapeFactory();
     factory.register(Hexagon);
-    expect(factory.lookup('hexagon').anchor).toBeNull();
+    expect(factory.has('hexagon')).toBe(true);
   });
 });
 
 describe('ShapeFactory 查询', () => {
-  it('find 未注册时返回 null，不报错', () => {
+  it('definition 提供只读静态规格，类型契约不暴露构造签名及内部查找', () => {
     const factory = new ShapeFactory();
-    expect(factory.find('rect')).toBe(Rect);
-    expect(factory.find('path')).toBeNull();
+    const definition = factory.definition('rect');
+    expect(definition.type).toBe('rect');
+    expect(definition.params).toEqual(Rect.params);
+    expect(definition.paint).toBe('fill');
+    expect(definition.attributes()).toEqual(Rect.attributes());
+    expect(definition.attribute('width')).toBe(Rect.attribute('width'));
+    expect(factory.definition('text').content).toBe('text');
+    // 由 tsc 检查公开类型边界，不执行非法调用。
+    if (false) {
+      // @ts-expect-error definition 只提供规格，没有构造签名。
+      new definition('r1');
+      // @ts-expect-error 类型定义视图不可赋值。
+      definition.type = 'changed';
+      // @ts-expect-error 锚点属于注册校验信息，不是使用侧规格。
+      definition.anchor;
+      // @ts-expect-error 构造函数查找是工厂私有实现。
+      factory.lookup('rect');
+      // @ts-expect-error 不再提供返回构造函数的 find 接口。
+      factory.find('rect');
+    }
+  });
+
+  it('has 判断已注册及未知类型，不抛错', () => {
+    const factory = new ShapeFactory();
+    expect(factory.has('rect')).toBe(true);
+    expect(factory.has('path')).toBe(false);
   });
 });

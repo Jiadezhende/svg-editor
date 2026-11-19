@@ -16,7 +16,8 @@ export type ShapeClass = Pick<
   (new (id: string, values?: ReadonlyMap<string, AttributeValue>) => Shape);
 
 /**
- * 图形工厂：类型名 → 图形类的注册表，构造时注册 6 种内置图形；后续插件类型向同一工厂注册。
+ * 图形工厂：内部保存类型名 → 图形类，使用侧查询规格并由工厂创建实例。
+ * 当前构造时注册 6 种内置图形，第三批后续将具体类型装配迁至宿主。
  *
  * 待重构：按名分派是课程允许的两处之一（图形工厂），见 doc/update/20261020_FEAT_SHAPE_CREATE_DELETE.md。
  */
@@ -41,6 +42,24 @@ export default class ShapeFactory {
     this.classes.set(cls.type, cls);
   }
 
+  /** 是否支持该类型；不构造对象，供读入流程决定是否跳过。 */
+  has(type: string): boolean {
+    return this.classes.has(type);
+  }
+
+  /** 已注册类的只读规格视图，不暴露构造签名或注册校验信息。 */
+  definition(type: string): Readonly<Pick<
+    ShapeClass, 'type' | 'params' | 'paint' | 'content' | 'attributes' | 'attribute'
+  >> {
+    return this.lookup(type);
+  }
+
+  /** 统一创建入口；属性与自身结构的有效性由具体模型保证。 */
+  create(type: string, id: string, values: ReadonlyMap<string, AttributeValue> = new Map()): Shape {
+    const cls = this.lookup(type);
+    return new cls(id, values);
+  }
+
   private static checkAnchor(cls: ShapeClass): void {
     const anchor = cls.anchor;
     if (anchor === null) {
@@ -53,17 +72,12 @@ export default class ShapeFactory {
     });
   }
 
-  /** 按类型名取图形类，未注册时报错。 */
-  lookup(type: string): ShapeClass {
-    const cls = this.find(type);
-    if (cls === null) {
+  /** 构造函数只在注册表内部查找，未知类型保持原错误语义。 */
+  private lookup(type: string): ShapeClass {
+    const cls = this.classes.get(type);
+    if (cls === undefined) {
       throw new EditorError(`unknown shape type: ${type} (is the plugin loaded?)`);
     }
     return cls;
-  }
-
-  /** 按类型名取图形类，未注册时为 null（read 据此跳过不支持的元素）。 */
-  find(type: string): ShapeClass | null {
-    return this.classes.get(type) ?? null;
   }
 }

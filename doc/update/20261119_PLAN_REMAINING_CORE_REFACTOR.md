@@ -2,7 +2,7 @@
 
 更新日期：2026-11-19。依据 AGENTS.md 及《文档节点树与 Shape 职责分离》。本计划替代先前基于 Shape 通用 children、parent 和 StructureEdit 的后续安排，不回退当前节点架构。
 
-当前进度：第二批已由用户验收，代码与测试提交为 `5b62a44`；第三批公开契约与依赖注入是下一步，尚未开始实施。
+当前进度：第二批已由用户验收，代码与测试提交为 `5b62a44`；第三批已完成 ShapeFactory 使用侧接口调整及两处调用迁移，公开入口、宿主注册迁移和依赖注入尚待完成。
 
 ## 当前基线与边界
 
@@ -12,7 +12,7 @@
 - 分组、解组仍是 Command 编排的结构用例；Document 只提供节点结构入口及文档子树变换，不接管分组用例。
 - 已有 DocumentStructureMemento、组合式 UndoRecord、模型属性快照及文档子树变换失败恢复；不建设通用会话事务。StructureCommand、RelocateCommand 已删除，所有具体编辑命令直接继承 EditCommand。
 - 已有 SvgShapeMapping、SvgElement 和 Workspace.svgWriter()；save 复用会话 writer。复合模型写出不伪造文档节点。
-- 本次复核：npm run typecheck 通过；npm test -- --reporter=dot 为 42 个测试文件、432 个测试通过。
+- 本次复核：npm run typecheck 通过；npm test -- --reporter=dot 为 42 个测试文件、436 个测试通过。
 
 ## 第二批：三类命令与局部撤销（已验收，提交 5b62a44）
 
@@ -24,9 +24,18 @@
 - 删除 Workspace 通用事务、提交回调、附加保护及会话快照，Invoker 不依赖 Workspace，不新增执行结果或历史项模型。
 - 保留模型自身校验、子树变换失败恢复和结构快照的完整预校验。不承诺对任意扩展代码自动回滚整个会话。
 
-## 第三批：公开扩展契约与依赖注入（下一批，尚未开始）
+## 第三批：公开扩展契约与依赖注入（部分完成）
 
 目标：明确插件可以依赖的领域、节点读取、命令及持久化边界，不在这一批引入 Handler。
+
+已完成的 Factory 接口调整：
+
+- 装配侧使用 register(ShapeClass)；使用侧仅通过 has(type)、definition(type)、create(type, id, values) 判断支持、读取规格及取得实例。lookup 改为私有，删除返回构造函数的 find。
+- definition 返回已注册类的只读静态规格视图，包括 type、params、paint、content、attributes、attribute，不包含构造签名或注册校验用的 anchor。不创建包装对象，不新增 ShapeDefinition 或 Provider 类型。
+- CreateCommand 继续处理 CLI 语法与参数值，SvgReader 继续处理 XML、默认值和未知元素跳过；两者统一通过 factory.create 创建模型，不再直接 new 注册类。
+- 工厂只负责查找和构造，属性及模型结构有效性由 Shape 保证；注册校验仍检查类型名、重名及锚点。已验证工厂返回实例被直接加入文档，保持创建撤销重做和 SVG 警告行为。
+
+尚待完成：
 
 - 建立公开入口，导出 Shape、属性规格、ShapeClass/ShapeFactory、只读 ShapeNode、Document 公开能力、命令契约及必要的持久化映射契约；不开放关系弱映射或节点写权限。
 - 命令上下文明确区分 requireNode(id) 与 requireShape(id)：结构操作使用节点，领域操作使用模型；插件不能绕过 Document 写节点关系。
@@ -36,6 +45,8 @@
 - 优先完善已有接口与组合装配，不为形式对称新增执行结果、历史项或服务框架；保留当前 Command 历史模型和局部快照边界。
 
 验收：空工厂、默认宿主、替换文件服务及 writer 的测试；外部测试扩展只从公开入口导入；禁止内核导入插件和宿主、插件导入关系存储实现。
+
+当前 Factory 构造函数仍注册六个内置类型，Workspace 仍创建默认服务；这些仅在本批剩余装配调整中迁出，不把本次接口调整视为第三批全部完成。
 
 ## 第四批：独立引入 AttributeHandler
 
@@ -89,7 +100,7 @@
 
 ## 推进与交付
 
-- 第二批已验收并提交；下一步从第三批公开契约与依赖注入开始，每批完成代码、必要测试和变更说明后停在验收点，不连续推进未验收批次。
+- 第二批已验收并提交；第三批继续完成公开入口、宿主注册迁移及依赖注入，每批完成代码、必要测试和变更说明后停在验收点，不连续推进未验收批次。
 - 正式 box、stats、dir、modified-star 等业务插件和 VSCode 实践仍不在本计划范围；使用独立测试扩展验证机制。
 - 不修改旧批次历史记录来掩盖架构变更；仅在用户明确要求时提交，不自动打标签或发布。
 - 每批运行相关测试、全量测试和类型检查；更新架构依赖图、ADR 及公开接口说明，后续基线以当批实际结果为准。

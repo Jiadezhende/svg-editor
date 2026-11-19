@@ -2,7 +2,7 @@ import CommandResult from '../CommandResult';
 import EditCommand from '../EditCommand';
 import UndoRecord from '../UndoRecord';
 import type { AttributeValue } from '../../receiver/document/attribute/AttributeSpec';
-import type { ShapeClass } from '../../receiver/document/shape/ShapeFactory';
+import type ShapeFactory from '../../receiver/document/shape/ShapeFactory';
 import type Workspace from '../../receiver/workspace/Workspace';
 
 /**
@@ -18,7 +18,7 @@ export default class CreateCommand extends EditCommand {
 
   private static readonly keyword = 'in';
 
-  private readonly shapeClass: ShapeClass;
+  private readonly shapeDefinition: ReturnType<ShapeFactory['definition']>;
   private readonly id: string;
   private readonly values = new Map<string, AttributeValue>();
   private readonly containerId: string | null;
@@ -31,9 +31,9 @@ export default class CreateCommand extends EditCommand {
     if (args.length === 0) {
       throw this.wrongArgCount();
     }
-    this.shapeClass = workspace.shapes().lookup(args[0]);
+    this.shapeDefinition = workspace.shapes().definition(args[0]);
 
-    const params = this.shapeClass.params;
+    const params = this.shapeDefinition.params;
     if (args.length < 2 + params.length) {
       throw this.wrongArgCount(this.syntax());
     }
@@ -41,7 +41,7 @@ export default class CreateCommand extends EditCommand {
     const required = args.slice(2, 2 + params.length);
     let rest = args.slice(2 + params.length);
 
-    const paint = this.shapeClass.paint;
+    const paint = this.shapeDefinition.paint;
     let paintToken: string | null = null;
     if (paint !== null && rest.length > 0 && rest[0] !== CreateCommand.keyword) {
       paintToken = rest[0];
@@ -67,7 +67,7 @@ export default class CreateCommand extends EditCommand {
     const doc = this.workspace.document();
     return this.undoRecord.execute(doc.captureStructure(), () => {
       const parent = this.containerId === null ? null : doc.requireChildTarget(this.containerId);
-      const shape = new this.shapeClass(this.id, this.values);
+      const shape = this.workspace.shapes().create(this.shapeDefinition.type, this.id, this.values);
       doc.insert(shape, parent);
       const where = this.containerId === null ? '' : ` in ${parent?.value.label() ?? 'svg'}`;
       return { result: new CommandResult().line(`${shape.label()} created${where}`), undo: `${shape.label()} removed` };
@@ -75,16 +75,16 @@ export default class CreateCommand extends EditCommand {
   }
 
   private parseValue(name: string, token: string): void {
-    const spec = this.shapeClass.attribute(name);
+    const spec = this.shapeDefinition.attribute(name);
     if (spec === null) {
-      throw new Error(`${this.shapeClass.type} declares paint ${name} without such attribute`);
+      throw new Error(`${this.shapeDefinition.type} declares paint ${name} without such attribute`);
     }
     this.values.set(name, spec.parse(token));
   }
 
   /** 本类型的完整语法，用于参数个数不符时的提示。 */
   private syntax(): string {
-    const { type, params, paint } = this.shapeClass;
+    const { type, params, paint } = this.shapeDefinition;
     const required = params.map((spec) => ` <${spec.name()}>`).join('');
     const optional = paint === null ? '' : ` [${paint}]`;
     return `create ${type} <id>${required}${optional} [in <containerId>]`;

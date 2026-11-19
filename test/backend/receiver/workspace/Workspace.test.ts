@@ -26,7 +26,7 @@ describe('Workspace 当前文档槽位', () => {
 
   it('持有图形工厂：无文档时也可取用，每个 Workspace 一份', () => {
     const workspace = new Workspace();
-    expect(workspace.shapes().lookup('rect')).toBe(Rect);
+    expect(workspace.shapes().definition('rect').params).toEqual(Rect.params);
     expect(workspace.shapes()).toBe(workspace.shapes());
     expect(new Workspace().shapes()).not.toBe(workspace.shapes());
   });

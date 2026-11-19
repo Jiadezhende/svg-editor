@@ -83,9 +83,9 @@ describe('SvgWriter 显式映射', () => {
     expect(() => new SvgWriter([mapping, mapping]).write(doc)).toThrow('multiple SVG mappings: g');
   });
 
-  it('不允许复合映射静默覆盖文档子节点', () => {
+  it('复合映射保留文档子节点，不允许映射静默覆盖成员', () => {
     const doc = documentWith(100, 100, ['g', 'g'], ['circle', 'c', '0', '0', '1', 'in', 'g']);
     const mapping = { matches: () => true, write: SvgWriter.elementOf };
-    expect(() => new SvgWriter([mapping]).write(doc)).toThrow('mapped shape has document children: g');
+    expect(new SvgWriter([mapping]).write(doc)).toContain('  <g id="g">\n    <circle id="c" cx="0" cy="0" r="1"/>\n  </g>');
   });
 });

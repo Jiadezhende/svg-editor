@@ -2,7 +2,7 @@
 
 内核分批重构进度：已完成[第一批：Shape 与 Document 的约束边界](update/20261119_REFACT_DOMAIN_BOUNDARIES.md)，以及[文档节点树与 Shape 职责分离](update/20261119_REFACT_DOCUMENT_SHAPE_NODES.md)。最新设计由 Document 统一维护 ShapeNode 树，Shape 仅维护图形状态和领域行为。下文 Phase 1 的架构及质量数据保留为历史基线；当前接口变化与验证结果见最新重构记录。
 
-已完成[第二批：三类命令与局部撤销](update/20261119_REFACT_UNDO_REDO_SIMPLIFICATION.md)、[第三批：公开契约与依赖注入](update/20261119_REFACT_PUBLIC_CONTRACTS.md)和[第四批：静态 AttributeHandler](update/20261120_REFACT_ATTRIBUTE_HANDLERS.md)。第四批按三步分别提交，停在验收点；[后续计划](update/20261119_PLAN_REMAINING_CORE_REFACTOR.md)中的 Parser、装饰器和插件发现尚未开始。
+已完成[第二批：三类命令与局部撤销](update/20261119_REFACT_UNDO_REDO_SIMPLIFICATION.md)、[第三批：公开契约与依赖注入](update/20261119_REFACT_PUBLIC_CONTRACTS.md)、[第四批：静态 AttributeHandler](update/20261120_REFACT_ATTRIBUTE_HANDLERS.md)和[第五批：SVG 编排与模型构造](update/20261120_REFACT_SVG_PARSE.md)。第五批按三步分别提交，停在验收点；[后续计划](update/20261119_PLAN_REMAINING_CORE_REFACTOR.md)中的装饰器和插件发现尚未开始。
 
 仓库地址：<https://github.com/Jiadezhende/svg-editor>（最终提交为 tag `final`）
 
@@ -54,6 +54,8 @@ npm run coverage             # 覆盖率报告
 - `src/host/defaults.ts` 选择六种内置图形、17 个命令形式、原生文件服务与 SVG 读写器。main.ts 将装配后的 Client 接到控制台。
 - Workspace 接收工厂、文件访问、reader、writer 和 AttributeHandlerRegistry，保存当前文档和路径；Client 接收 Workspace。read 使用注入 reader，save 复用会话 writer 及其映射。
 - AttributeHandlerRegistry 直接注册静态类，按注册顺序首次匹配。目标类型、属性名和别名由 Handler.matches 判断，SetCommand 调用命中项的 apply/display；零命中回退模型规则。默认注册表为空，不包装普通属性；命中失败恢复模型快照且不继续尝试。详见[属性处理器 ADR](adr/20261120_ATTRIBUTE_HANDLER_CONTRACT.md)。
+- SvgReader 负责 XML、类型选择、按需递归及候选文档组装；经 ShapeFactory.parse 调用可覆写 Shape.parse，由模型解析属性并消费私有部件，返回其余文档成员。已安装 data-kind 优先，未安装按原标签降级，结构无效拒绝。模型不接触 XML 库或 ShapeNode。
+- SvgShapeMapping 保持独立，生成私有组成；Writer 追加文档成员，完整校验映射结果后才写出，涵盖内部部件与节点 id 冲突。读入同样检查全输入 id。详见[SVG 读回 ADR](adr/20261120_SVG_COMPOSITE_PARSE.md)。
 - 命令仅分查询、编辑、文档三类。Invoker 保存 EditCommand，成功后更新历史；具体命令通过局部快照组织撤销及必要的失败恢复，不存在通用会话事务。
 
 ```text
@@ -64,7 +66,7 @@ main → App → Client → Command → Workspace 提供的文档、工厂和读
                      Invoker → EditCommand.execute / undo（历史）
 ```
 
-最新验证：47 个测试文件、464 个测试通过，类型检查通过；包含公共入口模型、命令及静态 Handler、默认 CLI 回放、属性别名、私有部件撤销、局部失败恢复及历史不变验证。
+最新验证：50 个测试文件、493 个测试通过，类型检查通过；包含公共入口模型、命令、静态 Handler、复合 SVG 往返、默认 CLI 回放、局部失败恢复及历史不变验证。
 
 ## Phase 1 历史架构方案
 

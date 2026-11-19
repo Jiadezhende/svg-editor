@@ -13,8 +13,8 @@ type ParsedShape = { readonly shape: Shape; readonly children: readonly ParsedSh
 export type SvgReadResult = { readonly document: Document; readonly warnings: readonly string[] };
 
 /**
- * 把 SVG 文本读成文档。按图形类的声明通用处理：元素名经图形工厂取图形类，属性经属性种类解析与校验，
- * `content` 属性取自子文本，容器递归子元素。
+ * XML、类型选择及递归由 Reader 编排；领域属性解析和部件构造委托已注册 Shape.parse。
+ * 优先选择已安装的 data-kind，否则按原标签降级；仅将模型返回的成员组装为文档节点。
  *
  * - 不支持的元素：警告并跳过（连同其子树）；未知属性：丢弃；缺少的必填属性：取属性种类的默认值；
  * - 缺 id 的图形按文档顺序分配 `<标签名><序号>`（跳过已占用的编号）并警告；

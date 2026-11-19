@@ -2,7 +2,7 @@ import type { AttributeValue } from '../document/attribute/AttributeSpec';
 import DecimalFormat from '../document/attribute/DecimalFormat';
 import type Document from '../document/Document';
 import type ShapeNode from '../document/ShapeNode';
-import type Shape from '../document/shape/Shape';
+import Shape from '../document/shape/Shape';
 import EditorError from '../../error/EditorError';
 
 /** SVG 映射结果，不携带文档节点关系。 */
@@ -42,35 +42,47 @@ export default class SvgWriter {
   }
 
   write(doc: Document): string {
+    const elements = doc.children().map((node) => this.mapNode(node));
+    const ids = new Set<string>();
+    for (const element of elements) this.checkElement(element, ids);
     const size = [doc.width(), doc.height()].map((n) => SvgWriter.decimal.format(n));
     const viewBox = doc.viewBox().map((n) => SvgWriter.decimal.format(n)).join(' ');
     const root = `<svg xmlns="http://www.w3.org/2000/svg" width="${size[0]}" height="${size[1]}" viewBox="${viewBox}"`;
     const lines = ['<?xml version="1.0" encoding="UTF-8"?>'];
-    if (doc.children().length === 0) {
+    if (elements.length === 0) {
       lines.push(`${root}/>`);
     } else {
       lines.push(`${root}>`);
-      for (const shape of doc.children()) {
-        this.element(shape, 1, lines);
-      }
+      for (const element of elements) this.writeElement(element, 1, lines);
       lines.push('</svg>');
     }
     return `${lines.join('\n')}\n`;
-  }
-
-  private element(node: ShapeNode, depth: number, lines: string[]): void {
-    const element = this.mapNode(node);
-    this.writeElement(element, depth, lines);
   }
 
   private mapNode(node: ShapeNode): SvgElement {
     const matches = this.mappings.filter((mapping) => mapping.matches(node.value));
     if (matches.length > 1) throw new EditorError(`multiple SVG mappings: ${node.value.id()}`);
     if (matches.length === 1) {
-      if (node.children().length > 0) throw new EditorError(`mapped shape has document children: ${node.value.id()}`);
-      return matches[0].write(node.value);
+      const mapped = matches[0].write(node.value);
+      return { ...mapped, children: [...(mapped.children ?? []), ...node.children().map((child) => this.mapNode(child))] };
     }
     return { ...SvgWriter.elementOf(node.value), children: node.children().map((child) => this.mapNode(child)) };
+  }
+
+  /** 在生成文本前校验完整映射树，包含私有部件与普通文档成员。 */
+  private checkElement(element: SvgElement, ids: Set<string>): void {
+    const declared = element.attributes.filter(([name]) => name === 'id');
+    if (declared.length > 1) throw new EditorError('multiple id attributes in SVG element');
+    if (declared.length === 1) {
+      const id = String(declared[0][1]);
+      Shape.checkId(id);
+      if (ids.has(id)) throw new EditorError(`id already exists: ${id}`);
+      ids.add(id);
+    }
+    if (element.content != null && (element.children?.length ?? 0) > 0) {
+      throw new EditorError(`SVG element has both content and children: ${element.type}`);
+    }
+    for (const child of element.children ?? []) this.checkElement(child, ids);
   }
 
   private writeElement(element: SvgElement, depth: number, lines: string[]): void {

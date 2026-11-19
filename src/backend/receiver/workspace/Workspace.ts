@@ -1,8 +1,9 @@
 import EditorError from '../../error/EditorError';
 import type Document from '../document/Document';
 import type ShapeFactory from '../document/shape/ShapeFactory';
-import SvgFile from '../svg/SvgFile';
-import SvgWriter from '../svg/SvgWriter';
+import type SvgFile from '../svg/SvgFile';
+import type SvgReader from '../svg/SvgReader';
+import type SvgWriter from '../svg/SvgWriter';
 
 /**
  * 编辑会话的接收者上下文：当前文档槽位（同一时刻至多持有一个文档）及其文件路径、图形工厂、文件读写。
@@ -12,10 +13,12 @@ export default class Workspace {
   private current: Document | null = null;
   /** 当前文档对应的文件；init 新建的文档在首次 `save <file>` 之前没有路径。 */
   private currentPath: string | null = null;
-  private readonly file = new SvgFile();
-  private readonly writer = new SvgWriter();
-
-  constructor(private readonly factory: ShapeFactory) {}
+  constructor(
+    private readonly factory: ShapeFactory,
+    private readonly file: Pick<SvgFile, 'read' | 'write'>,
+    private readonly reader: Pick<SvgReader, 'read'>,
+    private readonly writer: Pick<SvgWriter, 'register' | 'write'>,
+  ) {}
 
   /** 图形工厂，与有无文档无关。 */
   shapes(): ShapeFactory {
@@ -23,12 +26,17 @@ export default class Workspace {
   }
 
   /** 文件读写，与有无文档无关。 */
-  files(): SvgFile {
+  files(): Pick<SvgFile, 'read' | 'write'> {
     return this.file;
   }
 
+  /** read 使用装配时提供的解析器，与创建流程共享宿主选定的类型注册。 */
+  svgReader(): Pick<SvgReader, 'read'> {
+    return this.reader;
+  }
+
   /** 写出映射在会话装配时注册，save 复用同一写出器。 */
-  svgWriter(): SvgWriter {
+  svgWriter(): Pick<SvgWriter, 'register' | 'write'> {
     return this.writer;
   }
 

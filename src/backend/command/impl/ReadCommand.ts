@@ -1,6 +1,5 @@
 import CommandResult from '../CommandResult';
 import DocumentCommand from '../DocumentCommand';
-import SvgReader from '../../receiver/svg/SvgReader';
 import type Workspace from '../../receiver/workspace/Workspace';
 
 /** `read <file.svg>`：读入 SVG 文件为当前文档；读取或解析失败时当前文档不变。 */
@@ -21,7 +20,7 @@ export default class ReadCommand extends DocumentCommand {
 
   execute(): CommandResult {
     const text = this.workspace.files().read(this.path);
-    const { document, warnings } = new SvgReader(this.workspace.shapes()).read(text);
+    const { document, warnings } = this.workspace.svgReader().read(text);
     const result = new CommandResult();
     for (const warning of warnings) {
       result.warn(warning);

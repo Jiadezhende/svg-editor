@@ -1,5 +1,7 @@
 # 第一批：Shape 组成与文档结构职责
 
+> 本文保留本批完成时的实现记录。后续文档树与 Shape 分离重构已移除 Shape 的文档父子关系及 StructureEdit；当前实现以 ShapeNode 和 Document 结构快照为准。
+
 本批依据 AGENTS.md 落实模型自身约束、统一子节点组成及文档级结构入口。已根据审查调整：移除 Container、asContainer 和 ChildList，将分组、解组流程及撤销记录归回 Command。Handler、依赖注入、Parser 和树装饰链尚未引入。
 
 ## Shape、Group 与子节点数组

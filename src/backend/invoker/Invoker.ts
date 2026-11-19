@@ -35,11 +35,12 @@ export default class Invoker {
     if (this.sealed) {
       throw new EditorError('undo not allowed after io command');
     }
-    const command = this.undoStack.pop();
+    const command = this.undoStack.at(-1);
     if (command === undefined) {
       throw new EditorError('nothing to undo');
     }
     const result = command.undo();
+    this.undoStack.pop();
     this.redoStack.push(command);
     return result;
   }
@@ -49,11 +50,12 @@ export default class Invoker {
     if (this.sealed) {
       throw new EditorError('redo not allowed after io command');
     }
-    const command = this.redoStack.pop();
+    const command = this.redoStack.at(-1);
     if (command === undefined) {
       throw new EditorError('nothing to redo');
     }
     const result = command.execute();
+    this.redoStack.pop();
     this.undoStack.push(command);
     return result;
   }

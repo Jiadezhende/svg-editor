@@ -24,7 +24,7 @@ describe('CreateCommand 创建', () => {
     const workspace = workspaceWithDoc();
     expect(create(workspace, 'rect r1 10 20 100 50 #eee')).toEqual(['rect#r1 created']);
     const doc = workspace.document();
-    expect(doc.children().map((s) => s.id())).toEqual(['r1']);
+    expect(doc.children().map((s) => s.value.id())).toEqual(['r1']);
     expect(detailsOf(workspace, 'r1')).toEqual(['x=10 y=20 width=100 height=50', 'fill=#eee']);
   });
 
@@ -36,7 +36,7 @@ describe('CreateCommand 创建', () => {
     expect(create(workspace, 'g scene')).toEqual(['g#scene created']);
     expect(detailsOf(workspace, 'e1')).toEqual(['cx=0 cy=0 rx=30 ry=10']);
     expect(detailsOf(workspace, 'l1')).toEqual(['x1=0 y1=0 x2=100 y2=100', 'stroke=black']);
-    expect(detailsOf(workspace, 'scene')).toEqual(['children=0']);
+    expect(detailsOf(workspace, 'scene')).toEqual(['']);
   });
 
   it('text 的内容为一个参数（含空格），不计引号', () => {
@@ -60,7 +60,7 @@ describe('CreateCommand 创建', () => {
       'rect#start created in g#node1',
     ]);
     const node1 = workspace.document().requireChildTarget('node1');
-    expect(node1.children().map((s) => s.id())).toEqual(['a', 'start']);
+    expect(node1.children().map((s) => s.value.id())).toEqual(['a', 'start']);
     expect(detailsOf(workspace, 'start')).toEqual(['x=120 y=100 width=160 height=60', 'fill=#4a90d9']);
   });
 
@@ -151,7 +151,7 @@ describe('CreateCommand 业务校验（执行时）', () => {
     create(workspace, 'rect r1 0 0 1 1 in g1');
     expect(() => create(workspace, 'rect r1 0 0 1 1')).toThrow(new EditorError('id already exists: r1'));
     expect(() => create(workspace, 'circle g1 0 0 1')).toThrow('id already exists: g1');
-    expect(workspace.document().children().map((s) => s.id())).toEqual(['g1']);
+    expect(workspace.document().children().map((s) => s.value.id())).toEqual(['g1']);
   });
 
   it('in 目标不存在 / 不是容器时报错', () => {

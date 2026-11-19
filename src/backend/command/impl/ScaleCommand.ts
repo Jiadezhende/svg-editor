@@ -29,9 +29,11 @@ export default class ScaleCommand extends EditCommand {
   }
 
   execute(): CommandResult {
-    const shape = this.workspace.document().requireShape(this.id);
-    const memento = shape.capture();
-    shape.scale(this.factor);
+    const doc = this.workspace.document();
+    const node = doc.requireNode(this.id);
+    const shape = node.value;
+    const memento = doc.capture(node);
+    doc.scale(node, this.factor);
     this.scaled = { shape, memento };
     return new CommandResult().line(`${shape.label()} scaled by ${this.formatNumber(this.factor)}`);
   }

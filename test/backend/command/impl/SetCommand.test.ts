@@ -47,7 +47,7 @@ describe('SetCommand', () => {
   it('容器只接受外观属性，写在容器自身', () => {
     const workspace = workspaceWith(['g', 'g1'], ['rect', 'r1', '0', '0', '1', '1', 'in', 'g1']);
     expect(set(workspace, 'g1', 'stroke-width', '3')).toEqual(['g#g1 updated: stroke-width=3']);
-    expect(detailsOf(workspace, 'g1')).toEqual(['children=1', 'stroke-width=3']);
+    expect(detailsOf(workspace, 'g1')).toEqual(['', 'stroke-width=3']);
     expect(detailsOf(workspace, 'r1')).toEqual(['x=0 y=0 width=1 height=1']);
     expect(() => set(workspace, 'g1', 'x', '1')).toThrow(new EditorError('unknown attribute: x'));
   });

@@ -4,10 +4,9 @@ import StringSpec from '../attribute/StringSpec';
 import StrokeWidthSpec from '../attribute/StrokeWidthSpec';
 import EditorError from '../../../error/EditorError';
 import ShapeMemento from './ShapeMemento';
-import { isEditing, ownerOf } from '../StructureEdit';
 
 /**
- * Composite 中的 Component：容器与叶子图形的共同抽象。
+ * 单个图形的领域模型；不保存文档树关系。
  *
  * 静态成员即定义：子类覆盖 `type`（类型名）、`params`（create 必填参数表，顺序即参数顺序）、
  * `paint`（create 的可选外观参数名）、`anchor`（move 回显的锚点：x 轴与 y 轴坐标属性名，注册时校验）、
@@ -46,14 +45,11 @@ export default abstract class Shape {
 
   private readonly shapeId: string;
   private readonly values: Map<string, AttributeValue>;
-  private parentShape: Shape | null = null;
-  private readonly members: Shape[] | null;
 
   /** values 中的属性须在本类的属性表内（否则属于程序缺陷），未给出的外观属性视为未设置。 */
   constructor(
     id: string,
     values: ReadonlyMap<string, AttributeValue> = new Map(),
-    children: readonly Shape[] | null = null,
   ) {
     if (!Shape.idPattern.test(id)) {
       throw new EditorError(`invalid id: ${id}`);
@@ -72,8 +68,6 @@ export default abstract class Shape {
     }
     this.shapeId = id;
     this.values = new Map(values);
-    this.members = children === null ? null : [];
-    for (const child of children ?? []) this.insertChild(child);
   }
 
   // ── 实例标识与属性读取 ──
@@ -156,29 +150,27 @@ export default abstract class Shape {
     this.values.set(name, value);
   }
 
-  /** 平移自身属性及子树；失败恢复整棵子树。 */
+  /** 平移自身属性；具体复合模型自行组织内部部件。 */
   move(dx: number, dy: number): void {
     if (!Number.isFinite(dx) || !Number.isFinite(dy)) {
       throw new EditorError('move offsets must be finite');
     }
-    this.transformTree(() => {
+    this.transformAtomically(() => {
       this.transform((spec, value) => spec.translate(value, dx, dy));
-      for (const child of this.children()) child.move(dx, dy);
     });
   }
 
-  /** 以坐标原点为中心缩放自身及子树；失败恢复整棵子树。 */
+  /** 以坐标原点为中心缩放自身属性。 */
   scale(factor: number): void {
     if (!Number.isFinite(factor) || factor <= 0) {
       throw new EditorError('scale factor must be positive');
     }
-    this.transformTree(() => {
+    this.transformAtomically(() => {
       this.transform((spec, value) => spec.scale(value, factor));
-      for (const child of this.children()) child.scale(factor);
     });
   }
 
-  /** 自身及子树的属性快照，不包含结构变更。 */
+  /** 自身属性快照；复合模型可扩展其内部部件快照。 */
   capture(): ShapeMemento {
     const saved = new Map(this.values);
     return new ShapeMemento([
@@ -188,137 +180,23 @@ export default abstract class Shape {
           this.values.set(name, value);
         }
       },
-    ]).with(this.children().map((child) => child.capture()));
+    ]);
   }
 
-  // ── 树结构与查找 ──
-
-  /** 必须存在的父 Shape；顶层图形和脱离树的根均无父 Shape。 */
-  requireParent(): Shape {
-    if (this.parentShape === null) {
-      throw new Error(`${this.label()} is not attached`);
-    }
-    return this.parentShape;
-  }
-
-  /** 顶层图形与脱离树的根为 null；文档归属单独维护。 */
-  parent(): Shape | null {
-    return this.parentShape;
-  }
-
-  /** 已入文档的树只能由文档结构入口修改；脱离文档的子树可自行构建。 */
-  checkStructureEdit(): void {
-    let node: Shape = this;
-    while (node.parentShape !== null) node = node.parentShape;
-    const owner = ownerOf(node);
-    if (owner !== null && !isEditing(owner)) {
-      throw new EditorError('use Document to modify an attached tree');
-    }
-  }
-
-  /** 移到 parent 的 index 处（省略时追加到末尾）；已在某个父节点中时先摘下。 */
-  relocate(parent: Shape, index?: number): void {
-    this.checkStructureEdit();
-    parent.checkStructureEdit();
-    parent.checkInsert(this);
-    this.parentShape?.checkRemove(this);
-    const length = parent.children().length - (this.parentShape === parent ? 1 : 0);
-    if (index !== undefined && (!Number.isInteger(index) || index < 0 || index > length)) {
-      throw new Error(`invalid child index: ${index}`);
-    }
-    if (this.parentShape !== null) {
-      this.parentShape.remove(this);
-    }
-    parent.insert(this, index);
-  }
-
-  /** 由模型结构方法在插入时调用。 */
-  attachTo(container: Shape): void {
-    if (this.parentShape !== null || ownerOf(this) !== null) {
-      throw new Error(`${this.label()} is already attached`);
-    }
-    container.checkStructureEdit();
-    this.parentShape = container;
-  }
-
-  /** 由模型结构方法在摘除时调用。 */
-  detach(): void {
-    this.checkStructureEdit();
-    this.parentShape = null;
-  }
-
-  /** 内部组成，按绘制顺序返回副本；不代表允许外部增删。 */
-  children(): readonly Shape[] {
-    return this.members === null ? [] : [...this.members];
-  }
-
-  find(id: string): Shape | null {
-    if (id === this.shapeId) return this;
-    for (const child of this.members ?? []) {
-      const found = child.find(id);
-      if (found !== null) return found;
-    }
-    return null;
-  }
-
-  /** 是否开放外部成员接入；具体模型声明自己的能力。 */
+  /** 是否允许文档节点接收成员；只声明能力，不保存或修改节点关系。 */
   acceptsChildren(): boolean {
-    return this.members !== null;
+    return false;
   }
 
-  checkInsert(shape: Shape): void {
+  checkInsert(_shape: Shape): void {
     if (!this.acceptsChildren()) throw new EditorError(`not a container: ${this.id()}`);
-    this.checkChildCycle(shape);
   }
 
   checkRemove(shape: Shape): void {
     if (!this.acceptsChildren()) throw new EditorError(`cannot remove internal part: ${shape.id()}`);
   }
 
-  /** 外部成员编辑仍受模型规则和文档结构作用域约束。 */
-  insert(shape: Shape, index?: number): void {
-    this.checkInsert(shape);
-    this.insertChild(shape, index);
-  }
-
-  remove(shape: Shape): number {
-    this.checkRemove(shape);
-    return this.removeChild(shape);
-  }
-
-  /** 供具体模型构建、维护自身部件，不开放任意外部成员。 */
-  protected insertChild(shape: Shape, index?: number): void {
-    this.checkStructureEdit();
-    const members = this.members;
-    if (members === null) throw new EditorError(`not a container: ${this.id()}`);
-    const position = index ?? members.length;
-    if (!Number.isInteger(position) || position < 0 || position > members.length) {
-      throw new EditorError(`invalid child index: ${position}`);
-    }
-    this.checkChildCycle(shape);
-    shape.attachTo(this);
-    members.splice(position, 0, shape);
-  }
-
-  protected removeChild(shape: Shape): number {
-    this.checkStructureEdit();
-    const index = this.members?.indexOf(shape) ?? -1;
-    if (index < 0 || this.members === null) {
-      throw new Error(`${shape.label()} is not a child of ${this.label()}`);
-    }
-    shape.detach();
-    this.members.splice(index, 1);
-    return index;
-  }
-
-  private checkChildCycle(shape: Shape): void {
-    const contains = (node: Shape): boolean => node === this || node.children().some(contains);
-    if (contains(shape)) {
-      throw new EditorError(`cannot add a container into itself or its descendant: ${shape.id()}`);
-    }
-  }
-
-  private transformTree(change: () => void): void {
+  private transformAtomically(change: () => void): void {
     const before = this.capture();
     try {
       change();

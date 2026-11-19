@@ -21,8 +21,8 @@ function sample(): Workspace {
   return workspace;
 }
 
-function ids(shapes: readonly { id(): string }[]): string[] {
-  return shapes.map((shape) => shape.id());
+function ids(shapes: readonly { value: { id(): string } }[]): string[] {
+  return shapes.map((shape) => shape.value.id());
 }
 
 describe('DeleteCommand 删除', () => {
@@ -60,7 +60,7 @@ describe('DeleteCommand 删除', () => {
     }
     expect(command.undo().lines()).toEqual(['g#markers restored into svg']);
     expect(ids(doc.requireChildTarget('markers').children())).toEqual(['c1', 'box']);
-    expect(doc.requireShape('box').requireParent()).toBe(doc.requireShape('markers'));
+    expect(doc.requireNode('box').parent()).toBe(doc.requireNode('markers'));
   });
 
   it('被删除的 id 可再次创建；undo 后再次 execute（redo）回显与首次相同', () => {

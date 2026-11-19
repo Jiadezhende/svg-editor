@@ -28,7 +28,7 @@ function sample(): Workspace {
 function ids(workspace: Workspace, containerId?: string): string[] {
   const doc = workspace.document();
   const container = containerId === undefined ? doc : doc.requireChildTarget(containerId);
-  return container.children().map((shape) => shape.id());
+  return container.children().map((shape) => shape.value.id());
 }
 
 describe('FrontCommand / BackCommand', () => {
@@ -94,7 +94,7 @@ describe('AddtoCommand', () => {
     const workspace = sample();
     new CreateCommand(workspace, 'g other'.split(' ')).execute();
     new AddtoCommand(workspace, ['other', 'inner']).execute();
-    expect(workspace.document().requireShape('dot').requireParent()).toBe(workspace.document().requireShape('inner'));
+    expect(workspace.document().requireNode('dot').parent()).toBe(workspace.document().requireNode('inner'));
     expect(ids(workspace, 'other')).toEqual(['inner']);
   });
 

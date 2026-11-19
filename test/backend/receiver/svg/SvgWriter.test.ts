@@ -74,3 +74,18 @@ describe('SvgWriter', () => {
     );
   });
 });
+
+
+describe('SvgWriter 显式映射', () => {
+  it('多个映射同时命中时报错，不依赖注册顺序猜测', () => {
+    const doc = documentWith(100, 100, ['g', 'g']);
+    const mapping = { matches: () => true, write: SvgWriter.elementOf };
+    expect(() => new SvgWriter([mapping, mapping]).write(doc)).toThrow('multiple SVG mappings: g');
+  });
+
+  it('不允许复合映射静默覆盖文档子节点', () => {
+    const doc = documentWith(100, 100, ['g', 'g'], ['circle', 'c', '0', '0', '1', 'in', 'g']);
+    const mapping = { matches: () => true, write: SvgWriter.elementOf };
+    expect(() => new SvgWriter([mapping]).write(doc)).toThrow('mapped shape has document children: g');
+  });
+});

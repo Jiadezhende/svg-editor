@@ -1,15 +1,10 @@
 import Shape from './Shape';
-import type { AttributeValue } from '../attribute/AttributeSpec';
 
-/** 普通分组：复用 Shape 的组成与递归行为，允许自由编辑成员。 */
+/** 普通 SVG 分组；成员关系属于 Document，不保存在模型中。 */
 export default class Group extends Shape {
   static override readonly type = 'g';
 
-  constructor(id: string, values: ReadonlyMap<string, AttributeValue> = new Map()) {
-    super(id, values, []);
-  }
-
-  protected override coreDetail(): string {
-    return `children=${this.children().length}`;
+  override acceptsChildren(): boolean {
+    return true;
   }
 }

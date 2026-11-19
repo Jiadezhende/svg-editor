@@ -1,7 +1,7 @@
 import RelocateCommand from '../RelocateCommand';
 import type { Destination } from '../RelocateCommand';
 import type Document from '../../receiver/document/Document';
-import type Shape from '../../receiver/document/shape/Shape';
+import type ShapeNode from '../../receiver/document/ShapeNode';
 import type Workspace from '../../receiver/workspace/Workspace';
 
 /** `front <id>`：在兄弟中移到末尾，即最后绘制、显示在最上层。 */
@@ -14,11 +14,11 @@ export default class FrontCommand extends RelocateCommand {
     this.expectArgCount(args, 1);
   }
 
-  protected destination(_doc: Document, shape: Shape): Destination {
-    return [shape.parent()];
+  protected destination(_doc: Document, node: ShapeNode): Destination {
+    return [node.parent()];
   }
 
-  protected describe(shape: Shape): string {
-    return `${shape.label()} brought to front`;
+  protected describe(node: ShapeNode): string {
+    return `${node.value.label()} brought to front`;
   }
 }

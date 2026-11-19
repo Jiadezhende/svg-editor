@@ -2,6 +2,7 @@ import EditorError from '../../error/EditorError';
 import type Document from '../document/Document';
 import ShapeFactory from '../document/shape/ShapeFactory';
 import SvgFile from '../svg/SvgFile';
+import SvgWriter from '../svg/SvgWriter';
 
 /**
  * 编辑会话的接收者上下文：当前文档槽位（同一时刻至多持有一个文档）及其文件路径、图形工厂、文件读写。
@@ -13,6 +14,7 @@ export default class Workspace {
   private currentPath: string | null = null;
   private readonly factory = new ShapeFactory();
   private readonly file = new SvgFile();
+  private readonly writer = new SvgWriter();
 
   /** 图形工厂，与有无文档无关。 */
   shapes(): ShapeFactory {
@@ -22,6 +24,11 @@ export default class Workspace {
   /** 文件读写，与有无文档无关。 */
   files(): SvgFile {
     return this.file;
+  }
+
+  /** 写出映射在会话装配时注册，save 复用同一写出器。 */
+  svgWriter(): SvgWriter {
+    return this.writer;
   }
 
   /** 当前文档；没有文档时报错。 */

@@ -1,7 +1,23 @@
 import type { AttributeValue } from '../document/attribute/AttributeSpec';
 import DecimalFormat from '../document/attribute/DecimalFormat';
 import type Document from '../document/Document';
+import type ShapeNode from '../document/ShapeNode';
 import type Shape from '../document/shape/Shape';
+import EditorError from '../../error/EditorError';
+
+/** SVG 映射结果，不携带文档节点关系。 */
+export interface SvgElement {
+  readonly type: string;
+  readonly attributes: ReadonlyArray<readonly [string, AttributeValue]>;
+  readonly content?: AttributeValue | null;
+  readonly children?: readonly SvgElement[];
+}
+
+/** 业务复合模型的显式写出映射；普通 SVG 仍按文档节点遍历。 */
+export interface SvgShapeMapping {
+  matches(shape: Shape): boolean;
+  write(shape: Shape): SvgElement;
+}
 
 /**
  * 把文档写成 SVG 文本：XML 声明 + `<svg xmlns width height viewBox>` + 2 空格缩进的嵌套元素。
@@ -10,6 +26,20 @@ import type Shape from '../document/shape/Shape';
  */
 export default class SvgWriter {
   private static readonly decimal = new DecimalFormat();
+
+  private readonly mappings: SvgShapeMapping[];
+
+  constructor(mappings: readonly SvgShapeMapping[] = []) {
+    this.mappings = [...mappings];
+  }
+
+  register(mapping: SvgShapeMapping): void {
+    this.mappings.push(mapping);
+  }
+
+  static elementOf(shape: Shape): SvgElement {
+    return { type: shape.type(), attributes: [['id', shape.id()], ...shape.entries()], content: shape.content() };
+  }
 
   write(doc: Document): string {
     const size = [doc.width(), doc.height()].map((n) => SvgWriter.decimal.format(n));
@@ -28,15 +58,30 @@ export default class SvgWriter {
     return `${lines.join('\n')}\n`;
   }
 
-  private element(shape: Shape, depth: number, lines: string[]): void {
+  private element(node: ShapeNode, depth: number, lines: string[]): void {
+    const element = this.mapNode(node);
+    this.writeElement(element, depth, lines);
+  }
+
+  private mapNode(node: ShapeNode): SvgElement {
+    const matches = this.mappings.filter((mapping) => mapping.matches(node.value));
+    if (matches.length > 1) throw new EditorError(`multiple SVG mappings: ${node.value.id()}`);
+    if (matches.length === 1) {
+      if (node.children().length > 0) throw new EditorError(`mapped shape has document children: ${node.value.id()}`);
+      return matches[0].write(node.value);
+    }
+    return { ...SvgWriter.elementOf(node.value), children: node.children().map((child) => this.mapNode(child)) };
+  }
+
+  private writeElement(element: SvgElement, depth: number, lines: string[]): void {
     const indent = '  '.repeat(depth);
-    const type = shape.type();
-    const attributes = [['id', shape.id()] as const, ...shape.entries()]
+    const type = element.type;
+    const attributes = element.attributes
       .map(([name, value]) => ` ${name}="${SvgWriter.escapeAttribute(SvgWriter.text(value))}"`)
       .join('');
     const open = `${indent}<${type}${attributes}`;
-    const content = shape.content();
-    const children = shape.children();
+    const content = element.content ?? null;
+    const children = element.children ?? [];
     if (content !== null) {
       lines.push(`${open}>${SvgWriter.escapeText(SvgWriter.text(content))}</${type}>`);
     } else if (children.length === 0) {
@@ -44,7 +89,7 @@ export default class SvgWriter {
     } else {
       lines.push(`${open}>`);
       for (const child of children) {
-        this.element(child, depth + 1, lines);
+        this.writeElement(child, depth + 1, lines);
       }
       lines.push(`${indent}</${type}>`);
     }

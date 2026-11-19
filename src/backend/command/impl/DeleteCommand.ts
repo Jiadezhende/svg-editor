@@ -1,40 +1,28 @@
 import CommandResult from '../CommandResult';
-import EditCommand from '../EditCommand';
-import type Shape from '../../receiver/document/shape/Shape';
+import StructureCommand from '../StructureCommand';
 import type Workspace from '../../receiver/workspace/Workspace';
 
-/** `delete <id>`：删除图形；容器连同全部子孙一起脱离文档。 */
-export default class DeleteCommand extends EditCommand {
+export default class DeleteCommand extends StructureCommand {
   static override readonly command = 'delete';
   static override readonly usage = 'delete <id>';
-
   private readonly id: string;
-  /** 本次 execute 摘除的图形及其原父节点、原位置，供 undo 插回。 */
-  private removed: { shape: Shape; parent: Shape | null; index: number } | null = null;
 
-  constructor(
-    private readonly workspace: Workspace,
-    args: readonly string[],
-  ) {
+  constructor(private readonly workspace: Workspace, args: readonly string[]) {
     super();
     this.expectArgCount(args, 1);
     this.id = args[0];
   }
 
   execute(): CommandResult {
-    const shape = this.workspace.document().requireShape(this.id);
-    const parent = shape.parent();
-    const index = this.workspace.document().remove(shape);
-    this.removed = { shape, parent, index };
-    return new CommandResult().line(`${shape.label()} deleted`);
-  }
-
-  undo(): CommandResult {
-    if (this.removed === null) {
-      throw new Error('undo before execute');
-    }
-    const { shape, parent, index } = this.removed;
-    this.workspace.document().add(shape, parent, index);
-    return new CommandResult().line(`${shape.label()} restored into ${parent?.label() ?? 'svg'}`);
+    const doc = this.workspace.document();
+    return this.edit(doc, () => {
+      const node = doc.requireNode(this.id);
+      const parent = doc.parent(node);
+      doc.remove(node);
+      return {
+        result: new CommandResult().line(`${node.value.label()} deleted`),
+        undo: `${node.value.label()} restored into ${parent?.value.label() ?? 'svg'}`,
+      };
+    });
   }
 }

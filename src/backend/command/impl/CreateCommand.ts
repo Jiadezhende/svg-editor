@@ -1,7 +1,6 @@
 import CommandResult from '../CommandResult';
-import EditCommand from '../EditCommand';
+import StructureCommand from '../StructureCommand';
 import type { AttributeValue } from '../../receiver/document/attribute/AttributeSpec';
-import type Shape from '../../receiver/document/shape/Shape';
 import type { ShapeClass } from '../../receiver/document/shape/ShapeFactory';
 import type Workspace from '../../receiver/workspace/Workspace';
 
@@ -11,7 +10,7 @@ import type Workspace from '../../receiver/workspace/Workspace';
  * 参数按图形类的声明解析：必填参数按 `params` 顺序；其后第一个词若是 `in` 一律视为关键字，
  * 否则视为可选外观参数 `paint`；最后可跟 `in <containerId>`。
  */
-export default class CreateCommand extends EditCommand {
+export default class CreateCommand extends StructureCommand {
   static override readonly command = 'create';
   static override readonly usage = 'create <type> <id> [params…] [in <containerId>]';
 
@@ -21,8 +20,6 @@ export default class CreateCommand extends EditCommand {
   private readonly id: string;
   private readonly values = new Map<string, AttributeValue>();
   private readonly containerId: string | null;
-  /** 本次 execute 创建的图形，供 undo 使用。 */
-  private created: Shape | null = null;
 
   constructor(
     private readonly workspace: Workspace,
@@ -64,21 +61,13 @@ export default class CreateCommand extends EditCommand {
 
   execute(): CommandResult {
     const doc = this.workspace.document();
-    const parent = this.containerId === null ? null : doc.requireChildTarget(this.containerId);
-    const shape = new this.shapeClass(this.id, this.values);
-    doc.add(shape, parent);
-    this.created = shape;
-    const where = this.containerId === null ? '' : ` in ${parent?.label() ?? 'svg'}`;
-    return new CommandResult().line(`${shape.label()} created${where}`);
-  }
-
-  undo(): CommandResult {
-    const shape = this.created;
-    if (shape === null) {
-      throw new Error('undo before execute');
-    }
-    this.workspace.document().remove(shape);
-    return new CommandResult().line(`${shape.label()} removed`);
+    return this.edit(doc, () => {
+      const parent = this.containerId === null ? null : doc.requireChildTarget(this.containerId);
+      const shape = new this.shapeClass(this.id, this.values);
+      doc.insert(shape, parent);
+      const where = this.containerId === null ? '' : ` in ${parent?.value.label() ?? 'svg'}`;
+      return { result: new CommandResult().line(`${shape.label()} created${where}`), undo: `${shape.label()} removed` };
+    });
   }
 
   private parseValue(name: string, token: string): void {

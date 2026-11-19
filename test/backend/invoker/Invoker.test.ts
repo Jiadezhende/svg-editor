@@ -145,3 +145,47 @@ describe('Invoker 撤销与重做', () => {
     expect(() => invoker.undo()).toThrow('nothing to undo');
   });
 });
+
+
+describe('Invoker 失败时保留历史栈', () => {
+  it('undo 失败后仍可重试同一个命令，重做栈不增加', () => {
+    let failUndo = true;
+    class RetryCommand extends AddCommand {
+      override undo(): CommandResult {
+        if (failUndo) throw new EditorError('undo failed');
+        return super.undo();
+      }
+    }
+    const counter = new Counter();
+    const invoker = new Invoker();
+    invoker.execute(new RetryCommand(counter, 3));
+    expect(() => invoker.undo()).toThrow('undo failed');
+    expect(counter.value).toBe(3);
+    expect(() => invoker.redo()).toThrow('nothing to redo');
+    failUndo = false;
+    expect(invoker.undo().lines()).toEqual(['removed 3']);
+    expect(counter.value).toBe(0);
+    expect(invoker.redo().lines()).toEqual(['added 3']);
+  });
+
+  it('redo 失败后仍可重试，撤销栈不增加', () => {
+    let failExecute = false;
+    class RetryCommand extends AddCommand {
+      override execute(): CommandResult {
+        if (failExecute) throw new EditorError('redo failed');
+        return super.execute();
+      }
+    }
+    const counter = new Counter();
+    const invoker = new Invoker();
+    invoker.execute(new RetryCommand(counter, 3));
+    invoker.undo();
+    failExecute = true;
+    expect(() => invoker.redo()).toThrow('redo failed');
+    expect(counter.value).toBe(0);
+    expect(() => invoker.undo()).toThrow('nothing to undo');
+    failExecute = false;
+    expect(invoker.redo().lines()).toEqual(['added 3']);
+    expect(invoker.undo().lines()).toEqual(['removed 3']);
+  });
+});

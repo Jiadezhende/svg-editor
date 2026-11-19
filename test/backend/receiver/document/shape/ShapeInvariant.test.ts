@@ -34,13 +34,15 @@ describe('Shape 自身不变量', () => {
     const inner = new Group('inner');
     const a = new Rect('a', geometry);
     const b = new Rect('b', new Map(geometry).set('height', Number.MAX_VALUE));
-    outer.insert(a);
-    outer.insert(inner);
-    inner.insert(b);
+    const doc = new Document(100, 100);
+    const root = doc.insert(outer);
+    doc.insert(a, root);
+    const innerNode = doc.insert(inner, root);
+    const bNode = doc.insert(b, innerNode);
     const before = [outer.entries(), a.entries(), b.entries()];
-    expect(() => outer.scale(2)).toThrow('height must be a finite number');
+    expect(() => doc.scale(root, 2)).toThrow('height must be a finite number');
     expect([outer.entries(), a.entries(), b.entries()]).toEqual(before);
-    expect(b.requireParent()).toBe(inner);
+    expect(doc.parent(bNode)).toBe(innerNode);
   });
 
   it.each([0, -1, NaN, Infinity])('直接缩放拒绝非法系数 %s', (factor) => {

@@ -42,8 +42,8 @@ describe('GroupCommand', () => {
   it('成员顺序取文档顺序，与参数顺序无关', () => {
     const workspace = workspaceWith(...flat);
     group(workspace, 'g1 box bg');
-    expect(workspace.document().children().map((s) => s.id())).toEqual(['g1', 'title', 'c1']);
-    expect(workspace.document().requireChildTarget('g1').children().map((s) => s.id())).toEqual(['bg', 'box']);
+    expect(workspace.document().children().map((s) => s.value.id())).toEqual(['g1', 'title', 'c1']);
+    expect(workspace.document().requireChildTarget('g1').children().map((s) => s.value.id())).toEqual(['bg', 'box']);
   });
 
   it('成员来自不同父容器：全部摘出，新容器插在文档顺序第一个成员的父容器中', () => {
@@ -83,8 +83,8 @@ describe('GroupCommand', () => {
   it('可以收编容器，容器连同子树移动', () => {
     const workspace = workspaceWith('g inner', 'rect r1 0 0 1 1 in inner', 'rect r2 0 0 1 1');
     group(workspace, 'outer inner r2');
-    expect(workspace.document().requireShape('r1').requireParent()).toBe(workspace.document().requireShape('inner'));
-    expect(workspace.document().requireShape('inner').requireParent()).toBe(workspace.document().requireShape('outer'));
+    expect(workspace.document().requireNode('r1').parent()).toBe(workspace.document().requireNode('inner'));
+    expect(workspace.document().requireNode('inner').parent()).toBe(workspace.document().requireNode('outer'));
   });
 
   it('成员中有容器与其子孙时报错，文档不变', () => {
@@ -100,7 +100,7 @@ describe('GroupCommand', () => {
     const workspace = workspaceWith(...flat);
     expect(() => group(workspace, 'bg c1')).toThrow(new EditorError('id already exists: bg'));
     expect(() => group(workspace, '1abc c1')).toThrow(new EditorError('invalid id: 1abc'));
-    expect(workspace.document().children().map((s) => s.id())).toEqual(['bg', 'title', 'c1', 'box']);
+    expect(workspace.document().children().map((s) => s.value.id())).toEqual(['bg', 'title', 'c1', 'box']);
   });
 
   it('任一成员不存在时报错', () => {

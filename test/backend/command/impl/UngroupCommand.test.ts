@@ -25,7 +25,7 @@ function sample(): Workspace {
 }
 
 function ids(workspace: Workspace, containerId: string): string[] {
-  return workspace.document().requireChildTarget(containerId).children().map((shape) => shape.id());
+  return workspace.document().requireChildTarget(containerId).children().map((shape) => shape.value.id());
 }
 
 function tree(workspace: Workspace): string[] {

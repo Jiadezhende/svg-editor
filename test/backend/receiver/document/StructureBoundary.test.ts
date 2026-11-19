@@ -1,220 +1,161 @@
 import { describe, expect, it } from 'vitest';
 import Document from '../../../../src/backend/receiver/document/Document';
+import type ShapeNode from '../../../../src/backend/receiver/document/ShapeNode';
 import Group from '../../../../src/backend/receiver/document/shape/Group';
 import Rect from '../../../../src/backend/receiver/document/shape/Rect';
 import type Shape from '../../../../src/backend/receiver/document/shape/Shape';
+import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import GroupCommand from '../../../../src/backend/command/impl/GroupCommand';
 import UngroupCommand from '../../../../src/backend/command/impl/UngroupCommand';
-import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
+import DeleteCommand from '../../../../src/backend/command/impl/DeleteCommand';
+import Invoker from '../../../../src/backend/invoker/Invoker';
 
 const rect = (id: string) => new Rect(id, new Map([['x', 0], ['y', 0], ['width', 1], ['height', 1]]));
 
-/** 必要部件只能随整个复合图形移动；约束属于模型。 */
 class ProtectedGroup extends Group {
-  constructor(id: string) {
-    super(id);
-    this.insert(rect(`${id}-part`));
-  }
-
   override checkRemove(shape: Shape): void {
-    if (shape.id() === `${this.id()}-part`) throw new Error('required part');
+    if (shape.id() === 'part') throw new Error('required part');
   }
-
 }
 
-describe('文档结构边界', () => {
-  it('顶层 parent 为 null，仍禁止跨文档重复收纳和直接移入脱离文档的对象', () => {
-    const doc = new Document(100, 100);
-    const other = new Document(100, 100);
-    const root = new Group('root');
-    const detached = new Group('detached');
-    doc.add(root);
-    expect(root.parent()).toBeNull();
-    expect(() => other.add(root)).toThrow('shape already attached');
-    expect(() => detached.insert(root)).toThrow('already attached');
-    expect(() => root.relocate(detached)).toThrow('use Document');
-    expect(() => root.detach()).toThrow('use Document');
-    expect(doc.children()).toEqual([root]);
-    expect(other.children()).toEqual([]);
-    expect(detached.children()).toEqual([]);
-  });
+function workspaceWith(doc: Document): Workspace {
+  const workspace = new Workspace();
+  workspace.replace(doc);
+  return workspace;
+}
 
-  it('移除顶层图形后释放文档归属，子树可以重新构建并加入另一文档', () => {
+describe('Document 结构边界', () => {
+  it('顶层与后代都登记归属；移除后释放，不能跨文档重复收纳', () => {
     const doc = new Document(100, 100);
     const other = new Document(100, 100);
-    const root = new Group('root');
-    root.insert(rect('part'));
-    doc.add(root);
+    const root = doc.insert(new Group('root'));
+    const child = doc.insert(rect('part'), root);
+    expect(doc.parent(root)).toBeNull();
+    expect(() => other.insert(root.value)).toThrow('shape already attached');
+    expect(() => other.insert(child.value)).toThrow('shape already attached');
     doc.remove(root);
-    root.insert(rect('new'));
-    other.add(root);
-    expect(root.parent()).toBeNull();
+    expect(() => other.insert(root.value)).not.toThrow();
+    expect(() => other.insert(child.value, other.requireNode('root'))).not.toThrow();
     expect(doc.children()).toEqual([]);
-    expect(other.shapes().map((shape) => shape.id())).toEqual(['root', 'part', 'new']);
-    expect(other.requireShape('part').parent()).toBe(root);
-    expect(() => root.insert(rect('blocked'))).toThrow('use Document');
   });
 
-  it('顶层与嵌套迁移同步维护归属，不把 null parent 当作未入文档', () => {
+  it('外部节点不能作为源或目标，同 id 的另一个对象不能冒充成员', () => {
     const doc = new Document(100, 100);
     const other = new Document(100, 100);
-    const a = new Group('a');
-    const b = new Group('b');
-    doc.add(a);
-    doc.add(b);
-    doc.relocate(b, a);
-    expect(b.parent()).toBe(a);
-    doc.relocate(b, null, 0);
-    expect(b.parent()).toBeNull();
-    expect(doc.children()).toEqual([b, a]);
-    expect(() => other.add(b)).toThrow('shape already attached');
-    doc.remove(b);
-    other.add(b);
-    expect(doc.find('b')).toBeNull();
-    expect(other.find('b')).toBe(b);
-  });
-
-  it('新增子树内部重复 id 时整棵拒绝，保留候选子树', () => {
-    const doc = new Document(100, 100);
-    const candidate = new Group('candidate');
-    candidate.insert(rect('same'));
-    candidate.insert(rect('same'));
-    expect(() => doc.add(candidate, null)).toThrow('id already exists: same');
-    expect(doc.children()).toEqual([]);
-    expect(candidate.parent()).toBeNull();
-    expect(candidate.children()).toHaveLength(2);
-  });
-
-  it('检查候选后代与现有文档的 id 冲突，包括 insert 入口', () => {
-    const doc = new Document(100, 100);
-    doc.add(rect('used'), null);
-    const candidate = new Group('candidate');
-    candidate.insert(rect('used'));
-    expect(() => doc.insert(candidate)).toThrow('id already exists: used');
-    expect(doc.shapes().map((s) => s.id())).toEqual(['used']);
-  });
-
-  it('拒绝目标不属于文档，以及属于另一文档的图形', () => {
-    const doc = new Document(100, 100);
-    const other = new Document(100, 100);
-    const foreign = new Group('foreign');
-    other.add(foreign, null);
-    expect(() => doc.add(rect('a'), foreign)).toThrow('container is not in document');
-    expect(() => doc.add(foreign, null)).toThrow('shape already attached');
-    expect(() => doc.relocate(foreign, null)).toThrow('shape is not in document');
+    const local = doc.insert(new Group('same'));
+    const foreign = other.insert(new Group('same'));
+    expect(() => doc.insert(rect('a'), foreign)).toThrow('container is not in document');
     expect(() => doc.remove(foreign)).toThrow('shape is not in document');
-    expect(foreign.parent()).toBeNull();
-    expect(other.find('foreign')).toBe(foreign);
+    expect(() => doc.relocate(foreign, local)).toThrow('shape is not in document');
+    expect(() => doc.relocate(local, foreign)).toThrow('container is not in document');
+    expect(() => doc.children(foreign)).toThrow('container is not in document');
+    expect(() => doc.indexOf(foreign)).toThrow('shape is not in document');
+    expect(doc.children()).toEqual([local]);
   });
 
-  it('已入文档的容器不能绕过 Document 修改，脱离文档后可以构建', () => {
+  it('换父级、根级迁移、同级排序保持节点身份，index 随位置变化', () => {
     const doc = new Document(100, 100);
-    const group = new Group('group');
-    const part = rect('part');
-    group.insert(part);
-    doc.add(group, null);
-    expect(() => group.insert(rect('new'))).toThrow('use Document');
-    expect(() => group.remove(part)).toThrow('use Document');
-    expect(() => part.relocate(group)).toThrow('use Document');
-    expect(() => part.detach()).toThrow('use Document');
-    expect(() => rect('new').attachTo(group)).toThrow('use Document');
-    doc.remove(group);
-    group.insert(rect('new'));
-    expect(group.children()).toHaveLength(2);
+    const root = doc.insert(new Group('g'));
+    const a = doc.insert(rect('a'), root);
+    const b = doc.insert(rect('b'), root);
+    doc.relocate(a, root);
+    expect(doc.children(root)).toEqual([b, a]);
+    expect(doc.indexOf(a)).toBe(1);
+    doc.relocate(a, root, 0);
+    expect(doc.children(root)).toEqual([a, b]);
+    doc.relocate(a, null, 0);
+    expect(doc.children()).toEqual([a, root]);
+    expect(a.parent()).toBeNull();
+    expect(doc.requireNode('a')).toBe(a);
+    expect(a.value.id()).toBe('a');
   });
 
-  it('向已入文档的目标直接迁移失败，不摘除原子树', () => {
+  it('循环与非法迁移索引在摘除之前拒绝，原关系不变', () => {
     const doc = new Document(100, 100);
-    const target = new Group('target');
-    doc.add(target, null);
-    const source = new Group('source');
-    const part = rect('part');
-    source.insert(part);
-    expect(() => part.relocate(target)).toThrow('use Document');
-    expect(source.children()).toEqual([part]);
-  });
-
-  it('拒绝循环迁移且保持父子关系；脱离文档的构建同样拒绝循环', () => {
-    const doc = new Document(100, 100);
-    const outer = new Group('outer');
-    const inner = new Group('inner');
-    outer.insert(inner);
-    expect(() => inner.insert(outer)).toThrow('itself or its descendant');
-    doc.add(outer, null);
+    const outer = doc.insert(new Group('outer'));
+    const inner = doc.insert(new Group('inner'), outer);
+    const a = doc.insert(rect('a'), outer);
     expect(() => doc.relocate(outer, inner)).toThrow('itself or its descendant');
     expect(() => doc.relocate(inner, inner)).toThrow('itself or its descendant');
-    expect(outer.parent()).toBeNull();
-    expect(inner.requireParent()).toBe(outer);
-  });
-
-  it('迁移索引非法时不摘除图形，同父级索引按摘除后的序列计算', () => {
-    const doc = new Document(100, 100);
-    const a = rect('a');
-    const b = rect('b');
-    doc.add(a, null);
-    doc.add(b, null);
-    for (const index of [-1, 0.5, 2, Infinity]) {
-      expect(() => doc.relocate(a, null, index)).toThrow('invalid child index');
-      expect(doc.children()).toEqual([a, b]);
+    for (const index of [-1, 0.5, 2, Infinity, NaN]) {
+      expect(() => doc.relocate(a, outer, index)).toThrow('invalid child index');
+      expect(doc.children(outer)).toEqual([inner, a]);
     }
-    doc.relocate(a, null, 1);
-    expect(doc.children()).toEqual([b, a]);
+    expect(doc.parent(inner)).toBe(outer);
   });
 
-  it('必要部件不能删除或迁移，整个复合对象可迁移和删除', () => {
+  it('非法插入位置或叶子目标失败，不登记候选 Shape', () => {
     const doc = new Document(100, 100);
-    const composite = new ProtectedGroup('composite');
-    doc.add(composite, null);
-    const part = doc.requireShape('composite-part');
+    const root = doc.insert(new Group('g'));
+    const leaf = doc.insert(rect('leaf'));
+    const candidate = rect('candidate');
+    for (const index of [-1, 0.5, 1, Infinity, NaN]) {
+      expect(() => doc.insert(candidate, root, index)).toThrow('invalid child index');
+      expect(doc.find('candidate')).toBeNull();
+    }
+    expect(() => doc.insert(candidate, leaf)).toThrow('not a container: leaf');
+    expect(() => doc.insert(candidate, root, 0)).not.toThrow();
+  });
+
+  it('节点、文档子数组和 viewBox 不泄露可变结构引用', () => {
+    const doc = new Document(100, 100);
+    const root = doc.insert(new Group('g'));
+    const a = doc.insert(rect('a'), root);
+    (doc.children() as ShapeNode[]).length = 0;
+    (root.children() as ShapeNode[]).length = 0;
+    (doc.children(root) as ShapeNode[]).push(root);
+    (doc.viewBox() as unknown as number[])[2] = -1;
+    expect(doc.children()).toEqual([root]);
+    expect(root.children()).toEqual([a]);
+    expect(doc.viewBox()[2]).toBe(100);
+    expect(() => Object.assign(a, { value: new Group('replacement') })).toThrow();
+    expect(a.value.id()).toBe('a');
+  });
+
+  it('模型移除规则由 Document 调用，整个分组仍可移动删除', () => {
+    const doc = new Document(100, 100);
+    const group = doc.insert(new ProtectedGroup('protected'));
+    const part = doc.insert(rect('part'), group);
+    const target = doc.insert(new Group('target'));
     expect(() => doc.remove(part)).toThrow('required part');
     expect(() => doc.relocate(part, null)).toThrow('required part');
-    const target = new Group('target');
-    doc.add(target, null);
-    doc.relocate(composite, target);
-    expect(part.requireParent()).toBe(composite);
-    doc.remove(composite);
-    expect(doc.find(part.id())).toBeNull();
+    doc.relocate(group, target);
+    expect(doc.parent(part)).toBe(group);
+    doc.remove(group);
+    expect(doc.find('part')).toBeNull();
   });
 
-  it('分组先检查全部成员，后一个必要部件失败不留下新容器或迁移前一个成员', () => {
+  it('跨文档归属冲突使快照恢复整体失败，不破坏两份文档', () => {
     const doc = new Document(100, 100);
-    const a = rect('a');
-    const composite = new ProtectedGroup('composite');
-    doc.add(a, null);
-    doc.add(composite, null);
-    const workspace = new Workspace();
-    workspace.replace(doc);
-    expect(() => new GroupCommand(workspace, ['new', 'a', 'composite-part']).execute()).toThrow('required part');
-    expect(doc.children()).toEqual([a, composite]);
-    expect(doc.find('new')).toBeNull();
+    const other = new Document(100, 100);
+    const root = doc.insert(new Group('g'));
+    const a = doc.insert(rect('a'), root);
+    const saved = doc.captureStructure();
+    doc.remove(root);
+    const replacement = doc.insert(new Group('replacement'));
+    const foreign = other.insert(a.value);
+    expect(() => saved.restore()).toThrow('shape already attached: a');
+    expect(doc.children()).toEqual([replacement]);
+    expect(other.requireNode('a')).toBe(foreign);
+    other.remove(foreign);
+    saved.restore();
+    expect(doc.requireNode('a')).toBe(a);
+    expect(doc.parent(a)).toBe(root);
   });
 
-  it('解组遵守必要部件的移除约束，失败保留原树', () => {
+  it('分组预检查失败，不创建空组或移动前面的成员', () => {
     const doc = new Document(100, 100);
-    const outer = new Group('outer');
-    const composite = new ProtectedGroup('composite');
-    outer.insert(composite);
-    doc.add(outer, null);
-    const workspace = new Workspace();
-    workspace.replace(doc);
-    expect(() => new UngroupCommand(workspace, ['composite']).execute()).toThrow('required part');
-    expect(composite.requireParent()).toBe(outer);
-    expect(composite.children()).toHaveLength(1);
+    const a = doc.insert(rect('a'));
+    const protectedNode = doc.insert(new ProtectedGroup('protected'));
+    const part = doc.insert(rect('part'), protectedNode);
+    const command = new GroupCommand(workspaceWith(doc), ['new', 'a', 'part']);
+    expect(() => command.execute()).toThrow('required part');
+    expect(doc.children()).toEqual([a, protectedNode]);
+    expect(doc.findNode('new')).toBeNull();
+    expect(doc.parent(part)).toBe(protectedNode);
   });
 
-  it('返回的子节点数组和 viewBox 不能修改模型状态', () => {
-    const doc = new Document(100, 100);
-    const group = new Group('g');
-    group.insert(rect('part'));
-    doc.add(group, null);
-    (doc.children() as Shape[]).length = 0;
-    (group.children() as Shape[]).length = 0;
-    (doc.viewBox() as unknown as number[])[2] = -1;
-    expect(doc.shapes()).toHaveLength(2);
-    expect(doc.viewBox()[2]).toBe(100);
-  });
-
-  it('解组先检查全部目标接收规则，后一个成员失败时不提升前一个成员', () => {
+  it('解组目标规则失败，不提升前面的成员', () => {
     class RestrictedParent extends Group {
       override checkInsert(shape: Shape): void {
         super.checkInsert(shape);
@@ -222,19 +163,53 @@ describe('文档结构边界', () => {
       }
     }
     const doc = new Document(100, 100);
-    const parent = new RestrictedParent('parent');
-    const group = new Group('group');
-    const a = rect('a');
-    const b = rect('b');
-    group.insert(a);
-    group.insert(b);
-    parent.insert(group);
-    doc.add(parent, null);
-    const workspace = new Workspace();
-    workspace.replace(doc);
-    expect(() => new UngroupCommand(workspace, ['group']).execute()).toThrow('member rejected');
-    expect(parent.children()).toEqual([group]);
-    expect(group.children()).toEqual([a, b]);
-    expect(a.parent()).toBe(group);
+    const parent = doc.insert(new RestrictedParent('parent'));
+    const group = doc.insert(new Group('group'), parent);
+    const a = doc.insert(rect('a'), group);
+    const b = doc.insert(rect('b'), group);
+    expect(() => new UngroupCommand(workspaceWith(doc), ['group']).execute()).toThrow('member rejected');
+    expect(doc.children(parent)).toEqual([group]);
+    expect(doc.children(group)).toEqual([a, b]);
+  });
+
+  it('多步骤结构命令在已经修改之后失败，也恢复整个树及历史', () => {
+    let checks = 0;
+    class FailingGroup extends Group {
+      override checkRemove(_shape: Shape): void {
+        checks += 1;
+        // 前两次是预检查，第一次迁移成功，第二次迁移时失败。
+        if (checks === 4) throw new Error('late failure');
+      }
+    }
+    const doc = new Document(100, 100);
+    const root = doc.insert(new FailingGroup('root'));
+    const a = doc.insert(rect('a'), root);
+    const b = doc.insert(rect('b'), root);
+    const workspace = workspaceWith(doc);
+    const invoker = new Invoker();
+    const command = new GroupCommand(workspace, ['new', 'a', 'b']);
+    expect(() => invoker.execute(command)).toThrow('late failure');
+    expect(doc.children()).toEqual([root]);
+    expect(doc.children(root)).toEqual([a, b]);
+    expect(doc.findNode('new')).toBeNull();
+    expect(() => invoker.undo()).toThrow('nothing to undo');
+  });
+
+  it('删除撤销恢复原节点与模型；后续结构撤销不回滚模型属性', () => {
+    const doc = new Document(100, 100);
+    const group = doc.insert(new Group('g'));
+    const a = doc.insert(rect('a'), group);
+    const workspace = workspaceWith(doc);
+    const invoker = new Invoker();
+    invoker.execute(new DeleteCommand(workspace, ['g']));
+    invoker.undo();
+    expect(doc.requireNode('g')).toBe(group);
+    expect(doc.requireNode('a')).toBe(a);
+    expect(doc.requireShape('a')).toBe(a.value);
+    a.value.set('fill', 'red');
+    invoker.redo();
+    invoker.undo();
+    expect(doc.requireNode('a')).toBe(a);
+    expect(a.value.value('fill')).toBe('red');
   });
 });

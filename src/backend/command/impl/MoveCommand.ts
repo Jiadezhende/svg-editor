@@ -30,9 +30,11 @@ export default class MoveCommand extends EditCommand {
   }
 
   execute(): CommandResult {
-    const shape = this.workspace.document().requireShape(this.id);
-    const memento = shape.capture();
-    shape.move(this.dx, this.dy);
+    const doc = this.workspace.document();
+    const node = doc.requireNode(this.id);
+    const shape = node.value;
+    const memento = doc.capture(node);
+    doc.move(node, this.dx, this.dy);
     this.moved = { shape, memento };
     return new CommandResult().line(this.describe(shape, 'moved', this.dx, this.dy));
   }

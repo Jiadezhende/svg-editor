@@ -10,6 +10,8 @@ import TreeCommand from '../../../../src/backend/command/impl/TreeCommand';
 import EditorError from '../../../../src/backend/error/EditorError';
 import Document from '../../../../src/backend/receiver/document/Document';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
+import SvgWriter from '../../../../src/backend/receiver/svg/SvgWriter';
+import CompositeShape from '../../../support/CompositeShape';
 
 let dir: string;
 beforeEach(() => {
@@ -73,6 +75,33 @@ describe('SaveCommand', () => {
   it('无文档时报无文档；参数个数在构造时校验', () => {
     expect(() => new SaveCommand(new Workspace(), ['a.svg']).execute()).toThrow("no document. use 'init' or 'read' first");
     expect(() => new SaveCommand(new Workspace(), ['a', 'b'])).toThrow('wrong number of arguments. usage: save [file.svg]');
+  });
+});
+
+describe('SaveCommand 的复合模型映射', () => {
+  it('保存复用会话注册的写出映射，内部成员不进入文档节点树', () => {
+    const workspace = new Workspace();
+    const doc = new Document(100, 100);
+    const panel = new CompositeShape('panel');
+    doc.insert(panel);
+    workspace.replace(doc);
+    workspace.svgWriter().register({
+      matches: (shape) => shape instanceof CompositeShape,
+      write: (shape) => {
+        const model = shape as CompositeShape;
+        return { ...SvgWriter.elementOf(model), children: [
+          SvgWriter.elementOf(model.frameShape()), SvgWriter.elementOf(model.captionShape()),
+        ] };
+      },
+    });
+    const path = join(dir, 'composite.svg');
+    expect(new SaveCommand(workspace, [path]).execute().lines()).toEqual([`saved to ${path} (1 elements)`]);
+    const svg = readFileSync(path, 'utf8');
+    expect(svg).toContain('<rect id="panel-rect"');
+    expect(svg).toContain('<text id="panel-label"');
+    expect(doc.shapes()).toEqual([panel]);
+    new ReadCommand(workspace, [path]).execute();
+    expect(workspace.document().shapes().map((shape) => shape.id())).toEqual(['panel', 'panel-rect', 'panel-label']);
   });
 });
 

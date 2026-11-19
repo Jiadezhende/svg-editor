@@ -1,7 +1,6 @@
 import CommandResult from '../CommandResult';
-import EditCommand from '../EditCommand';
+import StructureCommand from '../StructureCommand';
 import EditorError from '../../error/EditorError';
-import type Shape from '../../receiver/document/shape/Shape';
 import Group from '../../receiver/document/shape/Group';
 import type Workspace from '../../receiver/workspace/Workspace';
 
@@ -9,15 +8,12 @@ import type Workspace from '../../receiver/workspace/Workspace';
  * `group <newGid> <id1> <id2>…`：新建容器并收入若干图形。
  * 成员按文档顺序排列，新容器插在第一个成员原来的位置；整条命令是一个 undo 单元。
  */
-export default class GroupCommand extends EditCommand {
+export default class GroupCommand extends StructureCommand {
   static override readonly command = 'group';
   static override readonly usage = 'group <newGid> <id1> <id2>…';
 
   private readonly groupId: string;
   private readonly memberIds: readonly string[];
-  /** 本次 execute 新建的容器，以及各成员移动前的父节点与位置（按移动顺序），供 undo 使用。 */
-  private grouped: { group: Group; moves: { shape: Shape; parent: Shape | null; index: number }[] } | null = null;
-
   constructor(
     private readonly workspace: Workspace,
     args: readonly string[],
@@ -35,39 +31,25 @@ export default class GroupCommand extends EditCommand {
 
   execute(): CommandResult {
     const doc = this.workspace.document();
-    const group = new Group(this.groupId);
-    const members = this.memberIds.map((id) => doc.requireShape(id));
-    for (const outer of members) {
-      if (members.some((inner) => inner !== outer && outer.find(inner.id()) === inner)) {
-        throw new EditorError(`cannot group a container into its own descendant: ${outer.id()}`);
+    return this.edit(doc, () => {
+      const group = new Group(this.groupId);
+      const members = this.memberIds.map((id) => doc.requireNode(id));
+      for (const outer of members) {
+        if (members.some((inner) => inner !== outer && doc.nodes(outer).includes(inner))) {
+          throw new EditorError(`cannot group a container into its own descendant: ${outer.value.id()}`);
+        }
+        doc.checkRemove(outer);
+        group.checkInsert(outer.value);
       }
-      doc.checkRemove(outer);
-      group.checkInsert(outer);
-    }
-    const order = doc.shapes();
-    const sorted = [...members].sort((a, b) => order.indexOf(a) - order.indexOf(b));
-    const first = sorted[0];
-    doc.add(group, first.parent(), (first.parent()?.children() ?? doc.children()).indexOf(first));
-    const moves = sorted.map((shape) => {
-      const parent = shape.parent();
-      const move = { shape, parent, index: (parent?.children() ?? doc.children()).indexOf(shape) };
-      doc.relocate(shape, group);
-      return move;
+      const order = doc.nodes();
+      const sorted = [...members].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+      const first = sorted[0];
+      const node = doc.insert(group, doc.parent(first), doc.indexOf(first));
+      for (const member of sorted) doc.relocate(member, node);
+      return {
+        result: new CommandResult().line(`${group.label()} created with ${members.length} children`),
+        undo: `${group.label()} removed, ${members.length} children restored`,
+      };
     });
-    this.grouped = { group, moves };
-    return new CommandResult().line(`${group.label()} created with ${members.length} children`);
-  }
-
-  undo(): CommandResult {
-    if (this.grouped === null) {
-      throw new Error('undo before execute');
-    }
-    const { group, moves } = this.grouped;
-    const doc = this.workspace.document();
-    doc.checkRemove(group);
-    for (const { shape, parent } of moves) doc.checkRelocate(shape, parent);
-    for (const { shape, parent, index } of [...moves].reverse()) doc.relocate(shape, parent, index);
-    doc.remove(group);
-    return new CommandResult().line(`${group.label()} removed, ${moves.length} children restored`);
   }
 }

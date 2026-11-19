@@ -21,6 +21,7 @@ export { default as DocumentCommand } from './command/DocumentCommand';
 export { default as CommandResult } from './command/CommandResult';
 export { default as UndoRecord } from './command/UndoRecord';
 export { default as Client } from './Client';
+export type { ExtensionContext, ExtensionPlugin } from './ExtensionContext';
 export type { default as AttributeHandler } from './handler/AttributeHandler';
 export { default as AttributeHandlerRegistry } from './handler/AttributeHandlerRegistry';
 export type { default as TreeLineRenderer, CanvasInfo, TreeSuccess } from './tree/TreeLineRenderer';

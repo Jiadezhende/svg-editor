@@ -1,10 +1,10 @@
 import App from './App';
-import { createClient } from './host/defaults';
+import { createDiscoveredHost } from './host/discovery';
 import ConsoleInputSource from './frontend/io/ConsoleInputSource';
 import ConsoleOutputSink from './frontend/io/ConsoleOutputSink';
 
-// 入口只连接宿主默认装配与控制台 IO；插件发现留在后续装配阶段。
-const client = createClient();
+// 自动发现全部插件，单插件失败只报告错误，保留有效装配继续启动。
+const { client } = await createDiscoveredHost();
 
 const input = new ConsoleInputSource();
 await new App(input, new ConsoleOutputSink(), client).run();

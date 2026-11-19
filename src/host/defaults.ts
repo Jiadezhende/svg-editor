@@ -38,11 +38,21 @@ export function createWorkspace(): Workspace {
 
 export function createClient(): Client {
   const client = new Client(createWorkspace());
+  registerBuiltinCommands(client);
+  return client;
+}
+
+/** 默认内置实现由宿主提供，供基础装配和自动发现装配共用。 */
+export function registerBuiltinCommands(client: Client): ReadonlySet<string> {
+  const names = new Set<string>();
   // 保持原入口按文件名排序的 help 顺序，不在内核维护默认命令表。
   for (const cls of [
     AddtoCommand, BackCommand, CanvasResizeCommand, CanvasShowCommand, CreateCommand,
     DeleteCommand, FrontCommand, GroupCommand, InitCommand, MoveCommand, ReadCommand,
     SaveCommand, ScaleCommand, SetCommand, ShowCommand, TreeCommand, UngroupCommand,
-  ]) client.register(cls);
-  return client;
+  ]) {
+    client.register(cls);
+    names.add(cls.command);
+  }
+  return names;
 }

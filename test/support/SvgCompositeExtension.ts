@@ -19,8 +19,8 @@ export class Panel extends Shape {
   constructor(
     id: string,
     values: ReadonlyMap<string, AttributeValue> = new Map(),
-    private readonly frame = new Frame(`${id}-frame`, new Map([['x', 1], ['y', 2], ['width', 20], ['height', 10]])),
-    private readonly caption = new Caption(`${id}-caption`, new Map<string, AttributeValue>([['x', 3], ['y', 4], ['text', 'hello']])),
+    private readonly frame: Shape = new Frame(`${id}-frame`, new Map([['x', 1], ['y', 2], ['width', 20], ['height', 10]])),
+    private readonly caption: Shape = new Caption(`${id}-caption`, new Map<string, AttributeValue>([['x', 3], ['y', 4], ['text', 'hello']])),
   ) {
     super(id, values);
   }
@@ -29,7 +29,7 @@ export class Panel extends Shape {
     const parts = readChildren();
     const frame = parts.find((shape) => shape.id() === `${id}-frame`);
     const caption = parts.find((shape) => shape.id() === `${id}-caption`);
-    if (!(frame instanceof Frame) || !(caption instanceof Caption)) throw new EditorError(`invalid panel parts: ${id}`);
+    if (frame?.type() !== 'rect' || caption?.type() !== 'text') throw new EditorError(`invalid panel parts: ${id}`);
     return {
       shape: new Panel(id, this.parseValues(attributes), frame, caption),
       children: parts.filter((shape) => shape !== frame && shape !== caption),
@@ -37,8 +37,8 @@ export class Panel extends Shape {
   }
 
   override acceptsChildren(): boolean { return true; }
-  frameShape(): Frame { return this.frame; }
-  captionShape(): Caption { return this.caption; }
+  frameShape(): Shape { return this.frame; }
+  captionShape(): Shape { return this.caption; }
   setLabel(value: string): void { this.caption.set('text', value); }
 
   override identifiers(): readonly string[] {

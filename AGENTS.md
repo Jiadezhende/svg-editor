@@ -13,6 +13,7 @@
 - 持有单个图形的状态，封装内部部件，通过公开方法修改自身；业务复合 Shape 按实际需要声明内部 Shape 成员；普通 SVG 容器的成员关系保存在文档节点树中。
 - 保证自身不变量，例如 Box 必须具有有效的矩形和文字；不承担整份文档的全局 id 检查。
 - Shape 维护 SVG id，不维护 index、文档归属、文档父节点或通用 children 字段，不提供文档树 insert/remove/relocate。业务复合模型的内部成员默认不成为独立文档节点。
+- Shape.identifiers() 声明自身及私有部件占用的全部 id；默认仅自身，复合模型覆写，必须包含根 id、不得重复或非法。声明只读且随模型身份保持稳定，不暴露内部对象或文档关系。
 - Handler、Command 和 Document 都不能绕过图形公开方法直接修改其内部状态。Shape 不依赖 Handler 注册表、Command、CLI 或 SVG 解析器。
 - 属性规格或模型负责共享的值解析、校验与基础修改规则，避免创建、属性设置和读回各写一套。
 - 静态 Shape.parse(id, attributes, readChildren) 提供可覆写的数据构造能力，默认通过属性规格解析文本及默认值。结果 ShapeParseResult 包含构造出的 shape 和仍应作为文档成员的 children；Shape 本身不保存这份文档关系。
@@ -27,6 +28,7 @@
 - Document 通过 ShapeNode 组织 Shape 抽象，Shape 保持独立于具体 Document 和节点树实现。节点不另设 id 或 index，index 来自父节点列表；父子关系只读公开，由 Document 统一修改。
 - insert(shape, parentNode = null, index?) 支持顶层与容器插入并返回节点；relocate/remove 以已有节点为对象。节点父子关系直接读取 node.parent()/children()；Document.children() 只返回顶层节点，indexOf(node) 计算位置。
 - Document 编排文档子树变换与属性快照；结构命令使用绑定原文档的结构快照恢复节点身份、层级和顺序。
+- Document 在 insert 和结构快照恢复前统一验证节点及私有部件的全部 id，失败不修改关系；节点索引仍仅包含 ShapeNode。Writer 的最终映射校验继续作为独立的持久化保护。
 - 不集中实现各具体图形的标题、填充等内部行为；定位目标后，由图形公开方法或相应 Handler 完成操作。
 - 不依赖 Command、Handler 注册表、CLI 或 SVG 解析器。
 
@@ -68,10 +70,12 @@
 
 - 基础树渲染负责节点基础内容、缩进与连线。TreeDecorator 负责在基础行之后追加标签，通过只读的公开信息决定是否追加。
 - 使用经典 Decorator 结构：装饰器和基础行渲染器遵循同一渲染接口，装饰器持有被包装对象，先委托渲染，再追加自身标签；不适用时返回被包装对象的结果。
-- 宿主根据发现与白名单规则取得有序装饰器列表，依次包装基础行渲染器。配置从前到后的顺序对应最终标签从左到右的顺序。
+- 当前宿主发现并装配全部插件，按包目录名和包内注册顺序取得装饰器列表，依次包装基础行渲染器；列表从前到后的顺序对应最终标签从左到右的顺序。当前不实现配置注册或白名单。
 - 例如列表为 modified-star、box-type，构造结果为 BoxType(ModifiedStar(Base))，最终行尾为 `* (box)`。外层先进入，内层先返回，标签按配置顺序追加。
-- 装饰器列表为空时直接使用基础行渲染器。启用白名单为空表示自动装配全部候选装饰器，与装饰器列表为空含义不同。
+- 装饰器列表为空时直接使用基础行渲染器，输出与原基线一致。
 - 装饰器的状态封装在实例中；新增装饰器不修改内核、基础渲染器或其他装饰器。
+- TreeCommand 委托 TreeRenderer，TreeDecorator 通过受保护 tag 追加标签，可通过 onSuccess 维护实例状态。通知仅包含只读节点、冻结的节点列表及画布快照，禁止修改领域状态。
+- Client 在 Invoker 成功更新历史后发布 edit/undo/redo/replace/save；DocumentCommand.successKind 声明成功通知类型，画布调整保留文档类历史规则并通知 edit。失败不通知，观察者异常转为展示警告，不把已提交操作误报为失败。不建立通用事件总线或事务。
 
 ## 完整调用关系
 
@@ -109,17 +113,19 @@ Document（画布、节点树、全局约束）
 
 ## 扩展发现与启用配置
 
-- 宿主自动发现并校验插件中的 Shape、Command、Handler 和 TreeDecorator，新增扩展无需修改内核或发现逻辑。
-- 各类扩展通过白名单配置：非空时仅按名单顺序装配；为空或未配置时全部按稳定的默认顺序装配。显式禁用项不参与装配。
-- 代码装配与配置装配共用注册、校验和排序规则。
+- 宿主从应用 plugins/ 的直接子包自动发现 Shape、Command、Handler 和 TreeDecorator，按目录名稳定排序并全部装配；新增包不修改内核或发现逻辑。基础六种图形和内置命令由宿主 defaults 提供。
+- 本阶段不实现配置注册、白名单、禁用或 options；这些不是当前验收范围。目录缺失或无附加插件时基础 CLI 正常启动。
+- 包通过 package.json 的 name、main 和 contributes 声明贡献，入口默认导出提供 activate(context)，同步或异步均可。贡献名称必须与实际暂存注册集合一致，跨插件同类重名拒绝；命令包内部仍可注册多个互斥形式。
+- 公共 ExtensionContext 只开放四种注册方法；registerShape 可附带 SVG 映射。宿主先暂存，再构建候选注册表、writer、装饰链和 Client，全部校验成功才接纳。单包失败丢弃其全部贡献及映射，报告错误并继续，保留先前有效会话。激活完成后上下文关闭。
+- 代码装配 assemblePlugins 与目录发现共用暂存和校验路径；插件不得依赖任意外部副作用能被回滚。
 
 ## 依赖与装配边界
 
 - 内核定义公开领域抽象和扩展契约，通过契约调用扩展，不导入具体插件。
 - 宿主和扩展的公共导入入口为 `src/backend/index.ts`；ShapeNode 只导出类型，节点构造及关系存储不作为扩展接口。
-- ShapeFactory 初始为空；`src/host/defaults.ts` 选择默认图形、命令和服务。Client 接收 Workspace，Workspace 接收工厂、文件访问、SvgReader、SvgWriter 能力及 AttributeHandlerRegistry，不在内核创建默认服务。默认宿主提供独立空 Handler 表，Invoker 不依赖 Workspace。
+- ShapeFactory 初始为空；`src/host/defaults.ts` 选择基础图形、命令和服务，main 使用自动发现宿主。Client 接收 Workspace，Workspace 接收工厂、文件访问、SvgReader、SvgWriter、AttributeHandlerRegistry 和 TreeRenderer，不在内核创建默认服务。基础宿主提供空 Handler 表和装饰链，Invoker 不依赖 Workspace。
 - 插件只依赖内核公开契约，不依赖内核内部实现或宿主装配模块。
-- 宿主负责加载、选择和注册插件；代码装配与配置装配共用注册、声明校验及失败回滚路径。
+- 宿主负责加载和注册全部发现的插件；代码装配与自动发现共用注册、声明校验及失败隔离路径。配置装配留待后续交付范围重新确定。
 - 树标签、CLI 格式化等展示行为留在展示扩展中，不混入领域 Handler 或模型。
 
 

@@ -15,13 +15,13 @@ function workspaceWith(...lines: string[][]): Workspace {
 }
 
 function detailsOf(workspace: Workspace, id: string): string[] {
-  return workspace.document().requireShape(id).details();
+  return workspace.document().requireNode(id).value.details();
 }
 
 describe('ScaleCommand', () => {
   it('叶子：位置与尺寸同乘，stroke-width 不缩放；undo 还原', () => {
     const workspace = workspaceWith(['circle', 'c1', '100', '100', '20', 'red']);
-    workspace.document().requireShape('c1').set('stroke-width', '2');
+    workspace.document().requireNode('c1').value.set('stroke-width', '2');
     const command = new ScaleCommand(workspace, ['c1', '2']);
     expect(command.execute().lines()).toEqual(['circle#c1 scaled by 2']);
     expect(detailsOf(workspace, 'c1')).toEqual(['cx=200 cy=200 r=40', 'fill=red stroke-width=2']);
@@ -46,8 +46,8 @@ describe('ScaleCommand', () => {
     const command = new ScaleCommand(workspace, ['r1', '3']);
     command.execute();
     expect(command.undo().lines()).toEqual(['rect#r1 scaled back by 0.333333']);
-    expect(workspace.document().requireShape('r1').value('x')).toBe(0.1);
-    expect(workspace.document().requireShape('r1').value('y')).toBe(0.7);
+    expect(workspace.document().requireNode('r1').value.value('x')).toBe(0.1);
+    expect(workspace.document().requireNode('r1').value.value('y')).toBe(0.7);
   });
 
   it('undo 后再次 execute（redo）回显与首次相同', () => {

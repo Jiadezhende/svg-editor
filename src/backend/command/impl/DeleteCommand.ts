@@ -21,7 +21,7 @@ export default class DeleteCommand extends EditCommand {
     const doc = this.workspace.document();
     return this.undoRecord.execute(doc.captureStructure(), () => {
       const node = doc.requireNode(this.id);
-      const parent = doc.parent(node);
+      const parent = node.parent();
       doc.remove(node);
       return {
         result: new CommandResult().line(`${node.value.label()} deleted`),

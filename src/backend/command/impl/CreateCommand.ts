@@ -1,3 +1,4 @@
+import EditorError from '../../error/EditorError';
 import CommandResult from '../CommandResult';
 import EditCommand from '../EditCommand';
 import UndoRecord from '../UndoRecord';
@@ -66,7 +67,9 @@ export default class CreateCommand extends EditCommand {
   execute(): CommandResult {
     const doc = this.workspace.document();
     return this.undoRecord.execute(doc.captureStructure(), () => {
-      const parent = this.containerId === null ? null : doc.requireChildTarget(this.containerId);
+      const parent = this.containerId === null ? null : doc.findNode(this.containerId);
+      if (this.containerId !== null && parent === null) throw new EditorError(`no such container: ${this.containerId}`);
+      if (parent !== null && !parent.value.acceptsChildren()) throw new EditorError(`not a container: ${this.containerId}`);
       const shape = this.workspace.shapes().create(this.shapeDefinition.type, this.id, this.values);
       doc.insert(shape, parent);
       const where = this.containerId === null ? '' : ` in ${parent?.value.label() ?? 'svg'}`;

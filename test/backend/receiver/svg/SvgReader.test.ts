@@ -37,8 +37,8 @@ describe('SvgReader', () => {
     const supplied = factory.create('rect', 'r1', new Map([['x', 10], ['y', 20], ['width', 30], ['height', 40]]));
     const create = vi.spyOn(factory, 'create').mockReturnValue(supplied);
     const { document, warnings } = new SvgReader(factory).read(svg('<path id="unsupported"/><rect id="r1"/>'));
-    expect(document.requireShape('r1')).toBe(supplied);
-    expect(document.find('unsupported')).toBeNull();
+    expect(document.requireNode('r1').value).toBe(supplied);
+    expect(document.findNode('unsupported')).toBeNull();
     expect(warnings).toEqual(['skipped unsupported <path>']);
     expect(create).toHaveBeenCalledTimes(1);
   });
@@ -46,7 +46,7 @@ describe('SvgReader', () => {
   it('读入接口契约中的 other.svg：为缺 id 的 rect 补 id 并警告，结构与示例一致', () => {
     const { document, warnings } = read(other);
     expect(warnings).toEqual(['assigned id rect1 to unnamed <rect>']);
-    expect(document.shapes()).toHaveLength(7);
+    expect(document.nodes().map((node) => node.value)).toHaveLength(7);
     expect(tree(document)).toEqual([
       'svg (400x300)',
       '├── rect#rect1  x=0 y=0 width=400 height=300',
@@ -57,7 +57,7 @@ describe('SvgReader', () => {
       '│   └── circle#c2  cx=5 cy=5 r=2',
       '└── ellipse#e1  cx=1 cy=2 rx=3 ry=4',
     ]);
-    expect(document.requireShape('rect1').value('fill')).toBe('#ffffff');
+    expect(document.requireNode('rect1').value.value('fill')).toBe('#ffffff');
   });
 
   it('SvgWriter 写出的文件读回后 tree 一致，再次写出逐字相同', () => {
@@ -72,12 +72,12 @@ describe('SvgReader', () => {
     ]) {
       new CreateCommand(workspace, args).execute();
     }
-    workspace.document().requireShape('edge').set('stroke-width', '2');
+    workspace.document().requireNode('edge').value.set('stroke-width', '2');
     const written = new SvgWriter().write(workspace.document());
     const { document, warnings } = read(written);
     expect(warnings).toEqual([]);
     expect(tree(document)).toEqual(tree(workspace.document()));
-    expect(document.requireShape('label').value('text')).toBe('开始 <a> & "b"');
+    expect(document.requireNode('label').value.value('text')).toBe('开始 <a> & "b"');
     expect(new SvgWriter().write(document)).toBe(written);
   });
 
@@ -88,7 +88,7 @@ describe('SvgReader', () => {
       'assigned id rect2 to unnamed <rect>',
       'assigned id g2 to unnamed <g>',
     ]);
-    expect(document.shapes().map((s) => s.id())).toEqual(['rect1', 'g1', 'rect2', 'g2']);
+    expect(document.nodes().map((node) => node.value).map((s) => s.id())).toEqual(['rect1', 'g1', 'rect2', 'g2']);
   });
 
   it('不支持的元素连同子树一起跳过并警告，不计入元素数', () => {
@@ -96,7 +96,7 @@ describe('SvgReader', () => {
       svg('<title>x</title><defs><rect id="hidden" x="0" y="0" width="1" height="1"/></defs><path d="M0 0"/><circle id="c" cx="0" cy="0" r="1"/>'),
     );
     expect(warnings).toEqual(['skipped unsupported <title>', 'skipped unsupported <defs>', 'skipped unsupported <path>']);
-    expect(document.shapes().map((s) => s.id())).toEqual(['c']);
+    expect(document.nodes().map((node) => node.value).map((s) => s.id())).toEqual(['c']);
   });
 
   it('未知属性丢弃；缺少的必填属性取默认值', () => {
@@ -110,8 +110,8 @@ describe('SvgReader', () => {
 
   it('属性值两侧的空白被忽略', () => {
     const { document } = read(svg('<circle id="c" cx=" 1 " cy="2" r="3" fill=" red "/>'));
-    expect(document.requireShape('c').value('cx')).toBe(1);
-    expect(document.requireShape('c').value('fill')).toBe('red');
+    expect(document.requireNode('c').value.value('cx')).toBe(1);
+    expect(document.requireNode('c').value.value('fill')).toBe('red');
   });
 
   it.each([

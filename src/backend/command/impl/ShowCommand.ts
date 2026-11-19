@@ -22,9 +22,9 @@ export default class ShowCommand extends Command {
     const doc = this.workspace.document();
     const node = doc.requireNode(this.id);
     const shape = node.value;
-    const result = new CommandResult().line(`${shape.label()}  parent=${doc.parent(node)?.value.label() ?? 'svg'}`);
+    const result = new CommandResult().line(`${shape.label()}  parent=${node.parent()?.value.label() ?? 'svg'}`);
     const details = shape.details();
-    if (shape.acceptsChildren()) details[0] = `children=${doc.children(node).length}`;
+    if (shape.acceptsChildren()) details[0] = `children=${node.children().length}`;
     for (const detail of details) {
       result.line(`  ${detail}`);
     }

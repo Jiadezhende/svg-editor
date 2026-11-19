@@ -29,6 +29,6 @@ export default class ReadCommand extends DocumentCommand {
     if (this.workspace.replace(document, this.path)) {
       result.warn('previous document discarded');
     }
-    return result.line(`read ${this.path} (${document.shapes().length} elements)`);
+    return result.line(`read ${this.path} (${document.nodes().length} elements)`);
   }
 }

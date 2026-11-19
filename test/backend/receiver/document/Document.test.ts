@@ -55,21 +55,21 @@ describe('Document 节点树', () => {
     const b = doc.insert(rect('b'), root, 1);
     expect(doc.label()).toBe('svg');
     expect(root.value).toBe(group);
-    expect(doc.parent(root)).toBeNull();
-    expect(doc.children(root)).toEqual([a, b, c]);
+    expect(root.parent()).toBeNull();
+    expect(root.children()).toEqual([a, b, c]);
     expect(root.children()).toEqual([a, b, c]);
     expect(b.parent()).toBe(root);
     expect(doc.indexOf(b)).toBe(1);
     expect('id' in b).toBe(false);
     expect('index' in b).toBe(false);
-    expect(doc.requireShape('b')).toBe(b.value);
+    expect(doc.requireNode('b').value).toBe(b.value);
     expect(doc.requireNode('b')).toBe(b);
-    expect(doc.requireChildTarget('g')).toBe(root);
-    expect(doc.find('missing')).toBeNull();
+    expect(doc.requireNode('g')).toBe(root);
     expect(doc.findNode('missing')).toBeNull();
-    expect(() => doc.requireShape('missing')).toThrow('no such shape: missing');
-    expect(() => doc.requireChildTarget('missing')).toThrow('no such container: missing');
-    expect(() => doc.requireChildTarget('b')).toThrow('not a container: b');
+    expect(doc.findNode('missing')).toBeNull();
+    expect(() => doc.requireNode('missing').value).toThrow('no such shape: missing');
+    expect(() => doc.requireNode('missing')).toThrow('no such shape: missing');
+    expect(() => doc.insert(new Group('new'), b)).toThrow('not a container: b');
   });
 
   it('先序遍历保留多层 Group，查找无需经过外层分组', () => {
@@ -80,9 +80,9 @@ describe('Document 节点树', () => {
     const inner = doc.insert(new Group('inner'), outer);
     const c = doc.insert(rect('c'), inner);
     doc.insert(rect('d'));
-    expect(doc.shapes().map((s) => s.id())).toEqual(['a', 'outer', 'b', 'inner', 'c', 'd']);
+    expect(doc.nodes().map((node) => node.value).map((s) => s.id())).toEqual(['a', 'outer', 'b', 'inner', 'c', 'd']);
     expect(doc.nodes(inner)).toEqual([inner, c]);
-    expect(doc.requireShape('c')).toBe(c.value);
+    expect(doc.requireNode('c').value).toBe(c.value);
   });
 
   it('id 全文档唯一且大小写敏感；重复插入对象也被拒绝', () => {
@@ -92,7 +92,7 @@ describe('Document 节点树', () => {
     expect(() => doc.insert(rect('a'))).toThrow('id already exists: a');
     expect(() => doc.insert(rect('g'), group)).toThrow('id already exists: g');
     expect(() => doc.insert(a.value)).toThrow('shape already attached: a');
-    expect(doc.children(group)).toEqual([a]);
+    expect(group.children()).toEqual([a]);
     expect(() => doc.insert(rect('A'))).not.toThrow();
   });
 
@@ -106,15 +106,15 @@ describe('Document 节点树', () => {
     const saved = doc.captureStructure();
     expect(doc.remove(root)).toBe(1);
     expect(doc.children()).toEqual([left, right]);
-    expect(doc.find('leaf')).toBeNull();
+    expect(doc.findNode('leaf')).toBeNull();
     expect(root.children()).toEqual([]);
     expect(leaf.parent()).toBeNull();
     saved.restore();
     expect(doc.children()).toEqual([left, root, right]);
     expect(doc.requireNode('leaf')).toBe(leaf);
-    expect(doc.requireShape('leaf')).toBe(leaf.value);
-    expect(doc.parent(leaf)).toBe(inner);
-    expect(doc.children(root)).toEqual([inner]);
+    expect(doc.requireNode('leaf').value).toBe(leaf.value);
+    expect(leaf.parent()).toBe(inner);
+    expect(root.children()).toEqual([inner]);
     doc.remove(leaf);
     saved.restore();
     expect(doc.requireNode('leaf')).toBe(leaf);

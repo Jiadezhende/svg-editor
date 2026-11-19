@@ -25,7 +25,7 @@ function sample(): Workspace {
 }
 
 function ids(workspace: Workspace, containerId: string): string[] {
-  return workspace.document().requireChildTarget(containerId).children().map((shape) => shape.value.id());
+  return workspace.document().requireNode(containerId).children().map((shape) => shape.value.id());
 }
 
 function tree(workspace: Workspace): string[] {
@@ -39,7 +39,7 @@ describe('UngroupCommand', () => {
       'g#inner ungrouped, 2 children moved to g#scene',
     ]);
     expect(ids(workspace, 'scene')).toEqual(['a', 'b', 'c', 'd']);
-    expect(workspace.document().find('inner')).toBeNull();
+    expect(workspace.document().findNode('inner')).toBeNull();
   });
 
   it('undo 还原容器及其子图形的原位置与顺序', () => {

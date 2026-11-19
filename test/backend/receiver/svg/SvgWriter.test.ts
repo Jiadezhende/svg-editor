@@ -59,13 +59,13 @@ describe('SvgWriter', () => {
     const doc = new Document(100.5, 50, [0, 0, 201, 100]);
     expect(new SvgWriter().write(doc)).toContain('width="100.5" height="50" viewBox="0 0 201 100"');
     const shapes = documentWith(100, 100, ['circle', 'c1', '0.1', '0.2', '1']);
-    shapes.requireShape('c1').move(0.2, 0);
+    shapes.requireNode('c1').value.move(0.2, 0);
     expect(new SvgWriter().write(shapes)).toContain('<circle id="c1" cx="0.3" cy="0.2" r="1"/>');
   });
 
   it('外观属性按 fill、stroke、stroke-width 顺序写在几何属性之后', () => {
     const doc = documentWith(100, 100, ['circle', 'c1', '1', '2', '3']);
-    const circle = doc.requireShape('c1');
+    const circle = doc.requireNode('c1').value;
     circle.set('stroke-width', '2');
     circle.set('fill', 'red');
     circle.set('stroke', 'black');

@@ -22,9 +22,8 @@ export default class AddtoCommand extends EditCommand {
     const doc = this.workspace.document();
     return this.undoRecord.execute(doc.captureStructure(), () => {
       const node = doc.requireNode(this.id);
-      doc.requireShape(this.containerId);
-      const target = doc.requireChildTarget(this.containerId);
-      const parent = doc.parent(node);
+      const target = doc.requireNode(this.containerId);
+      const parent = node.parent();
       doc.relocate(node, target);
       return {
         result: new CommandResult().line(`${node.value.label()} added to ${target!.value.label()}`),

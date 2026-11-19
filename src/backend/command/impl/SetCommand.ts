@@ -28,7 +28,7 @@ export default class SetCommand extends EditCommand {
   }
 
   execute(): CommandResult {
-    const shape = this.workspace.document().requireShape(this.id);
+    const shape = this.workspace.document().requireNode(this.id).value;
     const memento = shape.capture();
     const previous = shape.display(this.attribute);
     shape.set(this.attribute, this.token);

@@ -28,13 +28,13 @@ export default class UngroupCommand extends EditCommand {
   execute(): CommandResult {
     const doc = this.workspace.document();
     return this.undoRecord.execute(doc.captureStructure(), () => {
-      doc.requireNode(this.id);
-      const node = doc.requireChildTarget(this.id);
-      const parent = doc.parent(node);
+      const node = doc.requireNode(this.id);
+      if (!node.value.acceptsChildren()) throw new EditorError(`not a container: ${this.id}`);
+      const parent = node.parent();
       if (parent === null) throw new EditorError(`cannot ungroup top-level container: ${this.id}`);
       doc.checkRemove(node);
       const index = doc.indexOf(node);
-      const children = doc.children(node);
+      const children = node.children();
       for (const child of children) doc.checkRelocate(child, parent);
       children.forEach((child, i) => doc.relocate(child, parent, index + i));
       doc.remove(node);

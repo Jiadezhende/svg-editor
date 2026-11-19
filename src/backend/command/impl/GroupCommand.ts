@@ -48,7 +48,7 @@ export default class GroupCommand extends EditCommand {
       const order = doc.nodes();
       const sorted = [...members].sort((a, b) => order.indexOf(a) - order.indexOf(b));
       const first = sorted[0];
-      const node = doc.insert(group, doc.parent(first), doc.indexOf(first));
+      const node = doc.insert(group, first.parent(), doc.indexOf(first));
       for (const member of sorted) doc.relocate(member, node);
       return {
         result: new CommandResult().line(`${group.label()} created with ${members.length} children`),

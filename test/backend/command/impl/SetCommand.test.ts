@@ -19,7 +19,7 @@ function set(workspace: Workspace, ...args: string[]): string[] {
 }
 
 function detailsOf(workspace: Workspace, id: string): string[] {
-  return workspace.document().requireShape(id).details();
+  return workspace.document().requireNode(id).value.details();
 }
 
 describe('SetCommand', () => {
@@ -28,7 +28,7 @@ describe('SetCommand', () => {
     const command = new SetCommand(workspace, ['title', 'text', 'My Diagram v2']);
     expect(command.execute().lines()).toEqual(['text#title updated: text="My Diagram v2"']);
     expect(command.undo().lines()).toEqual(['text#title updated: text="My Diagram"']);
-    expect(workspace.document().requireShape('title').value('text')).toBe('My Diagram');
+    expect(workspace.document().requireNode('title').value.value('text')).toBe('My Diagram');
   });
 
   it('设置原本未设置的属性；undo 后恢复为未设置', () => {

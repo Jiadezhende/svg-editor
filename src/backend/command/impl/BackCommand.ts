@@ -20,8 +20,8 @@ export default class BackCommand extends EditCommand {
     const doc = this.workspace.document();
     return this.undoRecord.execute(doc.captureStructure(), () => {
       const node = doc.requireNode(this.id);
-      const target = doc.parent(node);
-      const parent = doc.parent(node);
+      const target = node.parent();
+      const parent = node.parent();
       doc.relocate(node, target, 0);
       return {
         result: new CommandResult().line(`${node.value.label()} sent to back`),

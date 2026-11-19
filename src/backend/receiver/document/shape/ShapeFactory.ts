@@ -9,7 +9,7 @@ import type Shape from './Shape';
 import Text from './Text';
 
 /** 可注册的图形类：静态部分即定义，构造函数即工厂。 */
-export type ShapeClass = Pick<
+type ShapeClass = Pick<
   typeof Shape,
   'type' | 'params' | 'paint' | 'anchor' | 'content' | 'attributes' | 'attribute'
 > &

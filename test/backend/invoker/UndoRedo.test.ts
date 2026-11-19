@@ -93,7 +93,7 @@ describe('真实编辑命令的历史组合', () => {
     other.remove(foreign);
     expect(invoker.undo().lines()).toEqual(['g#g restored into svg']);
     expect(doc.children()).toEqual([group]);
-    expect(doc.children(group)).toEqual([child]);
+    expect(group.children()).toEqual([child]);
     expect(doc.requireNode('r')).toBe(child);
     invoker.redo();
     expect(doc.children()).toEqual([]);

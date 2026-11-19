@@ -99,9 +99,9 @@ describe('SaveCommand 的复合模型映射', () => {
     const svg = readFileSync(path, 'utf8');
     expect(svg).toContain('<rect id="panel-rect"');
     expect(svg).toContain('<text id="panel-label"');
-    expect(doc.shapes()).toEqual([panel]);
+    expect(doc.nodes().map((node) => node.value)).toEqual([panel]);
     new ReadCommand(workspace, [path]).execute();
-    expect(workspace.document().shapes().map((shape) => shape.id())).toEqual(['panel', 'panel-rect', 'panel-label']);
+    expect(workspace.document().nodes().map((node) => node.value).map((shape) => shape.id())).toEqual(['panel', 'panel-rect', 'panel-label']);
   });
 });
 

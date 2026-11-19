@@ -15,7 +15,7 @@ function workspaceWith(...lines: string[][]): Workspace {
 }
 
 function summaryOf(workspace: Workspace, id: string): string {
-  return workspace.document().requireShape(id).summary();
+  return workspace.document().requireNode(id).value.summary();
 }
 
 describe('MoveCommand', () => {
@@ -63,8 +63,8 @@ describe('MoveCommand', () => {
     const command = new MoveCommand(workspace, ['r1', '-10', '0.5']);
     expect(command.execute().lines()).toEqual(['rect#r1 moved to (-9.9,0.7)']);
     command.undo();
-    expect(workspace.document().requireShape('r1').value('x')).toBe(0.1);
-    expect(workspace.document().requireShape('r1').value('y')).toBe(0.2);
+    expect(workspace.document().requireNode('r1').value.value('x')).toBe(0.1);
+    expect(workspace.document().requireNode('r1').value.value('y')).toBe(0.2);
   });
 
   it('undo 后再次 execute（redo）回显与首次相同', () => {

@@ -24,6 +24,6 @@ export default class SaveCommand extends DocumentCommand {
     const path = this.target ?? this.workspace.path();
     this.workspace.files().write(path, this.workspace.svgWriter().write(doc));
     this.workspace.setPath(path);
-    return new CommandResult().line(`saved to ${path} (${doc.shapes().length} elements)`);
+    return new CommandResult().line(`saved to ${path} (${doc.nodes().length} elements)`);
   }
 }

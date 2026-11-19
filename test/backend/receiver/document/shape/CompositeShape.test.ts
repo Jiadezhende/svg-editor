@@ -27,8 +27,8 @@ describe('业务复合模型与文档节点分离', () => {
     expect(panel).toBeInstanceOf(Shape);
     expect(panel).not.toBeInstanceOf(Group);
     expect(node.children()).toEqual([]);
-    expect(doc.shapes()).toEqual([panel]);
-    expect(doc.find('panel-label')).toBeNull();
+    expect(doc.nodes().map((node) => node.value)).toEqual([panel]);
+    expect(doc.findNode('panel-label')).toBeNull();
     expect('children' in panel).toBe(false);
     expect(() => doc.insert(new Group('extra'), node)).toThrow('not a container: panel');
     expect(new TreeCommand(workspace, []).execute().lines()).toEqual(['svg (800x600)', '└── g#panel']);
@@ -64,7 +64,7 @@ describe('业务复合模型与文档节点分离', () => {
     scale.undo();
     group.undo();
     expect(doc.requireNode('panel')).toBe(node);
-    expect(doc.parent(node)).toBeNull();
+    expect(node.parent()).toBeNull();
     expect(panel.frameShape().position()).toEqual(['10', '20']);
   });
 
@@ -95,10 +95,10 @@ describe('业务复合模型与文档节点分离', () => {
     const svg = writer.write(doc);
     expect(svg).toContain('<rect id="panel-rect" x="10" y="20" width="100" height="50"/>');
     expect(svg).toContain('<text id="panel-label" x="20" y="40">label</text>');
-    expect(doc.shapes()).toEqual([panel]);
+    expect(doc.nodes().map((node) => node.value)).toEqual([panel]);
     const read = new SvgReader(new ShapeFactory()).read(svg).document;
-    expect(read.shapes().map((shape) => shape.id())).toEqual(['panel', 'panel-rect', 'title-group', 'panel-label']);
-    expect(read.parent(read.requireNode('panel-label'))).toBe(read.requireNode('title-group'));
+    expect(read.nodes().map((node) => node.value).map((shape) => shape.id())).toEqual(['panel', 'panel-rect', 'title-group', 'panel-label']);
+    expect(read.requireNode('panel-label').parent()).toBe(read.requireNode('title-group'));
     expect(new SvgWriter().write(read)).toBe(svg);
   });
 });

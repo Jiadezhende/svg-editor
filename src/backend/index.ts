@@ -1,0 +1,28 @@
+/** 扩展与宿主的公共入口；不导出具体内置图形、命令或节点关系写入能力。 */
+export { default as Shape } from './receiver/document/shape/Shape';
+export { default as ShapeFactory } from './receiver/document/shape/ShapeFactory';
+export { default as ShapeMemento } from './receiver/document/shape/ShapeMemento';
+export { default as Document } from './receiver/document/Document';
+export { default as DocumentStructureMemento } from './receiver/document/DocumentStructureMemento';
+export type { ViewBox } from './receiver/document/Document';
+export type { default as ShapeNode } from './receiver/document/ShapeNode';
+export { default as AttributeSpec } from './receiver/document/attribute/AttributeSpec';
+export type { AttributeValue, Axis } from './receiver/document/attribute/AttributeSpec';
+export { default as NumericSpec } from './receiver/document/attribute/NumericSpec';
+export { default as CoordinateSpec } from './receiver/document/attribute/CoordinateSpec';
+export { default as LengthSpec } from './receiver/document/attribute/LengthSpec';
+export { default as StringSpec } from './receiver/document/attribute/StringSpec';
+export { default as TextSpec } from './receiver/document/attribute/TextSpec';
+export { default as StrokeWidthSpec } from './receiver/document/attribute/StrokeWidthSpec';
+export { default as Command } from './command/Command';
+export { default as EditCommand } from './command/EditCommand';
+export { default as DocumentCommand } from './command/DocumentCommand';
+export { default as CommandResult } from './command/CommandResult';
+export { default as UndoRecord } from './command/UndoRecord';
+export { default as Client } from './Client';
+export { default as Workspace } from './receiver/workspace/Workspace';
+export { default as SvgReader } from './receiver/svg/SvgReader';
+export type { SvgReadResult } from './receiver/svg/SvgReader';
+export { default as SvgWriter } from './receiver/svg/SvgWriter';
+export type { SvgElement, SvgShapeMapping } from './receiver/svg/SvgWriter';
+export { default as EditorError } from './error/EditorError';

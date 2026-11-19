@@ -41,18 +41,11 @@ export default class Document {
     this.canvasHeight = height;
   }
 
-  children(parent: ShapeNode | null = null): readonly ShapeNode[] {
-    this.checkParent(parent);
-    return [...this.list(parent)];
-  }
-
-  parent(node: ShapeNode): ShapeNode | null {
-    this.requireMember(node);
-    return node.parent();
-  }
+  children(): readonly ShapeNode[] { return [...this.roots]; }
 
   indexOf(node: ShapeNode): number {
-    return this.list(this.parent(node)).indexOf(node);
+    this.requireMember(node);
+    return this.list(node.parent()).indexOf(node);
   }
 
   /** 文档或指定节点的先序遍历，包含指定节点本身。 */
@@ -62,9 +55,7 @@ export default class Document {
     return (root === undefined ? this.roots : [root]).flatMap(visit);
   }
 
-  shapes(): Shape[] { return this.nodes().map((node) => node.value); }
   findNode(id: string): ShapeNode | null { return this.byId.get(id) ?? null; }
-  find(id: string): Shape | null { return this.findNode(id)?.value ?? null; }
 
   requireNode(id: string): ShapeNode {
     const node = this.findNode(id);
@@ -72,16 +63,7 @@ export default class Document {
     return node;
   }
 
-  requireShape(id: string): Shape { return this.requireNode(id).value; }
-
-  requireChildTarget(id: string): ShapeNode {
-    const node = this.findNode(id);
-    if (node === null) throw new EditorError(`no such container: ${id}`);
-    if (!node.value.acceptsChildren()) throw new EditorError(`not a container: ${id}`);
-    return node;
-  }
-
-  checkInsert(shape: Shape, parent: ShapeNode | null = null, index?: number): void {
+  private checkInsert(shape: Shape, parent: ShapeNode | null = null, index?: number): void {
     this.checkParent(parent);
     if (owners.has(shape)) throw new EditorError(`shape already attached: ${shape.id()}`);
     if (this.byId.has(shape.id())) throw new EditorError(`id already exists: ${shape.id()}`);

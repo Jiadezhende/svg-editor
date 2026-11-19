@@ -42,7 +42,7 @@ describe('Shape 自身不变量', () => {
     const before = [outer.entries(), a.entries(), b.entries()];
     expect(() => doc.scale(root, 2)).toThrow('height must be a finite number');
     expect([outer.entries(), a.entries(), b.entries()]).toEqual(before);
-    expect(doc.parent(bNode)).toBe(innerNode);
+    expect(bNode.parent()).toBe(innerNode);
   });
 
   it.each([0, -1, NaN, Infinity])('直接缩放拒绝非法系数 %s', (factor) => {

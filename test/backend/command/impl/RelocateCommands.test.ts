@@ -27,7 +27,7 @@ function sample(): Workspace {
 
 function ids(workspace: Workspace, containerId?: string): string[] {
   const doc = workspace.document();
-  const container = containerId === undefined ? doc : doc.requireChildTarget(containerId);
+  const container = containerId === undefined ? doc : doc.requireNode(containerId);
   return container.children().map((shape) => shape.value.id());
 }
 

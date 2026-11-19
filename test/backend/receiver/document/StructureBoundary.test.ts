@@ -30,7 +30,7 @@ describe('Document 结构边界', () => {
     const other = new Document(100, 100);
     const root = doc.insert(new Group('root'));
     const child = doc.insert(rect('part'), root);
-    expect(doc.parent(root)).toBeNull();
+    expect(root.parent()).toBeNull();
     expect(() => other.insert(root.value)).toThrow('shape already attached');
     expect(() => other.insert(child.value)).toThrow('shape already attached');
     doc.remove(root);
@@ -48,7 +48,7 @@ describe('Document 结构边界', () => {
     expect(() => doc.remove(foreign)).toThrow('shape is not in document');
     expect(() => doc.relocate(foreign, local)).toThrow('shape is not in document');
     expect(() => doc.relocate(local, foreign)).toThrow('container is not in document');
-    expect(() => doc.children(foreign)).toThrow('container is not in document');
+    expect(foreign.children()).toEqual([]); // 节点可只读访问；文档修改入口仍校验归属。
     expect(() => doc.indexOf(foreign)).toThrow('shape is not in document');
     expect(doc.children()).toEqual([local]);
   });
@@ -59,10 +59,10 @@ describe('Document 结构边界', () => {
     const a = doc.insert(rect('a'), root);
     const b = doc.insert(rect('b'), root);
     doc.relocate(a, root);
-    expect(doc.children(root)).toEqual([b, a]);
+    expect(root.children()).toEqual([b, a]);
     expect(doc.indexOf(a)).toBe(1);
     doc.relocate(a, root, 0);
-    expect(doc.children(root)).toEqual([a, b]);
+    expect(root.children()).toEqual([a, b]);
     doc.relocate(a, null, 0);
     expect(doc.children()).toEqual([a, root]);
     expect(a.parent()).toBeNull();
@@ -79,9 +79,9 @@ describe('Document 结构边界', () => {
     expect(() => doc.relocate(inner, inner)).toThrow('itself or its descendant');
     for (const index of [-1, 0.5, 2, Infinity, NaN]) {
       expect(() => doc.relocate(a, outer, index)).toThrow('invalid child index');
-      expect(doc.children(outer)).toEqual([inner, a]);
+      expect(outer.children()).toEqual([inner, a]);
     }
-    expect(doc.parent(inner)).toBe(outer);
+    expect(inner.parent()).toBe(outer);
   });
 
   it('非法插入位置或叶子目标失败，不登记候选 Shape', () => {
@@ -91,7 +91,7 @@ describe('Document 结构边界', () => {
     const candidate = rect('candidate');
     for (const index of [-1, 0.5, 1, Infinity, NaN]) {
       expect(() => doc.insert(candidate, root, index)).toThrow('invalid child index');
-      expect(doc.find('candidate')).toBeNull();
+      expect(doc.findNode('candidate')).toBeNull();
     }
     expect(() => doc.insert(candidate, leaf)).toThrow('not a container: leaf');
     expect(() => doc.insert(candidate, root, 0)).not.toThrow();
@@ -103,7 +103,7 @@ describe('Document 结构边界', () => {
     const a = doc.insert(rect('a'), root);
     (doc.children() as ShapeNode[]).length = 0;
     (root.children() as ShapeNode[]).length = 0;
-    (doc.children(root) as ShapeNode[]).push(root);
+    (root.children() as ShapeNode[]).push(root);
     (doc.viewBox() as unknown as number[])[2] = -1;
     expect(doc.children()).toEqual([root]);
     expect(root.children()).toEqual([a]);
@@ -120,9 +120,9 @@ describe('Document 结构边界', () => {
     expect(() => doc.remove(part)).toThrow('required part');
     expect(() => doc.relocate(part, null)).toThrow('required part');
     doc.relocate(group, target);
-    expect(doc.parent(part)).toBe(group);
+    expect(part.parent()).toBe(group);
     doc.remove(group);
-    expect(doc.find('part')).toBeNull();
+    expect(doc.findNode('part')).toBeNull();
   });
 
   it('跨文档归属冲突使快照恢复整体失败，不破坏两份文档', () => {
@@ -140,7 +140,7 @@ describe('Document 结构边界', () => {
     other.remove(foreign);
     saved.restore();
     expect(doc.requireNode('a')).toBe(a);
-    expect(doc.parent(a)).toBe(root);
+    expect(a.parent()).toBe(root);
   });
 
   it('分组预检查失败，不创建空组或移动前面的成员', () => {
@@ -152,7 +152,7 @@ describe('Document 结构边界', () => {
     expect(() => command.execute()).toThrow('required part');
     expect(doc.children()).toEqual([a, protectedNode]);
     expect(doc.findNode('new')).toBeNull();
-    expect(doc.parent(part)).toBe(protectedNode);
+    expect(part.parent()).toBe(protectedNode);
   });
 
   it('解组目标规则失败，不提升前面的成员', () => {
@@ -168,8 +168,8 @@ describe('Document 结构边界', () => {
     const a = doc.insert(rect('a'), group);
     const b = doc.insert(rect('b'), group);
     expect(() => new UngroupCommand(workspaceWith(doc), ['group']).execute()).toThrow('member rejected');
-    expect(doc.children(parent)).toEqual([group]);
-    expect(doc.children(group)).toEqual([a, b]);
+    expect(parent.children()).toEqual([group]);
+    expect(group.children()).toEqual([a, b]);
   });
 
   it('多步骤结构命令在已经修改之后失败，也恢复整个树及历史', () => {
@@ -190,7 +190,7 @@ describe('Document 结构边界', () => {
     const command = new GroupCommand(workspace, ['new', 'a', 'b']);
     expect(() => invoker.execute(command)).toThrow('late failure');
     expect(doc.children()).toEqual([root]);
-    expect(doc.children(root)).toEqual([a, b]);
+    expect(root.children()).toEqual([a, b]);
     expect(doc.findNode('new')).toBeNull();
     expect(() => invoker.undo()).toThrow('nothing to undo');
   });
@@ -205,7 +205,7 @@ describe('Document 结构边界', () => {
     invoker.undo();
     expect(doc.requireNode('g')).toBe(group);
     expect(doc.requireNode('a')).toBe(a);
-    expect(doc.requireShape('a')).toBe(a.value);
+    expect(doc.requireNode('a').value).toBe(a.value);
     a.value.set('fill', 'red');
     invoker.redo();
     invoker.undo();

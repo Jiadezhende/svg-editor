@@ -43,7 +43,7 @@ describe('GroupCommand', () => {
     const workspace = workspaceWith(...flat);
     group(workspace, 'g1 box bg');
     expect(workspace.document().children().map((s) => s.value.id())).toEqual(['g1', 'title', 'c1']);
-    expect(workspace.document().requireChildTarget('g1').children().map((s) => s.value.id())).toEqual(['bg', 'box']);
+    expect(workspace.document().requireNode('g1').children().map((s) => s.value.id())).toEqual(['bg', 'box']);
   });
 
   it('成员来自不同父容器：全部摘出，新容器插在文档顺序第一个成员的父容器中', () => {
@@ -67,7 +67,7 @@ describe('GroupCommand', () => {
     command.execute();
     expect(command.undo().lines()).toEqual(['g#mix removed, 3 children restored']);
     expect(tree(workspace)).toEqual(before);
-    expect(workspace.document().find('mix')).toBeNull();
+    expect(workspace.document().findNode('mix')).toBeNull();
   });
 
   it('undo 后再次 execute（redo）回显与首次相同，结构相同', () => {

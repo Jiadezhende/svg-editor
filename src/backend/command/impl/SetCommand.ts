@@ -5,8 +5,8 @@ import type ShapeMemento from '../../receiver/document/shape/ShapeMemento';
 import type Workspace from '../../receiver/workspace/Workspace';
 
 /**
- * `set <id> <attr> <value>`：设置该图形属性表内的属性；容器只有外观属性，写在容器自身。
- * 属性能否设置、取值如何解析取决于图形类型，所以全部在执行时校验。
+ * `set <id> <attr> <value>`：优先调用首个匹配的静态 Handler，零命中时使用模型属性规则。
+ * 模型快照覆盖本次编辑及回显计算；失败不替换已有撤销记录。
  */
 export default class SetCommand extends EditCommand {
   static override readonly command = 'set';
@@ -29,12 +29,22 @@ export default class SetCommand extends EditCommand {
 
   execute(): CommandResult {
     const shape = this.workspace.document().requireNode(this.id).value;
+    const handler = this.workspace.attributeHandlers().resolve(shape, this.attribute);
     const memento = shape.capture();
-    const previous = shape.display(this.attribute);
-    shape.set(this.attribute, this.token);
-    const result = new CommandResult().line(`${shape.label()} updated: ${this.attribute}=${shape.display(this.attribute)}`);
-    this.updated = { shape, memento, previous };
-    return result;
+    const display = () => handler === null
+      ? shape.display(this.attribute)
+      : handler.display(shape, this.attribute);
+    try {
+      const previous = display();
+      if (handler === null) shape.set(this.attribute, this.token);
+      else handler.apply(shape, this.attribute, this.token);
+      const result = new CommandResult().line(`${shape.label()} updated: ${this.attribute}=${display()}`);
+      this.updated = { shape, memento, previous };
+      return result;
+    } catch (error) {
+      memento.restore();
+      throw error;
+    }
   }
 
   undo(): CommandResult {

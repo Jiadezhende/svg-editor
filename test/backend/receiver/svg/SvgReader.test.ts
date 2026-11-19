@@ -34,12 +34,12 @@ describe('SvgReader', () => {
   it('使用工厂返回的实例，未知元素仍警告并跳过', () => {
     const factory = createShapeFactory();
     const supplied = factory.create('rect', 'r1', new Map([['x', 10], ['y', 20], ['width', 30], ['height', 40]]));
-    const create = vi.spyOn(factory, 'create').mockReturnValue(supplied);
+    const parse = vi.spyOn(factory, 'parse').mockReturnValue({ shape: supplied, children: [] });
     const { document, warnings } = new SvgReader(factory).read(svg('<path id="unsupported"/><rect id="r1"/>'));
     expect(document.requireNode('r1').value).toBe(supplied);
     expect(document.findNode('unsupported')).toBeNull();
     expect(warnings).toEqual(['skipped unsupported <path>']);
-    expect(create).toHaveBeenCalledTimes(1);
+    expect(parse).toHaveBeenCalledTimes(1);
   });
 
   it('读入接口契约中的 other.svg：为缺 id 的 rect 补 id 并警告，结构与示例一致', () => {

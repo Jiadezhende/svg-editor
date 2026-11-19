@@ -5,6 +5,12 @@ import StrokeWidthSpec from '../attribute/StrokeWidthSpec';
 import EditorError from '../../../error/EditorError';
 import ShapeMemento from './ShapeMemento';
 
+/** 解析后的领域模型；children 只列出仍应成为文档子节点的输入 Shape。 */
+export interface ShapeParseResult {
+  readonly shape: Shape;
+  readonly children: readonly Shape[];
+}
+
 /**
  * 单个图形的领域模型；不保存文档树关系。
  *
@@ -41,6 +47,33 @@ export default abstract class Shape {
     return this.attributes().find((spec) => spec.name() === name) ?? null;
   }
 
+  /** 通用数据构造；子类型可消费部件并返回剩余文档成员，不接触 XML 或节点。 */
+  static parse(
+    id: string,
+    attributes: ReadonlyMap<string, string>,
+    readChildren: () => readonly Shape[] = () => [],
+  ): ShapeParseResult {
+    const Model = this as unknown as new (id: string, values: ReadonlyMap<string, AttributeValue>) => Shape;
+    const shape = new Model(id, this.parseValues(attributes));
+    return { shape, children: shape.acceptsChildren() ? readChildren() : [] };
+  }
+
+  /** 复用属性规格解析文本；持久化缺失的必填值沿用规格默认值。 */
+  protected static parseValues(attributes: ReadonlyMap<string, string>): Map<string, AttributeValue> {
+    const values = new Map<string, AttributeValue>();
+    for (const spec of this.attributes()) {
+      const raw = attributes.get(spec.name());
+      if (raw !== undefined) values.set(spec.name(), spec.parse(raw));
+      else if (this.params.includes(spec)) values.set(spec.name(), spec.defaultValue());
+    }
+    return values;
+  }
+
+  /** 领域 id 约束，同样用于持久化元素校验。 */
+  static checkId(id: string): void {
+    if (!Shape.idPattern.test(id)) throw new EditorError(`invalid id: ${id}`);
+  }
+
   // ── 实例状态与构造 ──
 
   private readonly shapeId: string;
@@ -51,9 +84,7 @@ export default abstract class Shape {
     id: string,
     values: ReadonlyMap<string, AttributeValue> = new Map(),
   ) {
-    if (!Shape.idPattern.test(id)) {
-      throw new EditorError(`invalid id: ${id}`);
-    }
+    Shape.checkId(id);
     for (const [name, value] of values) {
       const spec = this.definition().attribute(name);
       if (spec === null) {

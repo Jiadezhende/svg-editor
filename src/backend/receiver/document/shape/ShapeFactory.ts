@@ -1,11 +1,12 @@
 import EditorError from '../../../error/EditorError';
 import type { AttributeValue } from '../attribute/AttributeSpec';
 import type Shape from './Shape';
+import type { ShapeParseResult } from './Shape';
 
 /** 可注册的图形类：静态部分即定义，构造函数即工厂。 */
 type ShapeClass = Pick<
   typeof Shape,
-  'type' | 'params' | 'paint' | 'anchor' | 'content' | 'attributes' | 'attribute'
+  'type' | 'params' | 'paint' | 'anchor' | 'content' | 'attributes' | 'attribute' | 'parse'
 > &
   (new (id: string, values?: ReadonlyMap<string, AttributeValue>) => Shape);
 
@@ -45,6 +46,16 @@ export default class ShapeFactory {
   create(type: string, id: string, values: ReadonlyMap<string, AttributeValue> = new Map()): Shape {
     const cls = this.lookup(type);
     return new cls(id, values);
+  }
+
+  /** 调用已注册类的数据构造能力；递归函数由读入编排者提供。 */
+  parse(
+    type: string,
+    id: string,
+    attributes: ReadonlyMap<string, string>,
+    readChildren: () => readonly Shape[] = () => [],
+  ): ShapeParseResult {
+    return this.lookup(type).parse(id, attributes, readChildren);
   }
 
   private static checkAnchor(cls: ShapeClass): void {

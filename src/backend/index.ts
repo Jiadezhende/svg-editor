@@ -1,5 +1,6 @@
 /** 扩展与宿主的公共入口；不导出具体内置图形、命令或节点关系写入能力。 */
 export { default as Shape } from './receiver/document/shape/Shape';
+export type { ShapeParseResult } from './receiver/document/shape/Shape';
 export { default as ShapeFactory } from './receiver/document/shape/ShapeFactory';
 export { default as ShapeMemento } from './receiver/document/shape/ShapeMemento';
 export { default as Document } from './receiver/document/Document';

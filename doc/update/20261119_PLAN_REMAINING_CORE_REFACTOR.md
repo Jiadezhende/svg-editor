@@ -53,7 +53,7 @@
 
 目标是独立注册领域属性语义，保留普通属性默认规则。本版替代此前“多命中拒绝”的安排，最终契约为按启用顺序首次命中。
 
-1. **契约和装配**：公开 AttributeHandler 静态契约与 AttributeHandlers 注册表；只提供 register/resolve，Workspace 必传依赖，宿主注入独立空表。注册名、静态方法及重复注册检查完成。
+1. **契约和装配**：公开 AttributeHandler 静态契约与 AttributeHandlerRegistry 注册表；只提供 register/resolve，Workspace 必传依赖，宿主注入独立空表。注册名、静态方法及重复注册检查完成。
 2. **命令接入**：matches 集中处理实际模型、key 和别名；SetCommand 定位 Shape 后查询首个命中项，调用 apply/display，零命中回退模型。模型快照覆盖修改及回显失败，成功才更新撤销记录；Invoker 不变。
 3. **统一验收**：独立静态测试扩展只导入公共入口；验证顺序优先、别名、默认回退、多部件撤销、失败历史不变、重试及 CLI 错误后继续执行。架构说明和 ADR 已更新，全量测试及类型检查通过。
 

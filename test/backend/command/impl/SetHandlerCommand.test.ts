@@ -40,7 +40,7 @@ function sample(model = new CompositeShape('panel')) {
 describe('SetCommand 的静态 Handler', () => {
   it('fill 使用内部框体语义与领域回显，不调用模型默认 set/display', () => {
     const { workspace, model, client } = sample();
-    workspace.attributeHandlers().register(CompositeAttributes);
+    workspace.attributeHandlerRegistry().register(CompositeAttributes);
     const fallback = vi.spyOn(model, 'set');
     const fallbackDisplay = vi.spyOn(model, 'display');
     expect(client.execute(['set', 'panel', 'fill', 'red']).lines()).toEqual(['g#panel updated: fill=red']);
@@ -56,7 +56,7 @@ describe('SetCommand 的静态 Handler', () => {
 
   it.each(['label', 'title'])('%s 及别名保留输入 key，多轮撤销重做保持模型与节点身份', (key) => {
     const { workspace, doc, node, model, client } = sample();
-    workspace.attributeHandlers().register(CompositeAttributes);
+    workspace.attributeHandlerRegistry().register(CompositeAttributes);
     expect(client.execute(['set', 'panel', key, 'new title']).lines()).toEqual([`g#panel updated: ${key}="new title"`]);
     for (let i = 0; i < 2; i++) {
       expect(client.execute(['undo']).lines()).toEqual([`g#panel updated: ${key}="label"`]);
@@ -71,7 +71,7 @@ describe('SetCommand 的静态 Handler', () => {
 
   it('相同 g 标签的普通 Group 不会误命中，零命中保持默认属性和错误', () => {
     const { workspace, doc, client } = sample();
-    workspace.attributeHandlers().register(CompositeAttributes);
+    workspace.attributeHandlerRegistry().register(CompositeAttributes);
     const group = workspace.shapes().create('g', 'group');
     doc.insert(group);
     expect(client.execute(['set', 'group', 'fill', 'green']).lines()).toEqual(['g#group updated: fill=green']);
@@ -90,7 +90,7 @@ describe('SetCommand 的静态 Handler', () => {
         model.setLabel(token);
       }
     }
-    workspace.attributeHandlers().register(MultiPart);
+    workspace.attributeHandlerRegistry().register(MultiPart);
     client.execute(['set', 'panel', 'fill', 'red']);
     expect(model.frameShape().value('fill')).toBe('red');
     expect(model.captionShape().value('text')).toBe('red');
@@ -118,8 +118,8 @@ describe('SetCommand 的静态 Handler', () => {
       static override readonly matches = vi.fn(CompositeAttributes.matches);
       static override readonly apply = vi.fn();
     }
-    workspace.attributeHandlers().register(Broken);
-    workspace.attributeHandlers().register(Later);
+    workspace.attributeHandlerRegistry().register(Broken);
+    workspace.attributeHandlerRegistry().register(Later);
     client.execute(['set', 'panel', 'stroke', 'blue']);
     client.execute(['undo']);
     Later.matches.mockClear();
@@ -151,7 +151,7 @@ describe('SetCommand 的静态 Handler', () => {
         return super.display(shape, key);
       }
     }
-    workspace.attributeHandlers().register(BrokenDisplay);
+    workspace.attributeHandlerRegistry().register(BrokenDisplay);
     client.execute(['set', 'panel', 'fill', 'red']);
     client.execute(['undo']);
     fail = true;
@@ -172,7 +172,7 @@ describe('SetCommand 的静态 Handler', () => {
       static override readonly apply = vi.fn();
       static override display(): string | null { throw new Error('old display failed'); }
     }
-    workspace.attributeHandlers().register(BrokenDisplay);
+    workspace.attributeHandlerRegistry().register(BrokenDisplay);
     expect(() => client.execute(['set', 'panel', 'fill', 'red'])).toThrow('old display failed');
     expect(BrokenDisplay.apply).not.toHaveBeenCalled();
     expect(model.frameShape().value('fill')).toBeNull();
@@ -185,7 +185,7 @@ describe('SetCommand 的静态 Handler', () => {
     class NullDisplay extends CompositeAttributes {
       static override display(): string | null { return null; }
     }
-    workspace.attributeHandlers().register(NullDisplay);
+    workspace.attributeHandlerRegistry().register(NullDisplay);
     const fallback = vi.spyOn(model, 'set');
     expect(client.execute(['set', 'panel', 'fill', 'red']).lines()).toEqual(['g#panel updated: fill=null']);
     expect(model.frameShape().value('fill')).toBe('red');
@@ -200,7 +200,7 @@ describe('SetCommand 的静态 Handler', () => {
       static override matches(): boolean { throw new Error('match failed'); }
       static override readonly apply = vi.fn();
     }
-    workspace.attributeHandlers().register(BrokenMatch);
+    workspace.attributeHandlerRegistry().register(BrokenMatch);
     expect(() => client.execute(['set', 'panel', 'fill', 'red'])).toThrow('match failed');
     expect(BrokenMatch.apply).not.toHaveBeenCalled();
     expect(model.frameShape().value('fill')).toBeNull();
@@ -233,7 +233,7 @@ describe('SetCommand 的静态 Handler', () => {
         }
       }
     }
-    workspace.attributeHandlers().register(Retry);
+    workspace.attributeHandlerRegistry().register(Retry);
     const command = new SetCommand(workspace, ['panel', 'fill', 'red']);
     command.execute();
     fail = true;
@@ -252,7 +252,7 @@ describe('SetCommand 的静态 Handler', () => {
         throw new EditorError('invalid composite edit');
       }
     }
-    workspace.attributeHandlers().register(InvalidEdit);
+    workspace.attributeHandlerRegistry().register(InvalidEdit);
     client.execute(['set', 'panel', 'stroke', 'blue']);
     const output = new MemoryOutputSink();
     await new App(new MemoryInputSource(['set panel fill red', 'undo', 'redo'], false), output, client).run();

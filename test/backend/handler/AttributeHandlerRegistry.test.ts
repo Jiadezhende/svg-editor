@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AttributeHandlers, Shape } from '../../../src/backend';
+import { AttributeHandlerRegistry, Shape } from '../../../src/backend';
 import type { AttributeHandler } from '../../../src/backend';
 
 class Marker extends Shape {
@@ -17,9 +17,9 @@ function handler(name: string, matches: boolean) {
   };
 }
 
-describe('AttributeHandlers', () => {
+describe('AttributeHandlerRegistry', () => {
   it('空表返回 null，静态类直接注册和返回，不创建实例', () => {
-    const registry = new AttributeHandlers();
+    const registry = new AttributeHandlerRegistry();
     const shape = new Marker('m');
     expect(registry.resolve(shape, 'label')).toBeNull();
     const Handler = handler('marker-label', true);
@@ -31,7 +31,7 @@ describe('AttributeHandlers', () => {
   });
 
   it('按顺序跳过未命中项，首次命中后不再匹配后续项', () => {
-    const registry = new AttributeHandlers();
+    const registry = new AttributeHandlerRegistry();
     const skipped = handler('skipped', false);
     const first = handler('first', true);
     const later = handler('later', true);
@@ -45,8 +45,8 @@ describe('AttributeHandlers', () => {
   it('允许匹配范围重叠，交换注册顺序改变胜出者，注册表相互独立', () => {
     const first = handler('first', true);
     const second = handler('second', true);
-    const forward = new AttributeHandlers();
-    const reverse = new AttributeHandlers();
+    const forward = new AttributeHandlerRegistry();
+    const reverse = new AttributeHandlerRegistry();
     forward.register(first);
     forward.register(second);
     reverse.register(second);
@@ -54,17 +54,17 @@ describe('AttributeHandlers', () => {
     const shape = new Marker('m');
     expect(forward.resolve(shape, 'fill')).toBe(first);
     expect(reverse.resolve(shape, 'fill')).toBe(second);
-    expect(new AttributeHandlers().resolve(shape, 'fill')).toBeNull();
+    expect(new AttributeHandlerRegistry().resolve(shape, 'fill')).toBeNull();
   });
 
   it('全部未命中返回 null', () => {
-    const registry = new AttributeHandlers();
+    const registry = new AttributeHandlerRegistry();
     registry.register(handler('skipped', false));
     expect(registry.resolve(new Marker('m'), 'fill')).toBeNull();
   });
 
   it('同类或不同类的同名注册均拒绝，保留原注册项', () => {
-    const registry = new AttributeHandlers();
+    const registry = new AttributeHandlerRegistry();
     const first = handler('same', true);
     registry.register(first);
     expect(() => registry.register(first)).toThrow('duplicate attribute handler: same');
@@ -73,7 +73,7 @@ describe('AttributeHandlers', () => {
   });
 
   it('拒绝实例、空名及缺失静态方法的声明，失败不污染注册表', () => {
-    const registry = new AttributeHandlers();
+    const registry = new AttributeHandlerRegistry();
     for (const invalid of [
       null,
       {},
@@ -92,7 +92,7 @@ describe('AttributeHandlers', () => {
   });
 
   it('matches 抛错直接传播，不继续匹配', () => {
-    const registry = new AttributeHandlers();
+    const registry = new AttributeHandlerRegistry();
     const broken = handler('broken', false);
     broken.matches.mockImplementation(() => { throw new Error('match failed'); });
     const later = handler('later', true);

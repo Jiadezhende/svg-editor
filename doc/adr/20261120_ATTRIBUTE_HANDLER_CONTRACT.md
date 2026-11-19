@@ -20,7 +20,7 @@
 
 ## 契约和调用位置
 
-公开入口为 src/backend/index.ts，导出 AttributeHandler 接口及 AttributeHandlers 类。接口描述静态部分，方法签名如下：
+公开入口为 src/backend/index.ts，导出 AttributeHandler 接口及 AttributeHandlerRegistry 类。接口描述静态部分，方法签名如下：
 
 ```ts
 interface AttributeHandler {
@@ -31,7 +31,7 @@ interface AttributeHandler {
 }
 ```
 
-宿主调用 AttributeHandlers.register(HandlerClass)，Workspace 接收注册表并通过 attributeHandlers() 提供它。register 校验函数形态、非空名称及三个方法，同名报 duplicate attribute handler；缺失 apply 时不能误用类继承的 Function.apply。无效声明报 attribute handler must be a static class with handlerName, matches, apply and display，原表保持不变。注册表的唯一匹配入口为 AttributeHandlers.resolve。
+宿主调用 AttributeHandlerRegistry.register(HandlerClass)，Workspace 接收注册表并通过 attributeHandlerRegistry() 提供它。register 校验函数形态、非空名称及三个方法，同名报 duplicate attribute handler；缺失 apply 时不能误用类继承的 Function.apply。无效声明报 attribute handler must be a static class with handlerName, matches, apply and display，原表保持不变。注册表的唯一匹配入口为 AttributeHandlerRegistry.resolve。
 
 SetCommand.execute 经 requireNode(id).value 取得原 Shape，将其与原始 key 传给 resolve；命中后直接调用该静态类的 apply/display，无命中调用模型默认规则。原 key 保留在回显中；例如 label 和 title 可由同一 Handler 匹配、执行相同模型方法，不在内核建立别名表。
 

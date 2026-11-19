@@ -29,7 +29,7 @@ export default class SetCommand extends EditCommand {
 
   execute(): CommandResult {
     const shape = this.workspace.document().requireNode(this.id).value;
-    const handler = this.workspace.attributeHandlers().resolve(shape, this.attribute);
+    const handler = this.workspace.attributeHandlerRegistry().resolve(shape, this.attribute);
     const memento = shape.capture();
     const display = () => handler === null
       ? shape.display(this.attribute)

@@ -4,10 +4,12 @@
 
 实现已完成，停在第四批验收点。第一、二步提交分别为 `cd71e73`、`cf2c4fc`；第三步提交包含最终测试、ADR 和计划更新。
 
+验收后命名调整：注册和匹配组件统一命名为 AttributeHandlerRegistry，会话入口为 attributeHandlerRegistry()，与单个 AttributeHandler 区分；行为保持不变。
+
 ## 第一步：契约、注册表与注入（已完成）
 
 - AttributeHandler 描述类的静态 handlerName、matches、apply、display；直接注册类，不实例化。
-- AttributeHandlers 只公开 register/resolve，按注册顺序首次匹配。模型、key 和别名的判断全部由 Handler 提供，不建立第二份属性映射。
+- AttributeHandlerRegistry 只公开 register/resolve，按注册顺序首次匹配。模型、key 和别名的判断全部由 Handler 提供，不建立第二份属性映射。
 - 注册检查静态类、非空名称和方法；拒绝同名，类继承的 Function.apply 不视作有效 apply 实现。
 - Workspace 必传注册表依赖，宿主提供独立空表；模型、工厂及 Document 不依赖 Handler。
 - 公共入口导出契约和注册表，所有现有 Workspace 装配点已显式传入依赖。

@@ -36,7 +36,7 @@
 - Handler 可以包含领域规则与操作组合；属于模型自身、所有入口必须遵守的结构约束和基础校验，仍由模型保证。
 - 不承担 CLI 分词、输出格式、文件 I/O、插件加载或独立的 undo/redo 历史管理。
 - 在命令调用边界通过所需模型快照参与局部失败恢复，不要求通用会话事务。处理器部分修改后失败必须恢复修改及保持历史不变，不能再转入默认处理。
-- AttributeHandlers 按启用顺序调用 matches，首个命中即停止，顺序就是优先级；无命中才使用已有模型属性规则。不收集多命中，也不采用冲突拒绝或组合执行。
+- AttributeHandlerRegistry 按启用顺序调用 matches，首个命中即停止，顺序就是优先级；无命中才使用已有模型属性规则。不收集多命中，也不采用冲突拒绝或组合执行。
 - 模型类型、属性 key 和别名判断集中在 matches；注册表只保存有序静态类，不维护具体属性映射。matches 和 display 必须只读，静态类不保存单次执行状态。
 - SetCommand 定位 Shape 并查询注册表，命中后通过 apply 修改、display 取得领域回显值；null 表示未设置，不触发回退。匹配错误直接传播，执行或展示错误恢复当前模型快照后传播，均不继续尝试后续 Handler。
 - 只有需要独立增加、替换或开放给插件的领域操作才抽成 Handler，不把所有模型方法机械地包装为 Handler。
@@ -113,7 +113,7 @@ Document（画布、节点树、全局约束）
 
 - 内核定义公开领域抽象和扩展契约，通过契约调用扩展，不导入具体插件。
 - 宿主和扩展的公共导入入口为 `src/backend/index.ts`；ShapeNode 只导出类型，节点构造及关系存储不作为扩展接口。
-- ShapeFactory 初始为空；`src/host/defaults.ts` 选择默认图形、命令和服务。Client 接收 Workspace，Workspace 接收工厂、文件访问、SvgReader、SvgWriter 能力及 AttributeHandlers，不在内核创建默认服务。默认宿主提供独立空 Handler 表，Invoker 不依赖 Workspace。
+- ShapeFactory 初始为空；`src/host/defaults.ts` 选择默认图形、命令和服务。Client 接收 Workspace，Workspace 接收工厂、文件访问、SvgReader、SvgWriter 能力及 AttributeHandlerRegistry，不在内核创建默认服务。默认宿主提供独立空 Handler 表，Invoker 不依赖 Workspace。
 - 插件只依赖内核公开契约，不依赖内核内部实现或宿主装配模块。
 - 宿主负责加载、选择和注册插件；代码装配与配置装配共用注册、声明校验及失败回滚路径。
 - 树标签、CLI 格式化等展示行为留在展示扩展中，不混入领域 Handler 或模型。

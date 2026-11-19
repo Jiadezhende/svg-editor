@@ -21,7 +21,7 @@ export { default as CommandResult } from './command/CommandResult';
 export { default as UndoRecord } from './command/UndoRecord';
 export { default as Client } from './Client';
 export type { default as AttributeHandler } from './handler/AttributeHandler';
-export { default as AttributeHandlers } from './handler/AttributeHandlers';
+export { default as AttributeHandlerRegistry } from './handler/AttributeHandlerRegistry';
 export { default as Workspace } from './receiver/workspace/Workspace';
 export { default as SvgReader } from './receiver/svg/SvgReader';
 export type { SvgReadResult } from './receiver/svg/SvgReader';

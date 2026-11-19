@@ -2,7 +2,7 @@ import type Shape from '../receiver/document/shape/Shape';
 import type AttributeHandler from './AttributeHandler';
 
 /** 有序静态 Handler 注册表；匹配规则完全由 Handler 提供。 */
-export default class AttributeHandlers {
+export default class AttributeHandlerRegistry {
   private readonly handlers = new Map<string, AttributeHandler>();
 
   register(handler: AttributeHandler): void {

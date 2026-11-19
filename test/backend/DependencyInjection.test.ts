@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AttributeHandlers, Client, CoordinateSpec, Document, Shape, ShapeFactory, SvgReader, SvgWriter, Workspace } from '../../src/backend';
+import { AttributeHandlerRegistry, Client, CoordinateSpec, Document, Shape, ShapeFactory, SvgReader, SvgWriter, Workspace } from '../../src/backend';
 import CreateCommand from '../../src/backend/command/impl/CreateCommand';
 import ReadCommand from '../../src/backend/command/impl/ReadCommand';
 import SaveCommand from '../../src/backend/command/impl/SaveCommand';
@@ -22,7 +22,7 @@ describe('会话依赖注入', () => {
     const read = vi.spyOn(reader, 'read');
     const writer = new SvgWriter();
     const write = vi.spyOn(writer, 'write');
-    const workspace = new Workspace(factory, files, reader, writer, new AttributeHandlers());
+    const workspace = new Workspace(factory, files, reader, writer, new AttributeHandlerRegistry());
     const original = new Document(40, 50);
     workspace.replace(original);
     const client = new Client(workspace);
@@ -61,7 +61,7 @@ describe('会话依赖注入', () => {
     };
     const reader = { read: () => { throw new Error('parse failed'); } };
     const writer = { register: () => {}, write: () => 'output' };
-    const workspace = new Workspace(factory, files, reader, writer, new AttributeHandlers());
+    const workspace = new Workspace(factory, files, reader, writer, new AttributeHandlerRegistry());
     const original = new Document(40, 50);
     workspace.replace(original, 'original.svg');
     const client = new Client(workspace);

@@ -52,8 +52,8 @@ npm run coverage             # 覆盖率报告
 - `src/backend/index.ts` 提供模型、只读节点、属性规格、工厂、命令和持久化公共入口。ShapeClass 是工厂内部约束，ShapeNode 仅导出类型。
 - ShapeFactory 初始为空，提供 register、has、definition、create；规格视图不公开构造签名。课程 ShapeProvider 由具体 Shape 类的静态描述与构造能力承担，不增加包装对象。
 - `src/host/defaults.ts` 选择六种内置图形、17 个命令形式、原生文件服务与 SVG 读写器。main.ts 将装配后的 Client 接到控制台。
-- Workspace 接收工厂、文件访问、reader、writer 和 AttributeHandlers，保存当前文档和路径；Client 接收 Workspace。read 使用注入 reader，save 复用会话 writer 及其映射。
-- AttributeHandlers 直接注册静态类，按注册顺序首次匹配。目标类型、属性名和别名由 Handler.matches 判断，SetCommand 调用命中项的 apply/display；零命中回退模型规则。默认注册表为空，不包装普通属性；命中失败恢复模型快照且不继续尝试。详见[属性处理器 ADR](adr/20261120_ATTRIBUTE_HANDLER_CONTRACT.md)。
+- Workspace 接收工厂、文件访问、reader、writer 和 AttributeHandlerRegistry，保存当前文档和路径；Client 接收 Workspace。read 使用注入 reader，save 复用会话 writer 及其映射。
+- AttributeHandlerRegistry 直接注册静态类，按注册顺序首次匹配。目标类型、属性名和别名由 Handler.matches 判断，SetCommand 调用命中项的 apply/display；零命中回退模型规则。默认注册表为空，不包装普通属性；命中失败恢复模型快照且不继续尝试。详见[属性处理器 ADR](adr/20261120_ATTRIBUTE_HANDLER_CONTRACT.md)。
 - 命令仅分查询、编辑、文档三类。Invoker 保存 EditCommand，成功后更新历史；具体命令通过局部快照组织撤销及必要的失败恢复，不存在通用会话事务。
 
 ```text

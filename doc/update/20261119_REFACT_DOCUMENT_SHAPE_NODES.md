@@ -1,5 +1,7 @@
 # REFACT：文档节点树与 Shape 职责分离
 
+> 本文保留该批次完成时的记录。后续第二批已删除 StructureCommand，改用组合式 UndoRecord 和局部快照恢复；当前实现见 [第二批记录](20261119_REFACT_UNDO_REDO_SIMPLIFICATION.md)。
+
 - 提案时间：2026-11-19
 - 完成时间：2026-11-19
 - 类型：REFACT

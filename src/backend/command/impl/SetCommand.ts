@@ -32,8 +32,9 @@ export default class SetCommand extends EditCommand {
     const memento = shape.capture();
     const previous = shape.display(this.attribute);
     shape.set(this.attribute, this.token);
+    const result = new CommandResult().line(`${shape.label()} updated: ${this.attribute}=${shape.display(this.attribute)}`);
     this.updated = { shape, memento, previous };
-    return new CommandResult().line(`${shape.label()} updated: ${this.attribute}=${shape.display(this.attribute)}`);
+    return result;
   }
 
   undo(): CommandResult {

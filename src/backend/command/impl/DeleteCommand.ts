@@ -1,10 +1,12 @@
 import CommandResult from '../CommandResult';
-import StructureCommand from '../StructureCommand';
+import EditCommand from '../EditCommand';
+import UndoRecord from '../UndoRecord';
 import type Workspace from '../../receiver/workspace/Workspace';
 
-export default class DeleteCommand extends StructureCommand {
+export default class DeleteCommand extends EditCommand {
   static override readonly command = 'delete';
   static override readonly usage = 'delete <id>';
+  private readonly undoRecord = new UndoRecord();
   private readonly id: string;
 
   constructor(private readonly workspace: Workspace, args: readonly string[]) {
@@ -13,9 +15,11 @@ export default class DeleteCommand extends StructureCommand {
     this.id = args[0];
   }
 
+  undo(): CommandResult { return this.undoRecord.undo(); }
+
   execute(): CommandResult {
     const doc = this.workspace.document();
-    return this.edit(doc, () => {
+    return this.undoRecord.execute(doc.captureStructure(), () => {
       const node = doc.requireNode(this.id);
       const parent = doc.parent(node);
       doc.remove(node);

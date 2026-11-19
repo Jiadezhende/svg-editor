@@ -1,5 +1,6 @@
 import CommandResult from '../CommandResult';
-import StructureCommand from '../StructureCommand';
+import EditCommand from '../EditCommand';
+import UndoRecord from '../UndoRecord';
 import EditorError from '../../error/EditorError';
 import type Workspace from '../../receiver/workspace/Workspace';
 
@@ -7,9 +8,10 @@ import type Workspace from '../../receiver/workspace/Workspace';
  * `ungroup <gid>`：解散容器，子图形按原顺序提升到其父级、占据容器原来的位置。
  * 根级容器（画布根的直接子节点）不可解散。
  */
-export default class UngroupCommand extends StructureCommand {
+export default class UngroupCommand extends EditCommand {
   static override readonly command = 'ungroup';
   static override readonly usage = 'ungroup <gid>';
+  private readonly undoRecord = new UndoRecord();
 
   private readonly id: string;
   constructor(
@@ -21,9 +23,11 @@ export default class UngroupCommand extends StructureCommand {
     this.id = args[0];
   }
 
+  undo(): CommandResult { return this.undoRecord.undo(); }
+
   execute(): CommandResult {
     const doc = this.workspace.document();
-    return this.edit(doc, () => {
+    return this.undoRecord.execute(doc.captureStructure(), () => {
       doc.requireNode(this.id);
       const node = doc.requireChildTarget(this.id);
       const parent = doc.parent(node);

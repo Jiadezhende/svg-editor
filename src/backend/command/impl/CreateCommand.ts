@@ -1,5 +1,6 @@
 import CommandResult from '../CommandResult';
-import StructureCommand from '../StructureCommand';
+import EditCommand from '../EditCommand';
+import UndoRecord from '../UndoRecord';
 import type { AttributeValue } from '../../receiver/document/attribute/AttributeSpec';
 import type { ShapeClass } from '../../receiver/document/shape/ShapeFactory';
 import type Workspace from '../../receiver/workspace/Workspace';
@@ -10,9 +11,10 @@ import type Workspace from '../../receiver/workspace/Workspace';
  * 参数按图形类的声明解析：必填参数按 `params` 顺序；其后第一个词若是 `in` 一律视为关键字，
  * 否则视为可选外观参数 `paint`；最后可跟 `in <containerId>`。
  */
-export default class CreateCommand extends StructureCommand {
+export default class CreateCommand extends EditCommand {
   static override readonly command = 'create';
   static override readonly usage = 'create <type> <id> [params…] [in <containerId>]';
+  private readonly undoRecord = new UndoRecord();
 
   private static readonly keyword = 'in';
 
@@ -59,9 +61,11 @@ export default class CreateCommand extends StructureCommand {
     }
   }
 
+  undo(): CommandResult { return this.undoRecord.undo(); }
+
   execute(): CommandResult {
     const doc = this.workspace.document();
-    return this.edit(doc, () => {
+    return this.undoRecord.execute(doc.captureStructure(), () => {
       const parent = this.containerId === null ? null : doc.requireChildTarget(this.containerId);
       const shape = new this.shapeClass(this.id, this.values);
       doc.insert(shape, parent);

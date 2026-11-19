@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Client, Document } from '../../../../src/backend';
+import { Client, Document, EditorError } from '../../../../src/backend';
+import App from '../../../../src/App';
 import type { Shape } from '../../../../src/backend';
 import SetCommand from '../../../../src/backend/command/impl/SetCommand';
 import { createWorkspace } from '../../../../src/host/defaults';
 import CompositeShape from '../../../support/CompositeShape';
+import MemoryInputSource from '../../../support/MemoryInputSource';
+import MemoryOutputSink from '../../../support/MemoryOutputSink';
 
 class CompositeAttributes {
   static readonly handlerName: string = 'test-composite-attributes';
@@ -239,5 +242,26 @@ describe('SetCommand 的静态 Handler', () => {
     expect(model.captionShape().value('text')).toBe('label');
     expect(command.undo().lines()).toEqual(['g#panel updated: fill unset']);
     expect(model.frameShape().value('fill')).toBeNull();
+  });
+
+  it('Handler 的领域错误经 CLI 回显后仍可继续撤销和重做', async () => {
+    const { workspace, model, client } = sample();
+    class InvalidEdit extends CompositeAttributes {
+      static override apply(shape: Shape, key: string, token: string): void {
+        super.apply(shape, key, token);
+        throw new EditorError('invalid composite edit');
+      }
+    }
+    workspace.attributeHandlers().register(InvalidEdit);
+    client.execute(['set', 'panel', 'stroke', 'blue']);
+    const output = new MemoryOutputSink();
+    await new App(new MemoryInputSource(['set panel fill red', 'undo', 'redo'], false), output, client).run();
+    expect(output.lines().slice(1)).toEqual([
+      'svg> set panel fill red', 'error: invalid composite edit',
+      'svg> undo', 'g#panel updated: stroke unset',
+      'svg> redo', 'g#panel updated: stroke=blue',
+    ]);
+    expect(model.frameShape().value('fill')).toBeNull();
+    expect(model.value('stroke')).toBe('blue');
   });
 });

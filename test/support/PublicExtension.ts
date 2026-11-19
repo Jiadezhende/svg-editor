@@ -13,6 +13,25 @@ export class Marker extends Shape {
   }
 }
 
+/** 静态 Handler 扩展：属性名和别名只在 matches 中声明。 */
+export class MarkerAttributesHandler {
+  static readonly handlerName = 'test-marker-attributes';
+
+  private constructor() {}
+
+  static matches(shape: Shape, key: string): boolean {
+    return shape instanceof Marker && (key === 'horizontal' || key === 'left');
+  }
+
+  static apply(shape: Shape, _key: string, token: string): void {
+    shape.set('x', token);
+  }
+
+  static display(shape: Shape, _key: string): string | null {
+    return shape.display('x');
+  }
+}
+
 export class NudgeMarkerCommand extends EditCommand {
   static override readonly command = 'nudge-marker';
   static override readonly usage = 'nudge-marker <id> <dx>';

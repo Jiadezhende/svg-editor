@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { AttributeHandlers, Client, ShapeFactory, Document, SvgReader, SvgWriter, Workspace } from '../../src/backend';
-import type { ShapeNode } from '../../src/backend';
-import { Marker, NudgeMarkerCommand } from '../support/PublicExtension';
+import type { AttributeHandler, ShapeNode } from '../../src/backend';
+import { Marker, MarkerAttributesHandler, NudgeMarkerCommand } from '../support/PublicExtension';
+import SetCommand from '../../src/backend/command/impl/SetCommand';
 // @ts-expect-error 注册用类型是工厂内部实现，不从公共入口导出。
 import type { ShapeClass } from '../../src/backend';
 // @ts-expect-error 也不能从实现模块单独导入内部注册类型。
@@ -55,5 +56,35 @@ describe('扩展公共入口', () => {
     }
     // 注册属于 Client 实例，不自动传播给另一个分发器。
     expect(() => new Client(workspace).execute(['nudge-marker', 'marker', '3'])).toThrow('unknown command: nudge-marker');
+  });
+
+  it('公共契约支持直接注册独立静态 Handler，通过内置 set 使用属性别名', () => {
+    const factory = new ShapeFactory();
+    factory.register(Marker);
+    const handlers = new AttributeHandlers();
+    const files = { read: () => '', write: () => {} };
+    const workspace = new Workspace(factory, files, new SvgReader(factory), new SvgWriter(), handlers);
+    const doc = new Document(100, 100);
+    const model = factory.create('test-marker', 'marker', new Map([['x', 1], ['y', 2]]));
+    const node = doc.insert(model);
+    workspace.replace(doc);
+    const client = new Client(workspace);
+    client.register(SetCommand);
+    expect(() => client.execute(['set', 'marker', 'horizontal', '4'])).toThrow('unknown attribute: horizontal');
+    handlers.register(MarkerAttributesHandler satisfies AttributeHandler);
+    expect(client.execute(['set', 'marker', 'horizontal', '4']).lines()).toEqual(['test-marker#marker updated: horizontal=4']);
+    expect(client.execute(['undo']).lines()).toEqual(['test-marker#marker updated: horizontal=1']);
+    client.execute(['redo']);
+    expect(model.value('x')).toBe(4);
+    expect(client.execute(['set', 'marker', 'left', '6']).lines()).toEqual(['test-marker#marker updated: left=6']);
+    expect(model.value('x')).toBe(6);
+    expect(doc.requireNode('marker')).toBe(node);
+    expect(node.value).toBe(model);
+    if (false) {
+      // @ts-expect-error 静态契约缺少 display，不允许注册。
+      handlers.register(class { static handlerName = 'invalid'; static matches() {}; static apply() {} });
+      // @ts-expect-error 静态 Handler 无需也不允许实例化。
+      new MarkerAttributesHandler();
+    }
   });
 });

@@ -2,7 +2,7 @@
 
 内核分批重构进度：已完成[第一批：Shape 与 Document 的约束边界](update/20261119_REFACT_DOMAIN_BOUNDARIES.md)，以及[文档节点树与 Shape 职责分离](update/20261119_REFACT_DOCUMENT_SHAPE_NODES.md)。最新设计由 Document 统一维护 ShapeNode 树，Shape 仅维护图形状态和领域行为。下文 Phase 1 的架构及质量数据保留为历史基线；当前接口变化与验证结果见最新重构记录。
 
-已完成[第二批：三类命令与局部撤销](update/20261119_REFACT_UNDO_REDO_SIMPLIFICATION.md)和[第三批：公开契约与依赖注入](update/20261119_REFACT_PUBLIC_CONTRACTS.md)。第三批四步分别提交，停在验收点；[后续计划](update/20261119_PLAN_REMAINING_CORE_REFACTOR.md)中的 Handler 等批次尚未开始。
+已完成[第二批：三类命令与局部撤销](update/20261119_REFACT_UNDO_REDO_SIMPLIFICATION.md)、[第三批：公开契约与依赖注入](update/20261119_REFACT_PUBLIC_CONTRACTS.md)和[第四批：静态 AttributeHandler](update/20261120_REFACT_ATTRIBUTE_HANDLERS.md)。第四批按三步分别提交，停在验收点；[后续计划](update/20261119_PLAN_REMAINING_CORE_REFACTOR.md)中的 Parser、装饰器和插件发现尚未开始。
 
 仓库地址：<https://github.com/Jiadezhende/svg-editor>（最终提交为 tag `final`）
 
@@ -52,17 +52,19 @@ npm run coverage             # 覆盖率报告
 - `src/backend/index.ts` 提供模型、只读节点、属性规格、工厂、命令和持久化公共入口。ShapeClass 是工厂内部约束，ShapeNode 仅导出类型。
 - ShapeFactory 初始为空，提供 register、has、definition、create；规格视图不公开构造签名。课程 ShapeProvider 由具体 Shape 类的静态描述与构造能力承担，不增加包装对象。
 - `src/host/defaults.ts` 选择六种内置图形、17 个命令形式、原生文件服务与 SVG 读写器。main.ts 将装配后的 Client 接到控制台。
-- Workspace 接收工厂、文件访问、reader、writer，保存当前文档和路径；Client 接收 Workspace。read 使用注入 reader，save 复用会话 writer 及其映射。
+- Workspace 接收工厂、文件访问、reader、writer 和 AttributeHandlers，保存当前文档和路径；Client 接收 Workspace。read 使用注入 reader，save 复用会话 writer 及其映射。
+- AttributeHandlers 直接注册静态类，按注册顺序首次匹配。目标类型、属性名和别名由 Handler.matches 判断，SetCommand 调用命中项的 apply/display；零命中回退模型规则。默认注册表为空，不包装普通属性；命中失败恢复模型快照且不继续尝试。详见[属性处理器 ADR](adr/20261120_ATTRIBUTE_HANDLER_CONTRACT.md)。
 - 命令仅分查询、编辑、文档三类。Invoker 保存 EditCommand，成功后更新历史；具体命令通过局部快照组织撤销及必要的失败恢复，不存在通用会话事务。
 
 ```text
 宿主 defaults → 选择图形和命令 → 工厂注册表、Client 命令表
-              → 创建文件服务、reader、writer → Workspace → Client
+              → 创建文件服务、reader、writer、Handler 表 → Workspace → Client
 main → App → Client → Command → Workspace 提供的文档、工厂和读写能力
+                     SetCommand → Handler 表 → 首个 Handler → Shape 公开方法
                      Invoker → EditCommand.execute / undo（历史）
 ```
 
-最新验证：45 个测试文件、443 个测试通过，类型检查通过；包含仅用公共入口定义的测试模型与编辑命令、服务替换、默认 CLI 回放及节点身份验证。
+最新验证：47 个测试文件、464 个测试通过，类型检查通过；包含公共入口模型、命令及静态 Handler、默认 CLI 回放、属性别名、私有部件撤销、局部失败恢复及历史不变验证。
 
 ## Phase 1 历史架构方案
 

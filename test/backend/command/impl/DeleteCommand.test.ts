@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
 import DeleteCommand from '../../../../src/backend/command/impl/DeleteCommand';
@@ -7,7 +8,7 @@ import EditorError from '../../../../src/backend/error/EditorError';
 
 /** 画布根下依次为 bg、title、markers{c1, box}。 */
 function sample(): Workspace {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(new Document(800, 600));
   for (const line of [
     'rect bg 0 0 800 600 #fff',
@@ -80,11 +81,11 @@ describe('DeleteCommand 删除', () => {
   });
 
   it.each([[[]], [['a', 'b']]])('参数个数不符时报错并附语法：%j', (args) => {
-    expect(() => new DeleteCommand(new Workspace(), args)).toThrow('wrong number of arguments. usage: delete <id>');
+    expect(() => new DeleteCommand(createWorkspace(), args)).toThrow('wrong number of arguments. usage: delete <id>');
   });
 
   it('无文档时报无文档', () => {
-    expect(() => new DeleteCommand(new Workspace(), ['r1']).execute()).toThrow("no document. use 'init' or 'read' first");
+    expect(() => new DeleteCommand(createWorkspace(), ['r1']).execute()).toThrow("no document. use 'init' or 'read' first");
   });
 
   it('execute 之前 undo 属于程序缺陷', () => {

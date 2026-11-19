@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import Document from '../../../../src/backend/receiver/document/Document';
 import type ShapeNode from '../../../../src/backend/receiver/document/ShapeNode';
@@ -19,7 +20,7 @@ class ProtectedGroup extends Group {
 }
 
 function workspaceWith(doc: Document): Workspace {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(doc);
   return workspace;
 }

@@ -1,11 +1,11 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
 import SvgWriter from '../../../../src/backend/receiver/svg/SvgWriter';
-import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 
 function documentWith(width: number, height: number, ...lines: string[][]): Document {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(new Document(width, height));
   for (const args of lines) {
     new CreateCommand(workspace, args).execute();

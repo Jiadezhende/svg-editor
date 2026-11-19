@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
 import SetCommand from '../../../../src/backend/command/impl/SetCommand';
@@ -6,7 +7,7 @@ import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';
 
 function workspaceWith(...lines: string[][]): Workspace {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(new Document(800, 600));
   for (const args of lines) {
     new CreateCommand(workspace, args).execute();
@@ -83,14 +84,14 @@ describe('SetCommand', () => {
   });
 
   it('参数个数在构造时校验', () => {
-    expect(() => new SetCommand(new Workspace(), ['r1', 'fill'])).toThrow('wrong number of arguments. usage: set <id> <attr> <value>');
+    expect(() => new SetCommand(createWorkspace(), ['r1', 'fill'])).toThrow('wrong number of arguments. usage: set <id> <attr> <value>');
   });
 
   it('无文档时报无文档', () => {
-    expect(() => set(new Workspace(), 'r1', 'fill', 'red')).toThrow("no document. use 'init' or 'read' first");
+    expect(() => set(createWorkspace(), 'r1', 'fill', 'red')).toThrow("no document. use 'init' or 'read' first");
   });
 
   it('execute 之前 undo 属于程序缺陷', () => {
-    expect(() => new SetCommand(new Workspace(), ['r1', 'fill', 'red']).undo()).toThrow('undo before execute');
+    expect(() => new SetCommand(createWorkspace(), ['r1', 'fill', 'red']).undo()).toThrow('undo before execute');
   });
 });

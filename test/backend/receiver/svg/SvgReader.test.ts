@@ -1,19 +1,18 @@
+import { createWorkspace, createShapeFactory } from '../../../../src/host/defaults';
 import { describe, expect, it, vi } from 'vitest';
 import TreeCommand from '../../../../src/backend/command/impl/TreeCommand';
 import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
 import EditorError from '../../../../src/backend/error/EditorError';
 import Document from '../../../../src/backend/receiver/document/Document';
-import ShapeFactory from '../../../../src/backend/receiver/document/shape/ShapeFactory';
 import SvgReader from '../../../../src/backend/receiver/svg/SvgReader';
 import SvgWriter from '../../../../src/backend/receiver/svg/SvgWriter';
-import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 
 function read(text: string) {
-  return new SvgReader(new ShapeFactory()).read(text);
+  return new SvgReader(createShapeFactory()).read(text);
 }
 
 function tree(doc: Document): string[] {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(doc);
   return [...new TreeCommand(workspace, []).execute().lines()];
 }
@@ -33,7 +32,7 @@ const other = svg(`  <rect x="0" y="0" width="400" height="300" fill="#ffffff"/>
 
 describe('SvgReader', () => {
   it('使用工厂返回的实例，未知元素仍警告并跳过', () => {
-    const factory = new ShapeFactory();
+    const factory = createShapeFactory();
     const supplied = factory.create('rect', 'r1', new Map([['x', 10], ['y', 20], ['width', 30], ['height', 40]]));
     const create = vi.spyOn(factory, 'create').mockReturnValue(supplied);
     const { document, warnings } = new SvgReader(factory).read(svg('<path id="unsupported"/><rect id="r1"/>'));
@@ -61,7 +60,7 @@ describe('SvgReader', () => {
   });
 
   it('SvgWriter 写出的文件读回后 tree 一致，再次写出逐字相同', () => {
-    const workspace = new Workspace();
+    const workspace = createWorkspace();
     workspace.replace(new Document(400, 200));
     for (const args of [
       ['g', 'flow'],

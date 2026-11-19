@@ -1,10 +1,10 @@
+import { createWorkspace } from '../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import Invoker from '../../../src/backend/invoker/Invoker';
 import CommandResult from '../../../src/backend/command/CommandResult';
 import DocumentCommand from '../../../src/backend/command/DocumentCommand';
 import EditCommand from '../../../src/backend/command/EditCommand';
 import EditorError from '../../../src/backend/error/EditorError';
-import Workspace from '../../../src/backend/receiver/workspace/Workspace';
 import StubCommand from '../../support/StubCommand';
 
 /** 测试用接收者：一个计数器。 */
@@ -43,12 +43,12 @@ class SaveLikeCommand extends DocumentCommand {
 }
 
 function display(): StubCommand {
-  return new StubCommand(new Workspace(), ['a', '1']);
+  return new StubCommand(createWorkspace(), ['a', '1']);
 }
 
 describe('Invoker 执行', () => {
   it('执行命令并返回其结果', () => {
-    const result = new Invoker().execute(new StubCommand(new Workspace(), ['a', '1', 'warn']));
+    const result = new Invoker().execute(new StubCommand(createWorkspace(), ['a', '1', 'warn']));
     expect(result.warnings()).toEqual(['stub a warned']);
     expect(result.lines()).toEqual(['a 1']);
   });

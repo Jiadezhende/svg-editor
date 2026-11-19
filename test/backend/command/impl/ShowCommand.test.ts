@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
 import ShowCommand from '../../../../src/backend/command/impl/ShowCommand';
@@ -6,7 +7,7 @@ import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';
 
 function workspaceWith(...lines: string[][]): Workspace {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(new Document(800, 600));
   for (const args of lines) {
     new CreateCommand(workspace, args).execute();
@@ -45,10 +46,10 @@ describe('ShowCommand', () => {
   });
 
   it.each([[[]], [['a', 'b']]])('参数个数不符时报错并附语法：%j', (args) => {
-    expect(() => new ShowCommand(new Workspace(), args)).toThrow('wrong number of arguments. usage: show <id>');
+    expect(() => new ShowCommand(createWorkspace(), args)).toThrow('wrong number of arguments. usage: show <id>');
   });
 
   it('无文档时报无文档', () => {
-    expect(() => show(new Workspace(), 'c1')).toThrow("no document. use 'init' or 'read' first");
+    expect(() => show(createWorkspace(), 'c1')).toThrow("no document. use 'init' or 'read' first");
   });
 });

@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
 import MoveCommand from '../../../../src/backend/command/impl/MoveCommand';
@@ -6,7 +7,7 @@ import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';
 
 function workspaceWith(...lines: string[][]): Workspace {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(new Document(800, 600));
   for (const args of lines) {
     new CreateCommand(workspace, args).execute();
@@ -80,15 +81,15 @@ describe('MoveCommand', () => {
   });
 
   it('参数个数与数字在构造时校验', () => {
-    expect(() => new MoveCommand(new Workspace(), ['r1', '1'])).toThrow('wrong number of arguments. usage: move <id> <dx> <dy>');
-    expect(() => new MoveCommand(new Workspace(), ['r1', 'a', '1'])).toThrow('not a number: a');
+    expect(() => new MoveCommand(createWorkspace(), ['r1', '1'])).toThrow('wrong number of arguments. usage: move <id> <dx> <dy>');
+    expect(() => new MoveCommand(createWorkspace(), ['r1', 'a', '1'])).toThrow('not a number: a');
   });
 
   it('无文档时报无文档', () => {
-    expect(() => new MoveCommand(new Workspace(), ['r1', '1', '1']).execute()).toThrow("no document. use 'init' or 'read' first");
+    expect(() => new MoveCommand(createWorkspace(), ['r1', '1', '1']).execute()).toThrow("no document. use 'init' or 'read' first");
   });
 
   it('execute 之前 undo 属于程序缺陷', () => {
-    expect(() => new MoveCommand(new Workspace(), ['r1', '1', '1']).undo()).toThrow('undo before execute');
+    expect(() => new MoveCommand(createWorkspace(), ['r1', '1', '1']).undo()).toThrow('undo before execute');
   });
 });

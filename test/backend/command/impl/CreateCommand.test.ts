@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it, vi } from 'vitest';
 import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
@@ -5,7 +6,7 @@ import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';
 
 function workspaceWithDoc(): Workspace {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(new Document(800, 600));
   return workspace;
 }
@@ -95,7 +96,7 @@ describe('CreateCommand 创建', () => {
 });
 
 describe('CreateCommand 参数格式（构造时）', () => {
-  const workspace = new Workspace(); // 无文档：构造阶段不取文档
+  const workspace = createWorkspace(); // 无文档：构造阶段不取文档
 
   it.each([['hexagon h1'], ['box n1 0 0 10 10 title'], ['hexagon']])('未注册类型报错：%s', (line) => {
     const type = line.split(' ')[0];
@@ -142,7 +143,7 @@ describe('CreateCommand 参数格式（构造时）', () => {
 
 describe('CreateCommand 业务校验（执行时）', () => {
   it('无文档时报无文档，先于其他业务校验', () => {
-    const command = new CreateCommand(new Workspace(), 'rect 1abc 0 0 -1 1 in node9'.split(' '));
+    const command = new CreateCommand(createWorkspace(), 'rect 1abc 0 0 -1 1 in node9'.split(' '));
     expect(() => command.execute()).toThrow(new EditorError("no document. use 'init' or 'read' first"));
   });
 

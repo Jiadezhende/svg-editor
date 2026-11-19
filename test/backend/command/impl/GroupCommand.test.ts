@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
 import GroupCommand from '../../../../src/backend/command/impl/GroupCommand';
@@ -7,7 +8,7 @@ import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';
 
 function workspaceWith(...lines: string[]): Workspace {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(new Document(800, 600));
   for (const line of lines) {
     new CreateCommand(workspace, line.split(' ')).execute();
@@ -108,18 +109,18 @@ describe('GroupCommand', () => {
   });
 
   it('成员 id 重复时在构造阶段报错', () => {
-    expect(() => new GroupCommand(new Workspace(), 'g1 c1 box c1'.split(' '))).toThrow(new EditorError('duplicate id: c1'));
+    expect(() => new GroupCommand(createWorkspace(), 'g1 c1 box c1'.split(' '))).toThrow(new EditorError('duplicate id: c1'));
   });
 
   it('参数少于 2 个时报错并附语法', () => {
-    expect(() => new GroupCommand(new Workspace(), ['g1'])).toThrow('wrong number of arguments. usage: group <newGid> <id1> <id2>…');
+    expect(() => new GroupCommand(createWorkspace(), ['g1'])).toThrow('wrong number of arguments. usage: group <newGid> <id1> <id2>…');
   });
 
   it('无文档时报无文档', () => {
-    expect(() => group(new Workspace(), 'g1 c1')).toThrow("no document. use 'init' or 'read' first");
+    expect(() => group(createWorkspace(), 'g1 c1')).toThrow("no document. use 'init' or 'read' first");
   });
 
   it('execute 之前 undo 属于程序缺陷', () => {
-    expect(() => new GroupCommand(new Workspace(), ['g1', 'c1']).undo()).toThrow('undo before execute');
+    expect(() => new GroupCommand(createWorkspace(), ['g1', 'c1']).undo()).toThrow('undo before execute');
   });
 });

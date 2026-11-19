@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -23,7 +24,7 @@ afterEach(() => {
 
 /** 文档含 bg、title、markers{c1, box}。 */
 function sample(): Workspace {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(new Document(800, 600));
   for (const args of [
     ['rect', 'bg', '0', '0', '800', '600', '#ffffff'],
@@ -73,14 +74,14 @@ describe('SaveCommand', () => {
   });
 
   it('无文档时报无文档；参数个数在构造时校验', () => {
-    expect(() => new SaveCommand(new Workspace(), ['a.svg']).execute()).toThrow("no document. use 'init' or 'read' first");
-    expect(() => new SaveCommand(new Workspace(), ['a', 'b'])).toThrow('wrong number of arguments. usage: save [file.svg]');
+    expect(() => new SaveCommand(createWorkspace(), ['a.svg']).execute()).toThrow("no document. use 'init' or 'read' first");
+    expect(() => new SaveCommand(createWorkspace(), ['a', 'b'])).toThrow('wrong number of arguments. usage: save [file.svg]');
   });
 });
 
 describe('SaveCommand 的复合模型映射', () => {
   it('保存复用会话注册的写出映射，内部成员不进入文档节点树', () => {
-    const workspace = new Workspace();
+    const workspace = createWorkspace();
     const doc = new Document(100, 100);
     const panel = new CompositeShape('panel');
     doc.insert(panel);
@@ -110,7 +111,7 @@ describe('ReadCommand', () => {
     const original = sample();
     const path = join(dir, 'demo.svg');
     new SaveCommand(original, [path]).execute();
-    const workspace = new Workspace();
+    const workspace = createWorkspace();
     const command = new ReadCommand(workspace, [path]);
     expect(command).toBeInstanceOf(DocumentCommand);
     const result = command.execute();
@@ -122,7 +123,7 @@ describe('ReadCommand', () => {
   it('read 后无参 save 保存到读入时的路径', () => {
     const path = join(dir, 'demo.svg');
     new SaveCommand(sample(), [path]).execute();
-    const workspace = new Workspace();
+    const workspace = createWorkspace();
     new ReadCommand(workspace, [path]).execute();
     expect(new SaveCommand(workspace, []).execute().lines()).toEqual([`saved to ${path} (5 elements)`]);
   });
@@ -158,6 +159,6 @@ describe('ReadCommand', () => {
   });
 
   it('参数个数在构造时校验', () => {
-    expect(() => new ReadCommand(new Workspace(), [])).toThrow('wrong number of arguments. usage: read <file.svg>');
+    expect(() => new ReadCommand(createWorkspace(), [])).toThrow('wrong number of arguments. usage: read <file.svg>');
   });
 });

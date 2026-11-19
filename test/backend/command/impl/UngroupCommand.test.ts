@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
 import TreeCommand from '../../../../src/backend/command/impl/TreeCommand';
@@ -8,7 +9,7 @@ import EditorError from '../../../../src/backend/error/EditorError';
 
 /** 根下为 scene{a, inner{b, c}, d}、e。 */
 function sample(): Workspace {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(new Document(800, 600));
   for (const line of [
     'g scene',
@@ -85,8 +86,8 @@ describe('UngroupCommand', () => {
   });
 
   it('参数个数在构造时校验；无文档时报无文档', () => {
-    expect(() => new UngroupCommand(new Workspace(), [])).toThrow('wrong number of arguments. usage: ungroup <gid>');
-    expect(() => new UngroupCommand(new Workspace(), ['g1']).execute()).toThrow("no document. use 'init' or 'read' first");
+    expect(() => new UngroupCommand(createWorkspace(), [])).toThrow('wrong number of arguments. usage: ungroup <gid>');
+    expect(() => new UngroupCommand(createWorkspace(), ['g1']).execute()).toThrow("no document. use 'init' or 'read' first");
   });
 
   it('execute 之前 undo 属于程序缺陷', () => {

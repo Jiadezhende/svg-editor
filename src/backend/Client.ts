@@ -2,7 +2,7 @@ import CommandResult from './command/CommandResult';
 import EditorError from './error/EditorError';
 import Command from './command/Command';
 import Invoker from './invoker/Invoker';
-import Workspace from './receiver/workspace/Workspace';
+import type Workspace from './receiver/workspace/Workspace';
 
 /** 可注册的 ConcreteCommand 类：静态部分即定义，构造函数即工厂。 */
 type ConcreteCommandClass = Pick<typeof Command, 'command' | 'usage' | 'accepts'> &
@@ -23,13 +23,12 @@ interface BuiltinEntry {
  */
 export default class Client {
   private readonly invoker = new Invoker();
-  private readonly workspace = new Workspace();
   private readonly builtins = new Map<string, BuiltinEntry>();
   /** 命令名 → 该名下的全部形式（顺序不影响选择）。 */
   private readonly commands = new Map<string, ConcreteCommandClass[]>();
   private exitRequested = false;
 
-  constructor() {
+  constructor(private readonly workspace: Workspace) {
     this.builtins.set('help', { usage: 'help', run: () => this.help() });
     this.builtins.set('undo', { usage: 'undo', run: () => this.undo() });
     this.builtins.set('redo', { usage: 'redo', run: () => this.redo() });

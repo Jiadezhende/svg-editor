@@ -1,12 +1,6 @@
 import EditorError from '../../../error/EditorError';
 import type { AttributeValue } from '../attribute/AttributeSpec';
-import Circle from './Circle';
-import Ellipse from './Ellipse';
-import Group from './Group';
-import Line from './Line';
-import Rect from './Rect';
 import type Shape from './Shape';
-import Text from './Text';
 
 /** 可注册的图形类：静态部分即定义，构造函数即工厂。 */
 type ShapeClass = Pick<
@@ -17,18 +11,12 @@ type ShapeClass = Pick<
 
 /**
  * 图形工厂：内部保存类型名 → 图形类，使用侧查询规格并由工厂创建实例。
- * 当前构造时注册 6 种内置图形，第三批后续将具体类型装配迁至宿主。
+ * 初始注册表为空，具体类型由宿主选择并注册。
  *
  * 待重构：按名分派是课程允许的两处之一（图形工厂），见 doc/update/20261020_FEAT_SHAPE_CREATE_DELETE.md。
  */
 export default class ShapeFactory {
   private readonly classes = new Map<string, ShapeClass>();
-
-  constructor() {
-    for (const cls of [Rect, Circle, Ellipse, Line, Text, Group]) {
-      this.register(cls);
-    }
-  }
 
   /** 注册图形类；类型名缺失、重名、锚点不是本类的 x / y 坐标属性，都属于程序缺陷。 */
   register(cls: ShapeClass): void {

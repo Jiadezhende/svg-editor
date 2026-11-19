@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import AddtoCommand from '../../../../src/backend/command/impl/AddtoCommand';
 import BackCommand from '../../../../src/backend/command/impl/BackCommand';
@@ -9,7 +10,7 @@ import EditorError from '../../../../src/backend/error/EditorError';
 
 /** 根下依次为 bg、title、markers{c1, box, inner{dot}}。 */
 function sample(): Workspace {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(new Document(800, 600));
   for (const line of [
     'rect bg 0 0 800 600',
@@ -68,7 +69,7 @@ describe('FrontCommand / BackCommand', () => {
 
   it('id 不存在时报错；参数个数在构造时校验', () => {
     expect(() => new FrontCommand(sample(), ['r9']).execute()).toThrow(new EditorError('no such shape: r9'));
-    expect(() => new BackCommand(new Workspace(), [])).toThrow('wrong number of arguments. usage: back <id>');
+    expect(() => new BackCommand(createWorkspace(), [])).toThrow('wrong number of arguments. usage: back <id>');
   });
 });
 
@@ -115,8 +116,8 @@ describe('AddtoCommand', () => {
   });
 
   it('参数个数在构造时校验；无文档时报无文档', () => {
-    expect(() => new AddtoCommand(new Workspace(), ['g1'])).toThrow('wrong number of arguments. usage: addto <gid> <id>');
-    expect(() => new AddtoCommand(new Workspace(), ['g1', 'r1']).execute()).toThrow("no document. use 'init' or 'read' first");
+    expect(() => new AddtoCommand(createWorkspace(), ['g1'])).toThrow('wrong number of arguments. usage: addto <gid> <id>');
+    expect(() => new AddtoCommand(createWorkspace(), ['g1', 'r1']).execute()).toThrow("no document. use 'init' or 'read' first");
   });
 
   it('execute 之前 undo 属于程序缺陷', () => {

@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import Client from '../../src/backend/Client';
 import Command from '../../src/backend/command/Command';
@@ -85,7 +86,7 @@ class PairDefaultCommand extends Command {
 }
 
 function createClient(): Client {
-  const client = new Client();
+  const client = new Client(createWorkspace());
   client.register(StubCommand);
   client.register(NoopCommand);
   return client;
@@ -146,7 +147,7 @@ describe('Client 内置命令', () => {
 
 describe('Client 同名多形式', () => {
   function pairClient(): Client {
-    const client = new Client();
+    const client = new Client(createWorkspace());
     client.register(PairShowCommand);
     client.register(PairSetCommand);
     return client;
@@ -163,14 +164,14 @@ describe('Client 同名多形式', () => {
   });
 
   it('注册顺序不影响选择', () => {
-    const client = new Client();
+    const client = new Client(createWorkspace());
     client.register(PairSetCommand);
     client.register(PairShowCommand);
     expect(client.execute(['pair']).lines()).toEqual(['show form']);
   });
 
   it('没有形式接受时报参数个数不符，列出全部语法', () => {
-    const client = new Client();
+    const client = new Client(createWorkspace());
     client.register(PairShowCommand);
     client.register(class extends PairSetCommand {
       static override accepts(args: readonly string[]): boolean {
@@ -183,7 +184,7 @@ describe('Client 同名多形式', () => {
   });
 
   it('多个形式同时接受属于程序缺陷', () => {
-    const client = new Client();
+    const client = new Client(createWorkspace());
     client.register(PairShowCommand);
     client.register(PairOverlapCommand);
     expect(() => client.execute(['pair'])).toThrow('ambiguous forms of pair');
@@ -197,12 +198,12 @@ describe('Client 同名多形式', () => {
 
 describe('Client 注册校验', () => {
   it('命令名或 usage 为空时启动即失败', () => {
-    expect(() => new Client().register(NamelessCommand)).toThrow('NamelessCommand must declare static command and usage');
-    expect(() => new Client().register(UsagelessCommand)).toThrow('UsagelessCommand must declare static command and usage');
+    expect(() => new Client(createWorkspace()).register(NamelessCommand)).toThrow('NamelessCommand must declare static command and usage');
+    expect(() => new Client(createWorkspace()).register(UsagelessCommand)).toThrow('UsagelessCommand must declare static command and usage');
   });
 
   it('与内置命令重名时失败', () => {
-    expect(() => new Client().register(HelpCommand)).toThrow('duplicate command: help');
+    expect(() => new Client(createWorkspace()).register(HelpCommand)).toThrow('duplicate command: help');
   });
 
   it('重复注册同一个类时失败', () => {
@@ -211,7 +212,7 @@ describe('Client 注册校验', () => {
   });
 
   it('同名多形式中有形式未覆盖 accepts 时失败', () => {
-    const client = new Client();
+    const client = new Client(createWorkspace());
     client.register(PairShowCommand);
     expect(() => client.register(PairDefaultCommand)).toThrow('command pair has multiple forms; each must override static accepts');
   });

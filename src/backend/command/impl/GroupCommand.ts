@@ -2,7 +2,6 @@ import CommandResult from '../CommandResult';
 import EditCommand from '../EditCommand';
 import UndoRecord from '../UndoRecord';
 import EditorError from '../../error/EditorError';
-import Group from '../../receiver/document/shape/Group';
 import type Workspace from '../../receiver/workspace/Workspace';
 
 /**
@@ -36,7 +35,7 @@ export default class GroupCommand extends EditCommand {
   execute(): CommandResult {
     const doc = this.workspace.document();
     return this.undoRecord.execute(doc.captureStructure(), () => {
-      const group = new Group(this.groupId);
+      const group = this.workspace.shapes().create('g', this.groupId);
       const members = this.memberIds.map((id) => doc.requireNode(id));
       for (const outer of members) {
         if (members.some((inner) => inner !== outer && doc.nodes(outer).includes(inner))) {

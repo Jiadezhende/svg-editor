@@ -1,6 +1,6 @@
 import EditorError from '../../error/EditorError';
 import type Document from '../document/Document';
-import ShapeFactory from '../document/shape/ShapeFactory';
+import type ShapeFactory from '../document/shape/ShapeFactory';
 import SvgFile from '../svg/SvgFile';
 import SvgWriter from '../svg/SvgWriter';
 
@@ -12,9 +12,10 @@ export default class Workspace {
   private current: Document | null = null;
   /** 当前文档对应的文件；init 新建的文档在首次 `save <file>` 之前没有路径。 */
   private currentPath: string | null = null;
-  private readonly factory = new ShapeFactory();
   private readonly file = new SvgFile();
   private readonly writer = new SvgWriter();
+
+  constructor(private readonly factory: ShapeFactory) {}
 
   /** 图形工厂，与有无文档无关。 */
   shapes(): ShapeFactory {

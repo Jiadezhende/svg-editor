@@ -1,19 +1,18 @@
+import { createWorkspace, createShapeFactory } from '../../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import CompositeShape from '../../../../support/CompositeShape';
 import Shape from '../../../../../src/backend/receiver/document/shape/Shape';
 import Group from '../../../../../src/backend/receiver/document/shape/Group';
 import Document from '../../../../../src/backend/receiver/document/Document';
-import Workspace from '../../../../../src/backend/receiver/workspace/Workspace';
 import GroupCommand from '../../../../../src/backend/command/impl/GroupCommand';
 import MoveCommand from '../../../../../src/backend/command/impl/MoveCommand';
 import ScaleCommand from '../../../../../src/backend/command/impl/ScaleCommand';
 import TreeCommand from '../../../../../src/backend/command/impl/TreeCommand';
 import SvgWriter from '../../../../../src/backend/receiver/svg/SvgWriter';
 import SvgReader from '../../../../../src/backend/receiver/svg/SvgReader';
-import ShapeFactory from '../../../../../src/backend/receiver/document/shape/ShapeFactory';
 
 function scene() {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   const doc = new Document(800, 600);
   const panel = new CompositeShape('panel');
   const node = doc.insert(panel);
@@ -96,7 +95,7 @@ describe('业务复合模型与文档节点分离', () => {
     expect(svg).toContain('<rect id="panel-rect" x="10" y="20" width="100" height="50"/>');
     expect(svg).toContain('<text id="panel-label" x="20" y="40">label</text>');
     expect(doc.nodes().map((node) => node.value)).toEqual([panel]);
-    const read = new SvgReader(new ShapeFactory()).read(svg).document;
+    const read = new SvgReader(createShapeFactory()).read(svg).document;
     expect(read.nodes().map((node) => node.value).map((shape) => shape.id())).toEqual(['panel', 'panel-rect', 'title-group', 'panel-label']);
     expect(read.requireNode('panel-label').parent()).toBe(read.requireNode('title-group'));
     expect(new SvgWriter().write(read)).toBe(svg);

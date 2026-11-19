@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
 import TreeCommand from '../../../../src/backend/command/impl/TreeCommand';
@@ -6,7 +7,7 @@ import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';
 
 function workspaceWith(...lines: string[]): Workspace {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(new Document(800, 600));
   for (const line of lines) {
     new CreateCommand(workspace, line.split(' ')).execute();
@@ -73,7 +74,7 @@ describe('TreeCommand', () => {
   });
 
   it('空文档只输出画布尺寸，尺寸按数值格式输出', () => {
-    const workspace = new Workspace();
+    const workspace = createWorkspace();
     workspace.replace(new Document(100.5, 200));
     expect(tree(workspace)).toEqual(['svg (100.5x200)']);
   });
@@ -87,11 +88,11 @@ describe('TreeCommand', () => {
   });
 
   it('参数个数不符时报错并附语法', () => {
-    expect(() => new TreeCommand(new Workspace(), ['a', 'b'])).toThrow('wrong number of arguments. usage: tree [id]');
+    expect(() => new TreeCommand(createWorkspace(), ['a', 'b'])).toThrow('wrong number of arguments. usage: tree [id]');
   });
 
   it('无文档时报无文档', () => {
-    expect(() => tree(new Workspace())).toThrow("no document. use 'init' or 'read' first");
+    expect(() => tree(createWorkspace())).toThrow("no document. use 'init' or 'read' first");
   });
 
   it('不改变文档', () => {

@@ -1,6 +1,6 @@
+import { createWorkspace } from '../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import Invoker from '../../../src/backend/invoker/Invoker';
-import Workspace from '../../../src/backend/receiver/workspace/Workspace';
 import Document from '../../../src/backend/receiver/document/Document';
 import Group from '../../../src/backend/receiver/document/shape/Group';
 import Rect from '../../../src/backend/receiver/document/shape/Rect';
@@ -13,7 +13,7 @@ import UndoRecord from '../../../src/backend/command/UndoRecord';
 import CommandResult from '../../../src/backend/command/CommandResult';
 
 function scene() {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   const doc = new Document(100, 100);
   const group = doc.insert(new Group('g'));
   const child = doc.insert(new Rect('r', new Map([['x', 10], ['y', 20], ['width', 30], ['height', 40]])), group);

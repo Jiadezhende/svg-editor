@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import CanvasResizeCommand from '../../../../src/backend/command/impl/CanvasResizeCommand';
 import CanvasShowCommand from '../../../../src/backend/command/impl/CanvasShowCommand';
@@ -6,7 +7,7 @@ import Document from '../../../../src/backend/receiver/document/Document';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 
 function workspaceWith(width: number, height: number): Workspace {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(new Document(width, height));
   return workspace;
 }
@@ -17,7 +18,7 @@ function resize(workspace: Workspace, ...args: string[]): string[] {
 
 describe('CanvasResizeCommand', () => {
   it('是文档类命令；接受有参的输入，与 CanvasShowCommand 互斥', () => {
-    expect(new CanvasResizeCommand(new Workspace(), ['1', '1'])).toBeInstanceOf(DocumentCommand);
+    expect(new CanvasResizeCommand(createWorkspace(), ['1', '1'])).toBeInstanceOf(DocumentCommand);
     for (const args of [[], ['1'], ['1024', '768'], ['1', '2', '3']]) {
       expect(CanvasResizeCommand.accepts(args)).toBe(args.length > 0);
       expect(CanvasResizeCommand.accepts(args) && CanvasShowCommand.accepts(args)).toBe(false);
@@ -46,12 +47,12 @@ describe('CanvasResizeCommand', () => {
   });
 
   it('参数个数或格式错误在构造阶段报出', () => {
-    expect(() => new CanvasResizeCommand(new Workspace(), ['400'])).toThrow('wrong number of arguments. usage: canvas <w> <h>');
-    expect(() => new CanvasResizeCommand(new Workspace(), ['a', '0'])).toThrow('not a number: a');
+    expect(() => new CanvasResizeCommand(createWorkspace(), ['400'])).toThrow('wrong number of arguments. usage: canvas <w> <h>');
+    expect(() => new CanvasResizeCommand(createWorkspace(), ['a', '0'])).toThrow('not a number: a');
   });
 
   it('无文档时执行报"无文档"', () => {
-    expect(() => new CanvasResizeCommand(new Workspace(), ['1024', '768']).execute()).toThrow(
+    expect(() => new CanvasResizeCommand(createWorkspace(), ['1024', '768']).execute()).toThrow(
       "no document. use 'init' or 'read' first",
     );
   });

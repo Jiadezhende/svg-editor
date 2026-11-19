@@ -1,3 +1,4 @@
+import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
 import ScaleCommand from '../../../../src/backend/command/impl/ScaleCommand';
@@ -6,7 +7,7 @@ import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';
 
 function workspaceWith(...lines: string[][]): Workspace {
-  const workspace = new Workspace();
+  const workspace = createWorkspace();
   workspace.replace(new Document(800, 600));
   for (const args of lines) {
     new CreateCommand(workspace, args).execute();
@@ -59,12 +60,12 @@ describe('ScaleCommand', () => {
   });
 
   it.each(['0', '-1'])('factor 为 %s 时报错', (factor) => {
-    expect(() => new ScaleCommand(new Workspace(), ['r1', factor])).toThrow(new EditorError('scale factor must be positive'));
+    expect(() => new ScaleCommand(createWorkspace(), ['r1', factor])).toThrow(new EditorError('scale factor must be positive'));
   });
 
   it('参数个数与数字在构造时校验', () => {
-    expect(() => new ScaleCommand(new Workspace(), ['r1'])).toThrow('wrong number of arguments. usage: scale <id> <factor>');
-    expect(() => new ScaleCommand(new Workspace(), ['r1', 'x'])).toThrow('not a number: x');
+    expect(() => new ScaleCommand(createWorkspace(), ['r1'])).toThrow('wrong number of arguments. usage: scale <id> <factor>');
+    expect(() => new ScaleCommand(createWorkspace(), ['r1', 'x'])).toThrow('not a number: x');
   });
 
   it('id 不存在时报错', () => {
@@ -72,6 +73,6 @@ describe('ScaleCommand', () => {
   });
 
   it('execute 之前 undo 属于程序缺陷', () => {
-    expect(() => new ScaleCommand(new Workspace(), ['r1', '2']).undo()).toThrow('undo before execute');
+    expect(() => new ScaleCommand(createWorkspace(), ['r1', '2']).undo()).toThrow('undo before execute');
   });
 });

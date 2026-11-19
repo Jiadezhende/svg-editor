@@ -23,9 +23,9 @@ describe('Group 容器', () => {
     expect(group.details()).toEqual(['children=2', 'fill=red']);
   });
 
-  it('是容器：asContainer 返回自身', () => {
+  it('允许接收成员', () => {
     const group = new Group('g1');
-    expect(group.asContainer()).toBe(group);
+    expect(group.acceptsChildren()).toBe(true);
   });
 
   it('insert 默认追加到末尾，可指定位置；子图形的父节点为本容器', () => {
@@ -35,7 +35,7 @@ describe('Group 容器', () => {
     group.insert(c);
     group.insert(b, 1);
     expect(group.children()).toEqual([a, b, c]);
-    expect(b.parent()).toBe(group);
+    expect(b.requireParent()).toBe(group);
   });
 
   it('remove 返回原位置，被摘除的图形不再有父节点', () => {
@@ -45,7 +45,28 @@ describe('Group 容器', () => {
     group.insert(b);
     expect(group.remove(b)).toBe(1);
     expect(group.children()).toEqual([a]);
-    expect(() => b.parent()).toThrow(Error);
+    expect(() => b.requireParent()).toThrow(Error);
+  });
+
+  it('非法插入位置不改变列表，也不挂接候选子节点', () => {
+    const group = new Group('group');
+    const child = circle('child');
+    for (const index of [-1, 0.5, 1, Infinity]) {
+      expect(() => group.insert(child, index)).toThrow('invalid child index');
+      expect(group.children()).toEqual([]);
+      expect(child.parent()).toBeNull();
+    }
+  });
+
+  it('移除其他对象的成员失败，不改变任何父子关系', () => {
+    const a = new Group('a');
+    const b = new Group('b');
+    const child = circle('child');
+    a.insert(child);
+    expect(() => b.remove(child)).toThrow('is not a child');
+    expect(a.children()).toEqual([child]);
+    expect(b.children()).toEqual([]);
+    expect(child.parent()).toBe(a);
   });
 
   it('find 作用于整棵子树：自身、子图形、嵌套容器中的子孙', () => {

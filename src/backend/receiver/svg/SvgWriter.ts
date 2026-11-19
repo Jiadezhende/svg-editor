@@ -36,7 +36,7 @@ export default class SvgWriter {
       .join('');
     const open = `${indent}<${type}${attributes}`;
     const content = shape.content();
-    const children = shape.asContainer()?.children() ?? [];
+    const children = shape.children();
     if (content !== null) {
       lines.push(`${open}>${SvgWriter.escapeText(SvgWriter.text(content))}</${type}>`);
     } else if (children.length === 0) {

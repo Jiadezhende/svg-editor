@@ -64,11 +64,11 @@ export default class CreateCommand extends EditCommand {
 
   execute(): CommandResult {
     const doc = this.workspace.document();
-    const parent = this.containerId === null ? doc : doc.requireContainer(this.containerId);
+    const parent = this.containerId === null ? null : doc.requireChildTarget(this.containerId);
     const shape = new this.shapeClass(this.id, this.values);
     doc.add(shape, parent);
     this.created = shape;
-    const where = this.containerId === null ? '' : ` in ${parent.label()}`;
+    const where = this.containerId === null ? '' : ` in ${parent?.label() ?? 'svg'}`;
     return new CommandResult().line(`${shape.label()} created${where}`);
   }
 
@@ -77,7 +77,7 @@ export default class CreateCommand extends EditCommand {
     if (shape === null) {
       throw new Error('undo before execute');
     }
-    shape.parent().remove(shape);
+    this.workspace.document().remove(shape);
     return new CommandResult().line(`${shape.label()} removed`);
   }
 

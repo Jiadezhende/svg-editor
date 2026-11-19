@@ -48,7 +48,7 @@ export default class TreeCommand extends Command {
 
   /** 容器的子节点；叶子没有子节点。 */
   private childrenOf(shape: Shape): readonly Shape[] {
-    return shape.asContainer()?.children() ?? [];
+    return shape.children();
   }
 
   /** 本行内容：`<type>#<id>`，有内联属性时隔 2 个空格接上。 */

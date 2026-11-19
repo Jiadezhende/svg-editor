@@ -2,7 +2,7 @@ import { DOMParser, type Element } from '@xmldom/xmldom';
 import EditorError from '../../error/EditorError';
 import type { AttributeValue } from '../document/attribute/AttributeSpec';
 import DecimalFormat from '../document/attribute/DecimalFormat';
-import type Container from '../document/Container';
+import type Shape from '../document/shape/Shape';
 import Document, { type ViewBox } from '../document/Document';
 import type { ShapeClass } from '../document/shape/ShapeFactory';
 import type ShapeFactory from '../document/shape/ShapeFactory';
@@ -36,12 +36,12 @@ export default class SvgReader {
       Array.from(root.getElementsByTagName('*')).flatMap((element) => element.getAttribute('id') ?? []),
     );
     const warnings: string[] = [];
-    this.children(root, document, document, used, warnings);
+    this.children(root, null, document, used, warnings);
     return { document, warnings };
   }
 
   /** 逐个读入 element 的子元素，加入 container。 */
-  private children(element: Element, container: Container, document: Document, used: Set<string>, warnings: string[]): void {
+  private children(element: Element, container: Shape | null, document: Document, used: Set<string>, warnings: string[]): void {
     for (const node of Array.from(element.childNodes)) {
       if (node.nodeType !== node.ELEMENT_NODE) {
         continue;
@@ -56,9 +56,8 @@ export default class SvgReader {
       const id = child.getAttribute('id') ?? SvgReader.assign(tag, used, warnings);
       const shape = new cls(id, SvgReader.values(cls, child));
       document.add(shape, container);
-      const nested = shape.asContainer();
-      if (nested !== null) {
-        this.children(child, nested, document, used, warnings);
+      if (shape.acceptsChildren()) {
+        this.children(child, shape, document, used, warnings);
       }
     }
   }

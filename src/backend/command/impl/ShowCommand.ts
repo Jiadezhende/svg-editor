@@ -20,7 +20,7 @@ export default class ShowCommand extends Command {
 
   execute(): CommandResult {
     const shape = this.workspace.document().requireShape(this.id);
-    const result = new CommandResult().line(`${shape.label()}  parent=${shape.parent().label()}`);
+    const result = new CommandResult().line(`${shape.label()}  parent=${shape.parent()?.label() ?? 'svg'}`);
     for (const detail of shape.details()) {
       result.line(`  ${detail}`);
     }

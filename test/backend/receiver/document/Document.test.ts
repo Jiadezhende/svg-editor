@@ -52,24 +52,24 @@ describe('Document 画布根', () => {
     expect(doc.children()).toEqual([]);
   });
 
-  it('add 追加到给定父节点末尾：顶层图形的父节点为 Document', () => {
+  it('add 追加到指定位置：顶层图形的 parent 为 null，内部图形指向父 Shape', () => {
     const doc = new Document(800, 600);
     const group = new Group('g1');
     const [r1, r2] = [rect('r1'), rect('r2')];
-    doc.add(r1, doc);
-    doc.add(group, doc);
+    doc.add(r1, null);
+    doc.add(group, null);
     doc.add(r2, group);
     expect(doc.children()).toEqual([r1, group]);
-    expect(r1.parent()).toBe(doc);
+    expect(r1.parent()).toBeNull();
     expect(group.children()).toEqual([r2]);
   });
 
   it('id 全文档唯一（含容器内的子孙）；失败时文档不变', () => {
     const doc = new Document(800, 600);
     const group = new Group('g1');
-    doc.add(group, doc);
+    doc.add(group, null);
     doc.add(rect('r1'), group);
-    expect(() => doc.add(rect('r1'), doc)).toThrow(new EditorError('id already exists: r1'));
+    expect(() => doc.add(rect('r1'), null)).toThrow(new EditorError('id already exists: r1'));
     expect(() => doc.add(rect('g1'), group)).toThrow('id already exists: g1');
     expect(doc.children()).toEqual([group]);
     expect(group.children()).toHaveLength(1);
@@ -77,34 +77,34 @@ describe('Document 画布根', () => {
 
   it('id 大小写敏感', () => {
     const doc = new Document(800, 600);
-    doc.add(rect('r1'), doc);
-    expect(() => doc.add(rect('R1'), doc)).not.toThrow();
+    doc.add(rect('r1'), null);
+    expect(() => doc.add(rect('R1'), null)).not.toThrow();
   });
 
   it('requireShape 在整棵树中查找，不存在时报错', () => {
     const doc = new Document(800, 600);
     const group = new Group('g1');
     const r1 = rect('r1');
-    doc.add(group, doc);
+    doc.add(group, null);
     doc.add(r1, group);
     expect(doc.requireShape('r1')).toBe(r1);
     expect(() => doc.requireShape('r9')).toThrow(new EditorError('no such shape: r9'));
   });
 
-  it('requireContainer：容器返回自身，不存在或不是容器时分别报错', () => {
+  it('requireChildTarget：返回可接收成员的图形，不存在或不接受成员时分别报错', () => {
     const doc = new Document(800, 600);
     const group = new Group('g1');
-    doc.add(group, doc);
-    doc.add(rect('r1'), doc);
-    expect(doc.requireContainer('g1')).toBe(group);
-    expect(() => doc.requireContainer('node9')).toThrow(new EditorError('no such container: node9'));
-    expect(() => doc.requireContainer('r1')).toThrow(new EditorError('not a container: r1'));
+    doc.add(group, null);
+    doc.add(rect('r1'), null);
+    expect(doc.requireChildTarget('g1')).toBe(group);
+    expect(() => doc.requireChildTarget('node9')).toThrow(new EditorError('no such container: node9'));
+    expect(() => doc.requireChildTarget('r1')).toThrow(new EditorError('not a container: r1'));
   });
 
   it('remove 返回原位置，insert 可插回原位置', () => {
     const doc = new Document(800, 600);
     const [a, b, c] = [rect('a'), rect('b'), rect('c')];
-    for (const shape of [a, b, c]) doc.add(shape, doc);
+    for (const shape of [a, b, c]) doc.add(shape, null);
     expect(doc.remove(b)).toBe(1);
     expect(doc.find('b')).toBeNull();
     doc.insert(b, 1);
@@ -116,20 +116,20 @@ describe('Document 文档顺序与指定位置加入', () => {
   it('shapes 按先序遍历给出全部图形', () => {
     const doc = new Document(800, 600);
     const [outer, inner] = [new Group('outer'), new Group('inner')];
-    doc.add(rect('a'), doc);
-    doc.add(outer, doc);
+    doc.add(rect('a'), null);
+    doc.add(outer, null);
     doc.add(rect('b'), outer);
     doc.add(inner, outer);
     doc.add(rect('c'), inner);
-    doc.add(rect('d'), doc);
+    doc.add(rect('d'), null);
     expect(doc.shapes().map((s) => s.id())).toEqual(['a', 'outer', 'b', 'inner', 'c', 'd']);
   });
 
   it('add 可指定位置', () => {
     const doc = new Document(800, 600);
-    doc.add(rect('a'), doc);
-    doc.add(rect('c'), doc);
-    doc.add(rect('b'), doc, 1);
+    doc.add(rect('a'), null);
+    doc.add(rect('c'), null);
+    doc.add(rect('b'), null, 1);
     expect(doc.children().map((s) => s.id())).toEqual(['a', 'b', 'c']);
   });
 });

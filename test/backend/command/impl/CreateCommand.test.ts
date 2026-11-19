@@ -59,7 +59,7 @@ describe('CreateCommand 创建', () => {
     expect(create(workspace, 'rect start 120 100 160 60 #4a90d9 in node1')).toEqual([
       'rect#start created in g#node1',
     ]);
-    const node1 = workspace.document().requireContainer('node1');
+    const node1 = workspace.document().requireChildTarget('node1');
     expect(node1.children().map((s) => s.id())).toEqual(['a', 'start']);
     expect(detailsOf(workspace, 'start')).toEqual(['x=120 y=100 width=160 height=60', 'fill=#4a90d9']);
   });
@@ -170,7 +170,7 @@ describe('CreateCommand 撤销与再次执行', () => {
     command.execute();
     expect(command.undo().lines()).toEqual(['rect#r1 removed']);
     expect(workspace.document().find('r1')).toBeNull();
-    expect(workspace.document().requireContainer('g1').children()).toEqual([]);
+    expect(workspace.document().requireChildTarget('g1').children()).toEqual([]);
   });
 
   it('undo 后再次 execute（redo）回显与首次相同', () => {

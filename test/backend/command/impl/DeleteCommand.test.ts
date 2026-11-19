@@ -29,7 +29,7 @@ describe('DeleteCommand 删除', () => {
   it('删除容器内的叶子：回显 deleted，从父容器中摘除', () => {
     const workspace = sample();
     expect(new DeleteCommand(workspace, ['box']).execute().lines()).toEqual(['rect#box deleted']);
-    expect(ids(workspace.document().requireContainer('markers').children())).toEqual(['c1']);
+    expect(ids(workspace.document().requireChildTarget('markers').children())).toEqual(['c1']);
     expect(workspace.document().find('box')).toBeNull();
   });
 
@@ -38,7 +38,7 @@ describe('DeleteCommand 删除', () => {
     const command = new DeleteCommand(workspace, ['c1']);
     command.execute();
     expect(command.undo().lines()).toEqual(['circle#c1 restored into g#markers']);
-    expect(ids(workspace.document().requireContainer('markers').children())).toEqual(['c1', 'box']);
+    expect(ids(workspace.document().requireChildTarget('markers').children())).toEqual(['c1', 'box']);
   });
 
   it('根级图形 undo 回显父节点为 svg，回到原位置', () => {
@@ -59,8 +59,8 @@ describe('DeleteCommand 删除', () => {
       expect(() => doc.requireShape(id)).toThrow(`no such shape: ${id}`);
     }
     expect(command.undo().lines()).toEqual(['g#markers restored into svg']);
-    expect(ids(doc.requireContainer('markers').children())).toEqual(['c1', 'box']);
-    expect(doc.requireShape('box').parent()).toBe(doc.requireShape('markers'));
+    expect(ids(doc.requireChildTarget('markers').children())).toEqual(['c1', 'box']);
+    expect(doc.requireShape('box').requireParent()).toBe(doc.requireShape('markers'));
   });
 
   it('被删除的 id 可再次创建；undo 后再次 execute（redo）回显与首次相同', () => {

@@ -1,6 +1,5 @@
 import RelocateCommand from '../RelocateCommand';
 import type { Destination } from '../RelocateCommand';
-import EditorError from '../../error/EditorError';
 import type Document from '../../receiver/document/Document';
 import type Shape from '../../receiver/document/shape/Shape';
 import type Workspace from '../../receiver/workspace/Workspace';
@@ -18,18 +17,13 @@ export default class AddtoCommand extends RelocateCommand {
     this.containerId = args[0];
   }
 
-  protected destination(doc: Document, shape: Shape): Destination {
-    const container = doc.requireShape(this.containerId).asContainer();
-    if (container === null) {
-      throw new EditorError(`not a container: ${this.containerId}`);
-    }
-    if (shape.find(this.containerId) !== null) {
-      throw new EditorError(`cannot add a container into itself or its descendant: ${shape.id()}`);
-    }
+  protected destination(doc: Document, _shape: Shape): Destination {
+    doc.requireShape(this.containerId);
+    const container = doc.requireChildTarget(this.containerId);
     return [container];
   }
 
   protected describe(shape: Shape): string {
-    return `${shape.label()} added to ${shape.parent().label()}`;
+    return `${shape.label()} added to ${shape.requireParent().label()}`;
   }
 }

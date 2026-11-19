@@ -86,15 +86,16 @@ describe('Shape 通用行为', () => {
     const rect = new Rect('r1', geometry);
     expect(rect.find('r1')).toBe(rect);
     expect(rect.find('R1')).toBeNull();
-    expect(rect.asContainer()).toBeNull();
+    expect(rect.children()).toEqual([]);
+    expect(rect.acceptsChildren()).toBe(false);
   });
 
   it('未加入容器时取父节点属于程序缺陷；加入后为该容器', () => {
     const rect = new Rect('r1', geometry);
-    expect(() => rect.parent()).toThrow(Error);
+    expect(() => rect.requireParent()).toThrow(Error);
     const group = new Group('g1');
     group.insert(rect);
-    expect(rect.parent()).toBe(group);
+    expect(rect.requireParent()).toBe(group);
   });
 
   it('已有父节点时再次插入属于程序缺陷', () => {
@@ -185,7 +186,7 @@ describe('Shape 移动位置', () => {
     const rect = new Rect('r1', geometry);
     const [g1, g2] = [new Group('g1'), new Group('g2')];
     rect.relocate(g1);
-    expect(rect.parent()).toBe(g1);
+    expect(rect.requireParent()).toBe(g1);
     rect.relocate(g2);
     expect(g1.children()).toEqual([]);
     expect(g2.children()).toEqual([rect]);

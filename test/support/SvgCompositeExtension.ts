@@ -41,6 +41,10 @@ export class Panel extends Shape {
   captionShape(): Caption { return this.caption; }
   setLabel(value: string): void { this.caption.set('text', value); }
 
+  override identifiers(): readonly string[] {
+    return [this.id(), ...this.frame.identifiers(), ...this.caption.identifiers()];
+  }
+
   override capture(): ShapeMemento {
     return super.capture().with([this.frame.capture(), this.caption.capture()]);
   }

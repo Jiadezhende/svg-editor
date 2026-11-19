@@ -107,6 +107,11 @@ export default abstract class Shape {
     return this.shapeId;
   }
 
+  /** 自身及私有部件占用的 id；复合模型覆写，不暴露部件或文档关系。 */
+  identifiers(): readonly string[] {
+    return [this.shapeId];
+  }
+
   type(): string {
     return this.definition().type;
   }

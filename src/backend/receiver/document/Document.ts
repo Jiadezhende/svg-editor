@@ -67,6 +67,7 @@ export default class Document {
     this.checkParent(parent);
     if (owners.has(shape)) throw new EditorError(`shape already attached: ${shape.id()}`);
     if (this.byId.has(shape.id())) throw new EditorError(`id already exists: ${shape.id()}`);
+    this.checkIdentifiers([...this.nodes().map((node) => node.value), shape]);
     parent?.value.checkInsert(shape);
     this.checkIndex(parent, index);
   }
@@ -143,6 +144,7 @@ export default class Document {
           throw new EditorError(`shape already attached: ${node.value.id()}`);
         }
       }
+      this.checkIdentifiers(saved.map(({ node }) => node.value));
       for (const node of this.byId.values()) {
         owners.delete(node.value);
         states.set(node, { parent: null, children: [] });
@@ -165,6 +167,19 @@ export default class Document {
     } catch (error) {
       before.restore();
       throw error;
+    }
+  }
+
+  private checkIdentifiers(shapes: readonly Shape[]): void {
+    const used = new Set<string>();
+    for (const shape of shapes) {
+      const ids = shape.identifiers();
+      if (!ids.includes(shape.id())) throw new EditorError(`shape identifiers must include root: ${shape.id()}`);
+      for (const id of ids) {
+        Shape.checkId(id);
+        if (used.has(id)) throw new EditorError(`id already exists: ${id}`);
+        used.add(id);
+      }
     }
   }
 

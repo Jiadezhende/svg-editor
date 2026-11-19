@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AttributeHandlerRegistry, Client, Document, EditorError, Shape, ShapeFactory, SvgReader, SvgWriter, Workspace } from '../../../../src/backend';
-import type { SvgElement } from '../../../../src/backend';
+import type { SvgElement, SvgShapeMapping } from '../../../../src/backend';
 import ReadCommand from '../../../../src/backend/command/impl/ReadCommand';
 import SaveCommand from '../../../../src/backend/command/impl/SaveCommand';
 import MoveCommand from '../../../../src/backend/command/impl/MoveCommand';
@@ -19,7 +19,7 @@ function factory(installed = true): ShapeFactory {
   return result;
 }
 
-function sample() {
+function sample(mapping: SvgShapeMapping = panelMapping) {
   const shapes = factory();
   const storage = new Map<string, string>();
   const files = {
@@ -29,7 +29,7 @@ function sample() {
     },
     write: vi.fn((path: string, text: string) => { storage.set(path, text); }),
   };
-  const writer = new SvgWriter([panelMapping]);
+  const writer = new SvgWriter([mapping]);
   const workspace = new Workspace(shapes, files, new SvgReader(shapes), writer, new AttributeHandlerRegistry());
   const document = new Document(100, 100);
   const panel = shapes.create(Panel.type, 'p') as Panel;
@@ -97,11 +97,14 @@ describe('SVG 复合类型完整读写', () => {
   });
 
   it('私有部件与文档节点 id 冲突在写文件前拒绝，文件、路径和历史不变', () => {
-    const { workspace, document, panel, client, storage, files } = sample();
-    document.insert(Frame.parse('p-frame', new Map()).shape);
+    const { workspace, document, panel, client, storage, files } = sample({
+      matches: panelMapping.matches,
+      write: (shape) => ({ ...panelMapping.write(shape), children: [{ type: 'rect', attributes: [['id', 'external']] }] }),
+    });
+    document.insert(Frame.parse('external', new Map()).shape);
     storage.set('existing.svg', 'keep this file');
     client.execute(['move', 'p', '5', '6']);
-    expect(() => client.execute(['save', 'existing.svg'])).toThrow('id already exists: p-frame');
+    expect(() => client.execute(['save', 'existing.svg'])).toThrow('id already exists: external');
     expect(files.write).not.toHaveBeenCalled();
     expect(storage.get('existing.svg')).toBe('keep this file');
     expect(workspace.path()).toBe('original.svg');

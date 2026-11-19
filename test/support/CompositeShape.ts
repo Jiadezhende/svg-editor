@@ -20,6 +20,10 @@ export default class CompositeShape extends Shape {
   frameShape(): Rect { return this.frame; }
   captionShape(): Text { return this.caption; }
 
+  override identifiers(): readonly string[] {
+    return [this.id(), ...this.frame.identifiers(), ...this.caption.identifiers()];
+  }
+
   override capture(): ShapeMemento {
     return super.capture().with([this.frame.capture(), this.caption.capture()]);
   }

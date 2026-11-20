@@ -1,6 +1,6 @@
-import Command from '../Command';
-import CommandResult from '../CommandResult';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { Command } from '../../src/backend';
+import { CommandResult } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
 /**
  * `tree [id]`：以树形输出文档结构，每行内联图形的核心属性。

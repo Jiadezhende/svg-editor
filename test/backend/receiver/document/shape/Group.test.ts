@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import Group from '../../../../../src/backend/receiver/document/shape/Group';
-import Circle from '../../../../../src/backend/receiver/document/shape/Circle';
+import Group from '../../../../../plugins/shapes/Group';
+import Circle from '../../../../../plugins/shapes/Circle';
 import Document from '../../../../../src/backend/receiver/document/Document';
 
 const circle = (id: string) => new Circle(id, new Map([['cx', 0], ['cy', 0], ['r', 1]]));

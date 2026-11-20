@@ -1,6 +1,6 @@
-import CoordinateSpec from '../attribute/CoordinateSpec';
-import LengthSpec from '../attribute/LengthSpec';
-import Shape from './Shape';
+import { CoordinateSpec } from '../../src/backend';
+import { LengthSpec } from '../../src/backend';
+import { Shape } from '../../src/backend';
 
 export default class Ellipse extends Shape {
   static override readonly type = 'ellipse';

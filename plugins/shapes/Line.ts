@@ -1,5 +1,5 @@
-import CoordinateSpec from '../attribute/CoordinateSpec';
-import Shape from './Shape';
+import { CoordinateSpec } from '../../src/backend';
+import { Shape } from '../../src/backend';
 
 export default class Line extends Shape {
   static override readonly type = 'line';

@@ -6,6 +6,7 @@ import { Command, CommandResult, Document, Shape, TreeDecorator } from '../../sr
 import type { ExtensionContext, ShapeNode } from '../../src/backend';
 import { assemblePlugins, assembleSources } from '../../src/host/PluginHost';
 import type { PluginRegistration } from '../../src/host/PluginHost';
+import { createHost } from '../support/Plugins';
 import { Panel, panelMapping } from '../support/SvgCompositeExtension';
 import { TestChangedDecorator } from '../support/PublicTreeExtension';
 
@@ -47,9 +48,9 @@ describe('插件暂存与原子装配', () => {
   it('装配四类扩展及附属 SVG 映射，实际参与命令、属性、树和读写', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'svg-assembly-'));
     directories.push(dir);
-    const host = await assemblePlugins([all]);
+    const host = await createHost([all]);
     expect(host.errors).toEqual([]);
-    expect(host.plugins).toEqual(['all']);
+    expect(host.plugins).toEqual(['commands', 'shapes', 'all']);
     host.client.execute(['init']);
     host.client.execute(['create', Panel.type, 'p']);
     expect(host.client.execute(['test-hello']).lines()).toEqual(['hello from plugin']);

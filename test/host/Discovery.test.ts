@@ -5,7 +5,6 @@ import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDiscoveredHost } from '../../src/host/discovery';
-import { createClient } from '../../src/host/defaults';
 
 let directory: string;
 beforeEach(() => { directory = mkdtempSync(join(tmpdir(), 'svg-discovery-')); });
@@ -49,12 +48,12 @@ function runHost(body: string): any {
 }
 
 describe('全部插件目录发现', () => {
-  it('目录缺失或没有插件时保留基础宿主与 help 输出', async () => {
+  it('目录缺失或没有插件时仅保留框架入口', async () => {
     const empty = await createDiscoveredHost(directory, () => {});
     const missing = await createDiscoveredHost(join(directory, 'missing'), () => {});
     expect(empty.errors).toEqual([]);
     expect(missing.errors).toEqual([]);
-    expect(empty.client.execute(['help']).lines()).toEqual(createClient().execute(['help']).lines());
+    expect(empty.client.execute(['help']).lines()).toEqual(['help', 'undo', 'redo', 'exit', 'quit']);
   });
 
   it('按目录名稳定发现所有包，不维护插件名称清单，新命令参与分发和 help', async () => {
@@ -111,12 +110,11 @@ describe('全部插件目录发现', () => {
     packageOf('c-mismatch', 'mismatch', commandSource('unexpected'), []);
     const host = runHost(`const host = await createDiscoveredHost(directory, () => {});
       let unknown; try { host.client.execute(['unexpected']); } catch (error) { unknown = error.message; }
-      host.client.execute(['init']); host.client.execute(['create', 'g', 'g']);
-      console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins, unknown, type: host.workspace.document().requireNode('g').value.type() }));`);
+      console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins, unknown, hasGroup: host.workspace.shapes().has('g') }));`);
     expect(host.plugins).toEqual([]);
     expect(host.errors).toHaveLength(3);
     expect(host.errors[2]).toContain('plugin manifest mismatch: mismatch');
     expect(host.unknown).toContain('unknown command');
-    expect(host.type).toBe('g');
+    expect(host.hasGroup).toBe(false);
   });
 });

@@ -1,9 +1,9 @@
-import CommandResult from '../CommandResult';
-import EditCommand from '../EditCommand';
-import EditorError from '../../error/EditorError';
-import type Shape from '../../receiver/document/shape/Shape';
-import type ShapeMemento from '../../receiver/document/shape/ShapeMemento';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { CommandResult } from '../../src/backend';
+import { EditCommand } from '../../src/backend';
+import { EditorError } from '../../src/backend';
+import type { Shape } from '../../src/backend';
+import type { ShapeMemento } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
 /** `scale <id> <factor>`：以坐标原点为中心等比缩放位置与尺寸；容器递归到每个子孙；stroke-width 不缩放。 */
 export default class ScaleCommand extends EditCommand {

@@ -1,0 +1,15 @@
+{
+  "name": "shapes",
+  "type": "module",
+  "main": "index.ts",
+  "contributes": {
+    "shapes": [
+      "rect",
+      "circle",
+      "ellipse",
+      "line",
+      "text",
+      "g"
+    ]
+  }
+}

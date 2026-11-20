@@ -1,6 +1,6 @@
-import CommandResult from '../CommandResult';
-import DocumentCommand from '../DocumentCommand';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { CommandResult } from '../../src/backend';
+import { DocumentCommand } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
 /** `save [file.svg]`：保存当前文档；无参时保存到当前路径，带参时保存到该路径并使其成为当前路径。 */
 export default class SaveCommand extends DocumentCommand {

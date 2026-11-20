@@ -1,8 +1,8 @@
-import CommandResult from '../CommandResult';
-import EditCommand from '../EditCommand';
-import UndoRecord from '../UndoRecord';
-import EditorError from '../../error/EditorError';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { CommandResult } from '../../src/backend';
+import { EditCommand } from '../../src/backend';
+import { UndoRecord } from '../../src/backend';
+import { EditorError } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
 /**
  * `group <newGid> <id1> <id2>…`：新建容器并收入若干图形。

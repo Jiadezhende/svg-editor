@@ -2,13 +2,13 @@ import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import Document from '../../../../src/backend/receiver/document/Document';
 import type ShapeNode from '../../../../src/backend/receiver/document/ShapeNode';
-import Group from '../../../../src/backend/receiver/document/shape/Group';
-import Rect from '../../../../src/backend/receiver/document/shape/Rect';
+import Group from '../../../../plugins/shapes/Group';
+import Rect from '../../../../plugins/shapes/Rect';
 import type Shape from '../../../../src/backend/receiver/document/shape/Shape';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
-import GroupCommand from '../../../../src/backend/command/impl/GroupCommand';
-import UngroupCommand from '../../../../src/backend/command/impl/UngroupCommand';
-import DeleteCommand from '../../../../src/backend/command/impl/DeleteCommand';
+import GroupCommand from '../../../../plugins/commands/GroupCommand';
+import UngroupCommand from '../../../../plugins/commands/UngroupCommand';
+import DeleteCommand from '../../../../plugins/commands/DeleteCommand';
 import Invoker from '../../../../src/backend/invoker/Invoker';
 
 const rect = (id: string) => new Rect(id, new Map([['x', 0], ['y', 0], ['width', 1], ['height', 1]]));

@@ -1,6 +1,6 @@
-import CommandResult from '../CommandResult';
-import DocumentCommand from '../DocumentCommand';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { CommandResult } from '../../src/backend';
+import { DocumentCommand } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
 /** `canvas <w> <h>`：修改画布尺寸（文档类），不改动 viewBox。与 CanvasShowCommand 同名，接受有参的输入。 */
 export default class CanvasResizeCommand extends DocumentCommand {

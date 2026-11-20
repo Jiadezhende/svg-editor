@@ -1,9 +1,8 @@
 import {
-  AttributeHandlerRegistry, Client, Command, Shape, SvgReader, SvgWriter, TreeRenderer, Workspace,
+  AttributeHandlerRegistry, Client, Command, Shape, ShapeFactory, SvgReader, SvgWriter, TreeRenderer, Workspace,
 } from '../backend';
 import type { AttributeHandler, ExtensionContext, ExtensionPlugin, SvgShapeMapping } from '../backend';
 import SvgFile from '../backend/receiver/svg/SvgFile';
-import { createShapeFactory, registerBuiltinCommands } from './defaults';
 
 type Category = 'shapes' | 'commands' | 'attributes' | 'decorators';
 export type Contributions = Partial<Record<Category, readonly string[]>>;
@@ -27,7 +26,7 @@ type Staged = {
 };
 
 function build(plugins: readonly Staged[]) {
-  const factory = createShapeFactory();
+  const factory = new ShapeFactory();
   const writer = new SvgWriter();
   const handlers = new AttributeHandlerRegistry();
   const decorators: Staged['decorators'] = [];
@@ -56,7 +55,7 @@ function build(plugins: readonly Staged[]) {
   }
   const workspace = new Workspace(factory, new SvgFile(), new SvgReader(factory), writer, handlers, new TreeRenderer(decorators));
   const client = new Client(workspace);
-  const commandNames = new Set([...registerBuiltinCommands(client), 'help', 'undo', 'redo', 'exit', 'quit']);
+  const commandNames = new Set(['help', 'undo', 'redo', 'exit', 'quit']);
   for (const plugin of plugins) {
     const local = new Set<string>();
     for (const command of plugin.commands) {

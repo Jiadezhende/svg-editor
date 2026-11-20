@@ -1,7 +1,7 @@
 import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
-import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
-import SetCommand from '../../../../src/backend/command/impl/SetCommand';
+import CreateCommand from '../../../../plugins/commands/CreateCommand';
+import SetCommand from '../../../../plugins/commands/SetCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';

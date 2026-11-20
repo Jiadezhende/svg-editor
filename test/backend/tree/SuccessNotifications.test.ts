@@ -2,12 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { AttributeHandlerRegistry, Client, SvgReader, SvgWriter, TreeDecorator, TreeRenderer, Workspace } from '../../../src/backend';
 import type { TreeSuccess } from '../../../src/backend';
 import { createShapeFactory } from '../../../src/host/defaults';
-import InitCommand from '../../../src/backend/command/impl/InitCommand';
-import CreateCommand from '../../../src/backend/command/impl/CreateCommand';
-import ReadCommand from '../../../src/backend/command/impl/ReadCommand';
-import SaveCommand from '../../../src/backend/command/impl/SaveCommand';
-import TreeCommand from '../../../src/backend/command/impl/TreeCommand';
-import CanvasResizeCommand from '../../../src/backend/command/impl/CanvasResizeCommand';
+import InitCommand from '../../../plugins/commands/InitCommand';
+import CreateCommand from '../../../plugins/commands/CreateCommand';
+import ReadCommand from '../../../plugins/commands/ReadCommand';
+import SaveCommand from '../../../plugins/commands/SaveCommand';
+import TreeCommand from '../../../plugins/commands/TreeCommand';
+import CanvasResizeCommand from '../../../plugins/commands/CanvasResizeCommand';
 
 function session(broken = false) {
   const events: TreeSuccess[] = [];

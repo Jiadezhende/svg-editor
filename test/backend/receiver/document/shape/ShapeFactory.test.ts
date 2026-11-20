@@ -1,8 +1,8 @@
 import { createShapeFactory } from '../../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
 import ShapeFactory from '../../../../../src/backend/receiver/document/shape/ShapeFactory';
-import Group from '../../../../../src/backend/receiver/document/shape/Group';
-import Rect from '../../../../../src/backend/receiver/document/shape/Rect';
+import Group from '../../../../../plugins/shapes/Group';
+import Rect from '../../../../../plugins/shapes/Rect';
 import Shape from '../../../../../src/backend/receiver/document/shape/Shape';
 import EditorError from '../../../../../src/backend/error/EditorError';
 

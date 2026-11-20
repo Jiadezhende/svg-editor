@@ -1,8 +1,8 @@
 import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
-import CreateCommand from '../../../../src/backend/command/impl/CreateCommand';
-import GroupCommand from '../../../../src/backend/command/impl/GroupCommand';
-import TreeCommand from '../../../../src/backend/command/impl/TreeCommand';
+import CreateCommand from '../../../../plugins/commands/CreateCommand';
+import GroupCommand from '../../../../plugins/commands/GroupCommand';
+import TreeCommand from '../../../../plugins/commands/TreeCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';

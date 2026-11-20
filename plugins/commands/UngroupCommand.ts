@@ -1,8 +1,8 @@
-import CommandResult from '../CommandResult';
-import EditCommand from '../EditCommand';
-import UndoRecord from '../UndoRecord';
-import EditorError from '../../error/EditorError';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { CommandResult } from '../../src/backend';
+import { EditCommand } from '../../src/backend';
+import { UndoRecord } from '../../src/backend';
+import { EditorError } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
 /**
  * `ungroup <gid>`：解散容器，子图形按原顺序提升到其父级、占据容器原来的位置。

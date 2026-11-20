@@ -1,6 +1,6 @@
 import Shape from '../../src/backend/receiver/document/shape/Shape';
-import Rect from '../../src/backend/receiver/document/shape/Rect';
-import Text from '../../src/backend/receiver/document/shape/Text';
+import Rect from '../../plugins/shapes/Rect';
+import Text from '../../plugins/shapes/Text';
 import type ShapeMemento from '../../src/backend/receiver/document/shape/ShapeMemento';
 
 /** 测试复合模型：内部组成不意味着开放成员编辑，不依赖 Group。 */

@@ -1,7 +1,7 @@
-import DocumentCommand from '../DocumentCommand';
-import CommandResult from '../CommandResult';
-import Document from '../../receiver/document/Document';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { DocumentCommand } from '../../src/backend';
+import { CommandResult } from '../../src/backend';
+import { Document } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
 /** `init [w] [h]`：新建文档并替换当前文档，默认画布 800×600；覆盖已有文档时给出警告。 */
 export default class InitCommand extends DocumentCommand {

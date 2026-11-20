@@ -1,6 +1,6 @@
-import CommandResult from '../CommandResult';
-import DocumentCommand from '../DocumentCommand';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { CommandResult } from '../../src/backend';
+import { DocumentCommand } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
 /** `read <file.svg>`：读入 SVG 文件为当前文档；读取或解析失败时当前文档不变。 */
 export default class ReadCommand extends DocumentCommand {

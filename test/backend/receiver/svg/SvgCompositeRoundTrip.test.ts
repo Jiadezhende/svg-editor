@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AttributeHandlerRegistry, TreeRenderer, Client, Document, EditorError, Shape, ShapeFactory, SvgReader, SvgWriter, Workspace } from '../../../../src/backend';
 import type { SvgElement, SvgShapeMapping } from '../../../../src/backend';
-import ReadCommand from '../../../../src/backend/command/impl/ReadCommand';
-import SaveCommand from '../../../../src/backend/command/impl/SaveCommand';
-import MoveCommand from '../../../../src/backend/command/impl/MoveCommand';
-import TreeCommand from '../../../../src/backend/command/impl/TreeCommand';
+import ReadCommand from '../../../../plugins/commands/ReadCommand';
+import SaveCommand from '../../../../plugins/commands/SaveCommand';
+import MoveCommand from '../../../../plugins/commands/MoveCommand';
+import TreeCommand from '../../../../plugins/commands/TreeCommand';
 import { Caption, Frame, Panel, panelMapping } from '../../../support/SvgCompositeExtension';
 
 class Group extends Shape {

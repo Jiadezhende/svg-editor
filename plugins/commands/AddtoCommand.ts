@@ -1,7 +1,7 @@
-import CommandResult from '../CommandResult';
-import EditCommand from '../EditCommand';
-import UndoRecord from '../UndoRecord';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { CommandResult } from '../../src/backend';
+import { EditCommand } from '../../src/backend';
+import { UndoRecord } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
 /** `addto <gid> <id>`：节点迁移用例，由 Document 维护结构约束。 */
 export default class AddtoCommand extends EditCommand {

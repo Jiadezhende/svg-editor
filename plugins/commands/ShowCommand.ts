@@ -1,6 +1,6 @@
-import Command from '../Command';
-import CommandResult from '../CommandResult';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { Command } from '../../src/backend';
+import { CommandResult } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
 /** `show <id>`：输出单个图形的全部已设置属性。 */
 export default class ShowCommand extends Command {

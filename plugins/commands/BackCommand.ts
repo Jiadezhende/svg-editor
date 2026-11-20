@@ -1,12 +1,12 @@
-import CommandResult from '../CommandResult';
-import EditCommand from '../EditCommand';
-import UndoRecord from '../UndoRecord';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { CommandResult } from '../../src/backend';
+import { EditCommand } from '../../src/backend';
+import { UndoRecord } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
-/** `front <id>`：节点迁移用例，由 Document 维护结构约束。 */
-export default class FrontCommand extends EditCommand {
-  static override readonly command = 'front';
-  static override readonly usage = 'front <id>';
+/** `back <id>`：节点迁移用例，由 Document 维护结构约束。 */
+export default class BackCommand extends EditCommand {
+  static override readonly command = 'back';
+  static override readonly usage = 'back <id>';
   private readonly undoRecord = new UndoRecord();
   private readonly id: string;
 
@@ -22,9 +22,9 @@ export default class FrontCommand extends EditCommand {
       const node = doc.requireNode(this.id);
       const target = node.parent();
       const parent = node.parent();
-      doc.relocate(node, target);
+      doc.relocate(node, target, 0);
       return {
-        result: new CommandResult().line(`${node.value.label()} brought to front`),
+        result: new CommandResult().line(`${node.value.label()} sent to back`),
         undo: `${node.value.label()} restored into ${parent?.value.label() ?? 'svg'}`,
       };
     });

@@ -1,6 +1,6 @@
 import { createWorkspace } from '../../../../src/host/defaults';
 import { describe, expect, it } from 'vitest';
-import CanvasShowCommand from '../../../../src/backend/command/impl/CanvasShowCommand';
+import CanvasShowCommand from '../../../../plugins/commands/CanvasShowCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
 
 describe('CanvasShowCommand', () => {

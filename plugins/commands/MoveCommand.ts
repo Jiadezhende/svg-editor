@@ -1,8 +1,8 @@
-import CommandResult from '../CommandResult';
-import EditCommand from '../EditCommand';
-import type Shape from '../../receiver/document/shape/Shape';
-import type ShapeMemento from '../../receiver/document/shape/ShapeMemento';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { CommandResult } from '../../src/backend';
+import { EditCommand } from '../../src/backend';
+import type { Shape } from '../../src/backend';
+import type { ShapeMemento } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
 /**
  * `move <id> <dx> <dy>`：增量平移；容器整体平移（递归到每个子孙）。

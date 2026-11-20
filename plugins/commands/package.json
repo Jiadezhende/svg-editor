@@ -1,0 +1,25 @@
+{
+  "name": "commands",
+  "type": "module",
+  "main": "index.ts",
+  "contributes": {
+    "commands": [
+      "addto",
+      "back",
+      "canvas",
+      "create",
+      "delete",
+      "front",
+      "group",
+      "init",
+      "move",
+      "read",
+      "save",
+      "scale",
+      "set",
+      "show",
+      "tree",
+      "ungroup"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
-import Command from '../Command';
-import CommandResult from '../CommandResult';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { Command } from '../../src/backend';
+import { CommandResult } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
 /** `canvas`：显示当前画布尺寸（显示类）。与 CanvasResizeCommand 同名，只接受无参。 */
 export default class CanvasShowCommand extends Command {

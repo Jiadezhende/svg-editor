@@ -1,10 +1,10 @@
-import EditorError from '../../error/EditorError';
-import CommandResult from '../CommandResult';
-import EditCommand from '../EditCommand';
-import UndoRecord from '../UndoRecord';
-import type { AttributeValue } from '../../receiver/document/attribute/AttributeSpec';
-import type ShapeFactory from '../../receiver/document/shape/ShapeFactory';
-import type Workspace from '../../receiver/workspace/Workspace';
+import { EditorError } from '../../src/backend';
+import { CommandResult } from '../../src/backend';
+import { EditCommand } from '../../src/backend';
+import { UndoRecord } from '../../src/backend';
+import type { AttributeValue } from '../../src/backend';
+import type { ShapeFactory } from '../../src/backend';
+import type { Workspace } from '../../src/backend';
 
 /**
  * `create <type> <id> [params…] [in <containerId>]`：按类型创建图形，挂在画布根或指定容器的末尾。

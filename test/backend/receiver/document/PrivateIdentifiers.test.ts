@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Client, Document, Shape } from '../../../../src/backend';
 import CreateCommand from '../../../../plugins/commands/CreateCommand';
-import { createWorkspace } from '../../../../src/host/defaults';
+import { createWorkspace } from '../../../support/Plugins';
 import { Frame, Panel } from '../../../support/SvgCompositeExtension';
 
 describe('Document 私有部件 id', () => {
@@ -50,8 +50,8 @@ describe('Document 私有部件 id', () => {
     expect(doc.insert(Frame.parse('p-frame', new Map()).shape).value.id()).toBe('p-frame');
   });
 
-  it('create 通过 Document 在提交前拒绝冲突，保留 redo 并可重试', () => {
-    const workspace = createWorkspace();
+  it('create 通过 Document 在提交前拒绝冲突，保留 redo 并可重试', async () => {
+    const workspace = (await createWorkspace());
     workspace.shapes().register(Panel);
     const doc = new Document(100, 100);
     workspace.replace(doc);

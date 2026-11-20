@@ -1,4 +1,4 @@
-import { createWorkspace } from '../../../../src/host/defaults';
+import { createWorkspace } from '../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import Document from '../../../../src/backend/receiver/document/Document';
 import type ShapeNode from '../../../../src/backend/receiver/document/ShapeNode';
@@ -19,8 +19,8 @@ class ProtectedGroup extends Group {
   }
 }
 
-function workspaceWith(doc: Document): Workspace {
-  const workspace = createWorkspace();
+async function workspaceWith(doc: Document): Promise<Workspace> {
+  const workspace = (await createWorkspace());
   workspace.replace(doc);
   return workspace;
 }
@@ -144,19 +144,19 @@ describe('Document 结构边界', () => {
     expect(a.parent()).toBe(root);
   });
 
-  it('分组预检查失败，不创建空组或移动前面的成员', () => {
+  it('分组预检查失败，不创建空组或移动前面的成员', async () => {
     const doc = new Document(100, 100);
     const a = doc.insert(rect('a'));
     const protectedNode = doc.insert(new ProtectedGroup('protected'));
     const part = doc.insert(rect('part'), protectedNode);
-    const command = new GroupCommand(workspaceWith(doc), ['new', 'a', 'part']);
+    const command = new GroupCommand((await workspaceWith(doc)), ['new', 'a', 'part']);
     expect(() => command.execute()).toThrow('required part');
     expect(doc.children()).toEqual([a, protectedNode]);
     expect(doc.findNode('new')).toBeNull();
     expect(part.parent()).toBe(protectedNode);
   });
 
-  it('解组目标规则失败，不提升前面的成员', () => {
+  it('解组目标规则失败，不提升前面的成员', async () => {
     class RestrictedParent extends Group {
       override checkInsert(shape: Shape): void {
         super.checkInsert(shape);
@@ -168,12 +168,12 @@ describe('Document 结构边界', () => {
     const group = doc.insert(new Group('group'), parent);
     const a = doc.insert(rect('a'), group);
     const b = doc.insert(rect('b'), group);
-    expect(() => new UngroupCommand(workspaceWith(doc), ['group']).execute()).toThrow('member rejected');
+    await expect(async () => new UngroupCommand((await workspaceWith(doc)), ['group']).execute()).rejects.toThrow('member rejected');
     expect(parent.children()).toEqual([group]);
     expect(group.children()).toEqual([a, b]);
   });
 
-  it('多步骤结构命令在已经修改之后失败，也恢复整个树及历史', () => {
+  it('多步骤结构命令在已经修改之后失败，也恢复整个树及历史', async () => {
     let checks = 0;
     class FailingGroup extends Group {
       override checkRemove(_shape: Shape): void {
@@ -186,7 +186,7 @@ describe('Document 结构边界', () => {
     const root = doc.insert(new FailingGroup('root'));
     const a = doc.insert(rect('a'), root);
     const b = doc.insert(rect('b'), root);
-    const workspace = workspaceWith(doc);
+    const workspace = (await workspaceWith(doc));
     const invoker = new Invoker();
     const command = new GroupCommand(workspace, ['new', 'a', 'b']);
     expect(() => invoker.execute(command)).toThrow('late failure');
@@ -196,11 +196,11 @@ describe('Document 结构边界', () => {
     expect(() => invoker.undo()).toThrow('nothing to undo');
   });
 
-  it('删除撤销恢复原节点与模型；后续结构撤销不回滚模型属性', () => {
+  it('删除撤销恢复原节点与模型；后续结构撤销不回滚模型属性', async () => {
     const doc = new Document(100, 100);
     const group = doc.insert(new Group('g'));
     const a = doc.insert(rect('a'), group);
-    const workspace = workspaceWith(doc);
+    const workspace = (await workspaceWith(doc));
     const invoker = new Invoker();
     invoker.execute(new DeleteCommand(workspace, ['g']));
     invoker.undo();

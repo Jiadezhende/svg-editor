@@ -1,4 +1,4 @@
-import { createWorkspace } from '../../../../src/host/defaults';
+import { createWorkspace } from '../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import CreateCommand from '../../../../plugins/commands/CreateCommand';
 import TreeCommand from '../../../../plugins/commands/TreeCommand';
@@ -6,8 +6,8 @@ import Document from '../../../../src/backend/receiver/document/Document';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';
 
-function workspaceWith(...lines: string[]): Workspace {
-  const workspace = createWorkspace();
+async function workspaceWith(...lines: string[]): Promise<Workspace> {
+  const workspace = (await createWorkspace());
   workspace.replace(new Document(800, 600));
   for (const line of lines) {
     new CreateCommand(workspace, line.split(' ')).execute();
@@ -16,8 +16,8 @@ function workspaceWith(...lines: string[]): Workspace {
 }
 
 /** 接口契约示例中的文档：根下依次为 bg、title、markers{c1, box}。 */
-function sample(): Workspace {
-  const workspace = workspaceWith('rect bg 0 0 800 600 #ffffff');
+async function sample(): Promise<Workspace> {
+  const workspace = (await workspaceWith('rect bg 0 0 800 600 #ffffff'));
   new CreateCommand(workspace, ['text', 'title', '20', '40', 'My Diagram']).execute();
   for (const line of ['g markers', 'circle c1 100 100 20 red in markers', 'rect box 200 80 60 60 #3366ff in markers']) {
     new CreateCommand(workspace, line.split(' ')).execute();
@@ -30,8 +30,8 @@ function tree(workspace: Workspace, ...args: string[]): string[] {
 }
 
 describe('TreeCommand', () => {
-  it('全文档：首行为画布尺寸，内联核心属性，不含外观属性', () => {
-    expect(tree(sample())).toEqual([
+  it('全文档：首行为画布尺寸，内联核心属性，不含外观属性', async () => {
+    expect(tree((await sample()))).toEqual([
       'svg (800x600)',
       '├── rect#bg  x=0 y=0 width=800 height=600',
       '├── text#title  x=20 y=40 text="My Diagram"',
@@ -41,27 +41,27 @@ describe('TreeCommand', () => {
     ]);
   });
 
-  it('tree <id> 只输出以该图形为根的子树', () => {
-    expect(tree(sample(), 'markers')).toEqual([
+  it('tree <id> 只输出以该图形为根的子树', async () => {
+    expect(tree((await sample()), 'markers')).toEqual([
       'g#markers',
       '├── circle#c1  cx=100 cy=100 r=20',
       '└── rect#box  x=200 y=80 width=60 height=60',
     ]);
   });
 
-  it('tree <叶子 id> 只输出该图形本行', () => {
-    expect(tree(sample(), 'c1')).toEqual(['circle#c1  cx=100 cy=100 r=20']);
+  it('tree <叶子 id> 只输出该图形本行', async () => {
+    expect(tree((await sample()), 'c1')).toEqual(['circle#c1  cx=100 cy=100 r=20']);
   });
 
-  it('多层嵌套：非最后一个容器的子孙前缀为 │，最后一个为空白', () => {
-    const workspace = workspaceWith(
+  it('多层嵌套：非最后一个容器的子孙前缀为 │，最后一个为空白', async () => {
+    const workspace = (await workspaceWith(
       'g a',
       'g a1 in a',
       'line l1 0 0 1 1 in a1',
       'rect r1 0 0 1 1 in a',
       'g b',
       'ellipse e1 1 2 3 4 in b',
-    );
+    ));
     expect(tree(workspace)).toEqual([
       'svg (800x600)',
       '├── g#a',
@@ -73,30 +73,30 @@ describe('TreeCommand', () => {
     ]);
   });
 
-  it('空文档只输出画布尺寸，尺寸按数值格式输出', () => {
-    const workspace = createWorkspace();
+  it('空文档只输出画布尺寸，尺寸按数值格式输出', async () => {
+    const workspace = (await createWorkspace());
     workspace.replace(new Document(100.5, 200));
     expect(tree(workspace)).toEqual(['svg (100.5x200)']);
   });
 
-  it('空容器只输出该容器', () => {
-    expect(tree(workspaceWith('g g1'), 'g1')).toEqual(['g#g1']);
+  it('空容器只输出该容器', async () => {
+    expect(tree((await workspaceWith('g g1')), 'g1')).toEqual(['g#g1']);
   });
 
-  it('id 不存在时报错', () => {
-    expect(() => tree(sample(), 'r9')).toThrow(new EditorError('no such shape: r9'));
+  it('id 不存在时报错', async () => {
+    await expect(async () => tree((await sample()), 'r9')).rejects.toThrow(new EditorError('no such shape: r9'));
   });
 
-  it('参数个数不符时报错并附语法', () => {
-    expect(() => new TreeCommand(createWorkspace(), ['a', 'b'])).toThrow('wrong number of arguments. usage: tree [id]');
+  it('参数个数不符时报错并附语法', async () => {
+    await expect(async () => new TreeCommand((await createWorkspace()), ['a', 'b'])).rejects.toThrow('wrong number of arguments. usage: tree [id]');
   });
 
-  it('无文档时报无文档', () => {
-    expect(() => tree(createWorkspace())).toThrow("no document. use 'init' or 'read' first");
+  it('无文档时报无文档', async () => {
+    await expect(async () => tree((await createWorkspace()))).rejects.toThrow("no document. use 'init' or 'read' first");
   });
 
-  it('不改变文档', () => {
-    const workspace = sample();
+  it('不改变文档', async () => {
+    const workspace = (await sample());
     const before = tree(workspace);
     tree(workspace, 'markers');
     expect(tree(workspace)).toEqual(before);

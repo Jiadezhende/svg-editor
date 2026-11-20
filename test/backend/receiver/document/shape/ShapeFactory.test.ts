@@ -1,4 +1,4 @@
-import { createShapeFactory } from '../../../../../src/host/defaults';
+import { createShapeFactory } from '../../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import ShapeFactory from '../../../../../src/backend/receiver/document/shape/ShapeFactory';
 import Group from '../../../../../plugins/shapes/Group';
@@ -18,18 +18,18 @@ describe('ShapeFactory 图形工厂', () => {
     expect(() => factory.create('rect', 'r')).toThrow('unknown shape type: rect');
   });
 
-  it.each(['rect', 'circle', 'ellipse', 'line', 'text', 'g'])('宿主默认类型 %s 已注册', (type) => {
-    expect(createShapeFactory().definition(type).type).toBe(type);
+  it.each(['rect', 'circle', 'ellipse', 'line', 'text', 'g'])('宿主默认类型 %s 已注册', async (type) => {
+    expect((await createShapeFactory()).definition(type).type).toBe(type);
   });
 
-  it('按类型名和属性值创建对应的图形实例', () => {
-    const factory = createShapeFactory();
+  it('按类型名和属性值创建对应的图形实例', async () => {
+    const factory = (await createShapeFactory());
     expect(factory.create('rect', 'r', new Map([['x', 1], ['y', 2], ['width', 3], ['height', 4]]))).toBeInstanceOf(Rect);
     expect(factory.create('g', 'g')).toBeInstanceOf(Group);
   });
 
-  it.each(['hexagon', 'box', 'Rect', ''])('未注册的类型 %j 报错', (type) => {
-    const factory = createShapeFactory();
+  it.each(['hexagon', 'box', 'Rect', ''])('未注册的类型 %j 报错', async (type) => {
+    const factory = (await createShapeFactory());
     expect(() => factory.definition(type)).toThrow(
       new EditorError(`unknown shape type: ${type} (is the plugin loaded?)`),
     );
@@ -38,14 +38,14 @@ describe('ShapeFactory 图形工厂', () => {
     );
   });
 
-  it('可注册新类型，注册后即可查到', () => {
-    const factory = createShapeFactory();
+  it('可注册新类型，注册后即可查到', async () => {
+    const factory = (await createShapeFactory());
     factory.register(Hexagon);
     expect(factory.create('hexagon', 'h')).toBeInstanceOf(Hexagon);
   });
 
-  it('每次创建独立模型，属性值和校验继续由模型负责', () => {
-    const factory = createShapeFactory();
+  it('每次创建独立模型，属性值和校验继续由模型负责', async () => {
+    const factory = (await createShapeFactory());
     const values = new Map([['x', 1], ['y', 2], ['width', 3], ['height', 4]]);
     const first = factory.create('rect', 'r1', values);
     const second = factory.create('rect', 'r2', values);
@@ -60,16 +60,16 @@ describe('ShapeFactory 图形工厂', () => {
     expect(() => factory.create('rect', 'missing')).toThrow('missing attribute: x');
   });
 
-  it('类型名缺失或重名属于程序缺陷', () => {
+  it('类型名缺失或重名属于程序缺陷', async () => {
     class Unnamed extends Shape {}
-    const factory = createShapeFactory();
+    const factory = (await createShapeFactory());
     expect(() => factory.register(Unnamed)).toThrow('must declare static type');
     expect(() => factory.register(Rect)).toThrow('duplicate shape type: rect');
   });
 });
 
 describe('ShapeFactory 锚点校验', () => {
-  it('锚点不是本类的 x / y 坐标属性时启动即失败', () => {
+  it('锚点不是本类的 x / y 坐标属性时启动即失败', async () => {
     class Missing extends Shape {
       static override readonly type = 'missing';
       static override readonly params = Rect.params;
@@ -85,22 +85,22 @@ describe('ShapeFactory 锚点校验', () => {
       static override readonly params = Rect.params;
       static override readonly anchor: readonly [string, string] = ['width', 'y'];
     }
-    const factory = createShapeFactory();
+    const factory = (await createShapeFactory());
     expect(() => factory.register(Missing)).toThrow('missing anchor cx must be a x coordinate');
     expect(() => factory.register(Swapped)).toThrow('swapped anchor y must be a x coordinate');
     expect(() => factory.register(NotCoordinate)).toThrow('length anchor width must be a x coordinate');
   });
 
-  it('没有锚点的类型可正常注册', () => {
-    const factory = createShapeFactory();
+  it('没有锚点的类型可正常注册', async () => {
+    const factory = (await createShapeFactory());
     factory.register(Hexagon);
     expect(factory.has('hexagon')).toBe(true);
   });
 });
 
 describe('ShapeFactory 查询', () => {
-  it('definition 提供只读静态规格，类型契约不暴露构造签名及内部查找', () => {
-    const factory = createShapeFactory();
+  it('definition 提供只读静态规格，类型契约不暴露构造签名及内部查找', async () => {
+    const factory = (await createShapeFactory());
     const definition = factory.definition('rect');
     expect(definition.type).toBe('rect');
     expect(definition.params).toEqual(Rect.params);
@@ -123,8 +123,8 @@ describe('ShapeFactory 查询', () => {
     }
   });
 
-  it('has 判断已注册及未知类型，不抛错', () => {
-    const factory = createShapeFactory();
+  it('has 判断已注册及未知类型，不抛错', async () => {
+    const factory = (await createShapeFactory());
     expect(factory.has('rect')).toBe(true);
     expect(factory.has('path')).toBe(false);
   });

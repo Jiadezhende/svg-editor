@@ -1,12 +1,12 @@
-import { createWorkspace } from '../../../../src/host/defaults';
+import { createWorkspace } from '../../../support/Plugins';
 import { describe, expect, it, vi } from 'vitest';
 import CreateCommand from '../../../../plugins/commands/CreateCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';
 
-function workspaceWithDoc(): Workspace {
-  const workspace = createWorkspace();
+async function workspaceWithDoc(): Promise<Workspace> {
+  const workspace = (await createWorkspace());
   workspace.replace(new Document(800, 600));
   return workspace;
 }
@@ -21,8 +21,8 @@ function detailsOf(workspace: Workspace, id: string): string[] {
 }
 
 describe('CreateCommand 创建', () => {
-  it('把工厂返回的模型加入文档，不在命令内自行构造', () => {
-    const workspace = workspaceWithDoc();
+  it('把工厂返回的模型加入文档，不在命令内自行构造', async () => {
+    const workspace = (await workspaceWithDoc());
     const factory = workspace.shapes();
     const supplied = factory.create('rect', 'r1', new Map([['x', 10], ['y', 20], ['width', 30], ['height', 40]]));
     vi.spyOn(factory, 'create').mockReturnValue(supplied);
@@ -30,16 +30,16 @@ describe('CreateCommand 创建', () => {
     expect(workspace.document().requireNode('r1').value).toBe(supplied);
   });
 
-  it('create rect 挂在画布根末尾，写入几何属性与 fill', () => {
-    const workspace = workspaceWithDoc();
+  it('create rect 挂在画布根末尾，写入几何属性与 fill', async () => {
+    const workspace = (await workspaceWithDoc());
     expect(create(workspace, 'rect r1 10 20 100 50 #eee')).toEqual(['rect#r1 created']);
     const doc = workspace.document();
     expect(doc.children().map((s) => s.value.id())).toEqual(['r1']);
     expect(detailsOf(workspace, 'r1')).toEqual(['x=10 y=20 width=100 height=50', 'fill=#eee']);
   });
 
-  it('6 种内置类型均可创建，省略 fill / stroke 时不写入', () => {
-    const workspace = workspaceWithDoc();
+  it('6 种内置类型均可创建，省略 fill / stroke 时不写入', async () => {
+    const workspace = (await workspaceWithDoc());
     expect(create(workspace, 'circle c1 100 100 20 red')).toEqual(['circle#c1 created']);
     expect(create(workspace, 'ellipse e1 0 0 30 10')).toEqual(['ellipse#e1 created']);
     expect(create(workspace, 'line l1 0 0 100 100 black')).toEqual(['line#l1 created']);
@@ -49,21 +49,21 @@ describe('CreateCommand 创建', () => {
     expect(detailsOf(workspace, 'scene')).toEqual(['']);
   });
 
-  it('text 的内容为一个参数（含空格），不计引号', () => {
-    const workspace = workspaceWithDoc();
+  it('text 的内容为一个参数（含空格），不计引号', async () => {
+    const workspace = (await workspaceWithDoc());
     const command = new CreateCommand(workspace, ['text', 't1', '20', '40', 'My Diagram']);
     expect(command.execute().lines()).toEqual(['text#t1 created']);
     expect(detailsOf(workspace, 't1')).toEqual(['x=20 y=40 text="My Diagram"']);
   });
 
-  it('text 内容位上的 in 视为内容', () => {
-    const workspace = workspaceWithDoc();
+  it('text 内容位上的 in 视为内容', async () => {
+    const workspace = (await workspaceWithDoc());
     create(workspace, 'text t1 0 0 in');
     expect(detailsOf(workspace, 't1')).toEqual(['x=0 y=0 text="in"']);
   });
 
-  it('in 子句挂进指定容器末尾，回显容器', () => {
-    const workspace = workspaceWithDoc();
+  it('in 子句挂进指定容器末尾，回显容器', async () => {
+    const workspace = (await workspaceWithDoc());
     create(workspace, 'g node1');
     create(workspace, 'rect a 0 0 1 1 in node1');
     expect(create(workspace, 'rect start 120 100 160 60 #4a90d9 in node1')).toEqual([
@@ -74,29 +74,29 @@ describe('CreateCommand 创建', () => {
     expect(detailsOf(workspace, 'start')).toEqual(['x=120 y=100 width=160 height=60', 'fill=#4a90d9']);
   });
 
-  it('容器可嵌套创建', () => {
-    const workspace = workspaceWithDoc();
+  it('容器可嵌套创建', async () => {
+    const workspace = (await workspaceWithDoc());
     create(workspace, 'g outer');
     expect(create(workspace, 'g inner in outer')).toEqual(['g#inner created in g#outer']);
     expect(create(workspace, 'circle c1 0 0 1 in inner')).toEqual(['circle#c1 created in g#inner']);
   });
 
-  it('负坐标、浮点合法；尺寸为 0 合法', () => {
-    const workspace = workspaceWithDoc();
+  it('负坐标、浮点合法；尺寸为 0 合法', async () => {
+    const workspace = (await workspaceWithDoc());
     create(workspace, 'rect r1 -10 0.5 0 0');
     expect(detailsOf(workspace, 'r1')).toEqual(['x=-10 y=0.5 width=0 height=0']);
   });
 
-  it('id 大小写不同视为不同 id；含 - 的 id 合法', () => {
-    const workspace = workspaceWithDoc();
+  it('id 大小写不同视为不同 id；含 - 的 id 合法', async () => {
+    const workspace = (await workspaceWithDoc());
     create(workspace, 'rect r1 0 0 1 1');
     expect(create(workspace, 'rect R1 0 0 1 1')).toEqual(['rect#R1 created']);
     expect(create(workspace, 'rect start-label 0 0 1 1')).toEqual(['rect#start-label created']);
   });
 });
 
-describe('CreateCommand 参数格式（构造时）', () => {
-  const workspace = createWorkspace(); // 无文档：构造阶段不取文档
+describe('CreateCommand 参数格式（构造时）', async () => {
+  const workspace = (await createWorkspace()); // 无文档：构造阶段不取文档
 
   it.each([['hexagon h1'], ['box n1 0 0 10 10 title'], ['hexagon']])('未注册类型报错：%s', (line) => {
     const type = line.split(' ')[0];
@@ -142,21 +142,21 @@ describe('CreateCommand 参数格式（构造时）', () => {
 });
 
 describe('CreateCommand 业务校验（执行时）', () => {
-  it('无文档时报无文档，先于其他业务校验', () => {
-    const command = new CreateCommand(createWorkspace(), 'rect 1abc 0 0 -1 1 in node9'.split(' '));
+  it('无文档时报无文档，先于其他业务校验', async () => {
+    const command = new CreateCommand((await createWorkspace()), 'rect 1abc 0 0 -1 1 in node9'.split(' '));
     expect(() => command.execute()).toThrow(new EditorError("no document. use 'init' or 'read' first"));
   });
 
-  it('id 不合法时报错', () => {
-    expect(() => create(workspaceWithDoc(), 'rect 1abc 0 0 1 1')).toThrow(new EditorError('invalid id: 1abc'));
+  it('id 不合法时报错', async () => {
+    await expect(async () => create((await workspaceWithDoc()), 'rect 1abc 0 0 1 1')).rejects.toThrow(new EditorError('invalid id: 1abc'));
   });
 
-  it('尺寸为负时报错', () => {
-    expect(() => create(workspaceWithDoc(), 'circle c1 0 0 -5')).toThrow(new EditorError('r must be non-negative'));
+  it('尺寸为负时报错', async () => {
+    await expect(async () => create((await workspaceWithDoc()), 'circle c1 0 0 -5')).rejects.toThrow(new EditorError('r must be non-negative'));
   });
 
-  it('id 已存在时报错（含容器 id），文档不变', () => {
-    const workspace = workspaceWithDoc();
+  it('id 已存在时报错（含容器 id），文档不变', async () => {
+    const workspace = (await workspaceWithDoc());
     create(workspace, 'g g1');
     create(workspace, 'rect r1 0 0 1 1 in g1');
     expect(() => create(workspace, 'rect r1 0 0 1 1')).toThrow(new EditorError('id already exists: r1'));
@@ -164,8 +164,8 @@ describe('CreateCommand 业务校验（执行时）', () => {
     expect(workspace.document().children().map((s) => s.value.id())).toEqual(['g1']);
   });
 
-  it('in 目标不存在 / 不是容器时报错', () => {
-    const workspace = workspaceWithDoc();
+  it('in 目标不存在 / 不是容器时报错', async () => {
+    const workspace = (await workspaceWithDoc());
     create(workspace, 'rect start 0 0 1 1');
     expect(() => create(workspace, 'rect r1 0 0 1 1 in node9')).toThrow(new EditorError('no such container: node9'));
     expect(() => create(workspace, 'rect r1 0 0 1 1 in start')).toThrow(new EditorError('not a container: start'));
@@ -173,8 +173,8 @@ describe('CreateCommand 业务校验（执行时）', () => {
 });
 
 describe('CreateCommand 撤销与再次执行', () => {
-  it('undo 摘除本次创建的图形', () => {
-    const workspace = workspaceWithDoc();
+  it('undo 摘除本次创建的图形', async () => {
+    const workspace = (await workspaceWithDoc());
     create(workspace, 'g g1');
     const command = new CreateCommand(workspace, 'rect r1 0 0 1 1 in g1'.split(' '));
     command.execute();
@@ -183,8 +183,8 @@ describe('CreateCommand 撤销与再次执行', () => {
     expect(workspace.document().requireNode('g1').children()).toEqual([]);
   });
 
-  it('undo 后再次 execute（redo）回显与首次相同', () => {
-    const workspace = workspaceWithDoc();
+  it('undo 后再次 execute（redo）回显与首次相同', async () => {
+    const workspace = (await workspaceWithDoc());
     const command = new CreateCommand(workspace, 'circle c1 1 2 3 red'.split(' '));
     const first = command.execute().lines();
     command.undo();
@@ -192,8 +192,8 @@ describe('CreateCommand 撤销与再次执行', () => {
     expect(detailsOf(workspace, 'c1')).toEqual(['cx=1 cy=2 r=3', 'fill=red']);
   });
 
-  it('execute 之前 undo 属于程序缺陷', () => {
-    const command = new CreateCommand(workspaceWithDoc(), ['g', 'g1']);
+  it('execute 之前 undo 属于程序缺陷', async () => {
+    const command = new CreateCommand((await workspaceWithDoc()), ['g', 'g1']);
     expect(() => command.undo()).toThrow('undo before execute');
   });
 });

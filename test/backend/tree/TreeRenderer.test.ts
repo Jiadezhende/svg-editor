@@ -1,23 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { Document, TreeDecorator, TreeRenderer } from '../../../src/backend';
 import type { TreeSuccess } from '../../../src/backend';
-import { createShapeFactory } from '../../../src/host/defaults';
+import { createShapeFactory } from '../../support/Plugins';
 import { TestChangedDecorator, TestTypeDecorator } from '../../support/PublicTreeExtension';
 import { Panel } from '../../support/SvgCompositeExtension';
 
 describe('树渲染与经典 Decorator', () => {
-  it('无装饰器保持根、子树及连线输出，只遍历文档节点', () => {
+  it('无装饰器保持根、子树及连线输出，只遍历文档节点', async () => {
     const doc = new Document(100.5, 50);
-    const group = doc.insert(createShapeFactory().create('g', 'g'));
+    const group = doc.insert((await createShapeFactory()).create('g', 'g'));
     doc.insert(new Panel('p'), group);
     const renderer = new TreeRenderer();
     expect(renderer.render(doc)).toEqual(['svg (100.5x50)', '└── g#g', '    └── test-panel#p']);
     expect(renderer.render(doc, group)).toEqual(['g#g', '└── test-panel#p']);
   });
 
-  it('列表顺序对应标签从左到右，反转顺序反转标签', () => {
+  it('列表顺序对应标签从左到右，反转顺序反转标签', async () => {
     const doc = new Document(100, 100);
-    const node = doc.insert(createShapeFactory().create('g', 'g'));
+    const node = doc.insert((await createShapeFactory()).create('g', 'g'));
     const forward = new TreeRenderer([TestChangedDecorator, TestTypeDecorator]);
     const reverse = new TreeRenderer([TestTypeDecorator, TestChangedDecorator]);
     forward.notify('edit', doc);

@@ -1,4 +1,4 @@
-import { createWorkspace, createShapeFactory } from '../../../../../src/host/defaults';
+import { createWorkspace, createShapeFactory } from '../../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import CompositeShape from '../../../../support/CompositeShape';
 import Shape from '../../../../../src/backend/receiver/document/shape/Shape';
@@ -11,8 +11,8 @@ import TreeCommand from '../../../../../plugins/commands/TreeCommand';
 import SvgWriter from '../../../../../src/backend/receiver/svg/SvgWriter';
 import SvgReader from '../../../../../src/backend/receiver/svg/SvgReader';
 
-function scene() {
-  const workspace = createWorkspace();
+async function scene() {
+  const workspace = (await createWorkspace());
   const doc = new Document(800, 600);
   const panel = new CompositeShape('panel');
   const node = doc.insert(panel);
@@ -21,8 +21,8 @@ function scene() {
 }
 
 describe('业务复合模型与文档节点分离', () => {
-  it('内部成员由具体模型持有，不自动成为文档节点', () => {
-    const { doc, panel, node, workspace } = scene();
+  it('内部成员由具体模型持有，不自动成为文档节点', async () => {
+    const { doc, panel, node, workspace } = (await scene());
     expect(panel).toBeInstanceOf(Shape);
     expect(panel).not.toBeInstanceOf(Group);
     expect(node.children()).toEqual([]);
@@ -33,8 +33,8 @@ describe('业务复合模型与文档节点分离', () => {
     expect(new TreeCommand(workspace, []).execute().lines()).toEqual(['svg (800x600)', '└── g#panel']);
   });
 
-  it('领域方法修改部件，属性快照恢复整个业务模型', () => {
-    const { panel } = scene();
+  it('领域方法修改部件，属性快照恢复整个业务模型', async () => {
+    const { panel } = (await scene());
     const saved = panel.capture();
     panel.setLabel('changed');
     panel.setFill('red');
@@ -49,8 +49,8 @@ describe('业务复合模型与文档节点分离', () => {
     expect(panel.frameShape().value('fill')).toBeNull();
   });
 
-  it('普通节点分组与复合模型变换不重复处理内部成员，命令撤销也恢复部件', () => {
-    const { workspace, doc, panel, node } = scene();
+  it('普通节点分组与复合模型变换不重复处理内部成员，命令撤销也恢复部件', async () => {
+    const { workspace, doc, panel, node } = (await scene());
     const group = new GroupCommand(workspace, ['outer', 'panel']);
     group.execute();
     const move = new MoveCommand(workspace, ['outer', '5', '10']);
@@ -67,8 +67,8 @@ describe('业务复合模型与文档节点分离', () => {
     expect(panel.frameShape().position()).toEqual(['10', '20']);
   });
 
-  it('后一个内部部件溢出时恢复先前部件，文档变换也恢复前面的普通节点', () => {
-    const { doc, panel, node } = scene();
+  it('后一个内部部件溢出时恢复先前部件，文档变换也恢复前面的普通节点', async () => {
+    const { doc, panel, node } = (await scene());
     const root = doc.insert(new Group('outer'));
     const other = doc.insert(new Group('other', new Map([['stroke-width', 1]])), root);
     doc.relocate(node, root);
@@ -79,8 +79,8 @@ describe('业务复合模型与文档节点分离', () => {
     expect(other.value.value('stroke-width')).toBe(1);
   });
 
-  it('复合 SVG 映射独立于文档树，读回普通 SVG 时保留全部嵌套元素', () => {
-    const { doc, panel } = scene();
+  it('复合 SVG 映射独立于文档树，读回普通 SVG 时保留全部嵌套元素', async () => {
+    const { doc, panel } = (await scene());
     const writer = new SvgWriter([{
       matches: (shape) => shape instanceof CompositeShape,
       write: (shape) => {
@@ -95,7 +95,7 @@ describe('业务复合模型与文档节点分离', () => {
     expect(svg).toContain('<rect id="panel-rect" x="10" y="20" width="100" height="50"/>');
     expect(svg).toContain('<text id="panel-label" x="20" y="40">label</text>');
     expect(doc.nodes().map((node) => node.value)).toEqual([panel]);
-    const read = new SvgReader(createShapeFactory()).read(svg).document;
+    const read = new SvgReader((await createShapeFactory())).read(svg).document;
     expect(read.nodes().map((node) => node.value).map((shape) => shape.id())).toEqual(['panel', 'panel-rect', 'title-group', 'panel-label']);
     expect(read.requireNode('panel-label').parent()).toBe(read.requireNode('title-group'));
     expect(new SvgWriter().write(read)).toBe(svg);

@@ -1,4 +1,4 @@
-import { createWorkspace } from '../src/host/defaults';
+import { createWorkspace } from './support/Plugins';
 import { describe, expect, it } from 'vitest';
 import App from '../src/App';
 import Client from '../src/backend/Client';
@@ -9,7 +9,7 @@ import StubCommand from './support/StubCommand';
 const BANNER = "svg-editor 0.1 — type 'help' for commands";
 
 async function replay(lines: string[], interactive = false) {
-  const client = new Client(createWorkspace());
+  const client = new Client((await createWorkspace()));
   client.register(StubCommand);
   const input = new MemoryInputSource(lines, interactive);
   const output = new MemoryOutputSink();

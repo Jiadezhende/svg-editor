@@ -1,4 +1,4 @@
-import { createWorkspace } from '../../../../src/host/defaults';
+import { createWorkspace } from '../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import CreateCommand from '../../../../plugins/commands/CreateCommand';
 import GroupCommand from '../../../../plugins/commands/GroupCommand';
@@ -7,8 +7,8 @@ import Document from '../../../../src/backend/receiver/document/Document';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';
 
-function workspaceWith(...lines: string[]): Workspace {
-  const workspace = createWorkspace();
+async function workspaceWith(...lines: string[]): Promise<Workspace> {
+  const workspace = (await createWorkspace());
   workspace.replace(new Document(800, 600));
   for (const line of lines) {
     new CreateCommand(workspace, line.split(' ')).execute();
@@ -27,8 +27,8 @@ function group(workspace: Workspace, line: string): string[] {
 const flat = ['rect bg 0 0 1 1', 'text title 0 0 t', 'circle c1 0 0 1', 'rect box 0 0 1 1'];
 
 describe('GroupCommand', () => {
-  it('收编根下的图形：新容器插在第一个成员的位置，成员按文档顺序排列', () => {
-    const workspace = workspaceWith(...flat);
+  it('收编根下的图形：新容器插在第一个成员的位置，成员按文档顺序排列', async () => {
+    const workspace = (await workspaceWith(...flat));
     expect(group(workspace, 'markers c1 box')).toEqual(['g#markers created with 2 children']);
     expect(tree(workspace)).toEqual([
       'svg (800x600)',
@@ -40,15 +40,15 @@ describe('GroupCommand', () => {
     ]);
   });
 
-  it('成员顺序取文档顺序，与参数顺序无关', () => {
-    const workspace = workspaceWith(...flat);
+  it('成员顺序取文档顺序，与参数顺序无关', async () => {
+    const workspace = (await workspaceWith(...flat));
     group(workspace, 'g1 box bg');
     expect(workspace.document().children().map((s) => s.value.id())).toEqual(['g1', 'title', 'c1']);
     expect(workspace.document().requireNode('g1').children().map((s) => s.value.id())).toEqual(['bg', 'box']);
   });
 
-  it('成员来自不同父容器：全部摘出，新容器插在文档顺序第一个成员的父容器中', () => {
-    const workspace = workspaceWith('g a', 'rect r1 0 0 1 1 in a', 'rect r2 0 0 1 1 in a', 'g b', 'rect r3 0 0 1 1 in b');
+  it('成员来自不同父容器：全部摘出，新容器插在文档顺序第一个成员的父容器中', async () => {
+    const workspace = (await workspaceWith('g a', 'rect r1 0 0 1 1 in a', 'rect r2 0 0 1 1 in a', 'g b', 'rect r3 0 0 1 1 in b'));
     group(workspace, 'mix r3 r2');
     expect(tree(workspace)).toEqual([
       'svg (800x600)',
@@ -61,8 +61,8 @@ describe('GroupCommand', () => {
     ]);
   });
 
-  it('undo 一次还原全部成员的原父容器与原位置，新容器消失', () => {
-    const workspace = workspaceWith('g a', 'rect r1 0 0 1 1 in a', 'rect r2 0 0 1 1 in a', 'g b', 'rect r3 0 0 1 1 in b', 'circle c 0 0 1');
+  it('undo 一次还原全部成员的原父容器与原位置，新容器消失', async () => {
+    const workspace = (await workspaceWith('g a', 'rect r1 0 0 1 1 in a', 'rect r2 0 0 1 1 in a', 'g b', 'rect r3 0 0 1 1 in b', 'circle c 0 0 1'));
     const before = tree(workspace);
     const command = new GroupCommand(workspace, 'mix c r1 r3'.split(' '));
     command.execute();
@@ -71,8 +71,8 @@ describe('GroupCommand', () => {
     expect(workspace.document().findNode('mix')).toBeNull();
   });
 
-  it('undo 后再次 execute（redo）回显与首次相同，结构相同', () => {
-    const workspace = workspaceWith(...flat);
+  it('undo 后再次 execute（redo）回显与首次相同，结构相同', async () => {
+    const workspace = (await workspaceWith(...flat));
     const command = new GroupCommand(workspace, 'markers c1 box'.split(' '));
     const first = command.execute().lines();
     const after = tree(workspace);
@@ -81,15 +81,15 @@ describe('GroupCommand', () => {
     expect(tree(workspace)).toEqual(after);
   });
 
-  it('可以收编容器，容器连同子树移动', () => {
-    const workspace = workspaceWith('g inner', 'rect r1 0 0 1 1 in inner', 'rect r2 0 0 1 1');
+  it('可以收编容器，容器连同子树移动', async () => {
+    const workspace = (await workspaceWith('g inner', 'rect r1 0 0 1 1 in inner', 'rect r2 0 0 1 1'));
     group(workspace, 'outer inner r2');
     expect(workspace.document().requireNode('r1').parent()).toBe(workspace.document().requireNode('inner'));
     expect(workspace.document().requireNode('inner').parent()).toBe(workspace.document().requireNode('outer'));
   });
 
-  it('成员中有容器与其子孙时报错，文档不变', () => {
-    const workspace = workspaceWith('g markers', 'circle c1 0 0 1 in markers');
+  it('成员中有容器与其子孙时报错，文档不变', async () => {
+    const workspace = (await workspaceWith('g markers', 'circle c1 0 0 1 in markers'));
     const before = tree(workspace);
     expect(() => group(workspace, 'bad c1 markers')).toThrow(
       new EditorError('cannot group a container into its own descendant: markers'),
@@ -97,30 +97,30 @@ describe('GroupCommand', () => {
     expect(tree(workspace)).toEqual(before);
   });
 
-  it('newGid 已存在 / 不合法时报错，文档不变', () => {
-    const workspace = workspaceWith(...flat);
+  it('newGid 已存在 / 不合法时报错，文档不变', async () => {
+    const workspace = (await workspaceWith(...flat));
     expect(() => group(workspace, 'bg c1')).toThrow(new EditorError('id already exists: bg'));
     expect(() => group(workspace, '1abc c1')).toThrow(new EditorError('invalid id: 1abc'));
     expect(workspace.document().children().map((s) => s.value.id())).toEqual(['bg', 'title', 'c1', 'box']);
   });
 
-  it('任一成员不存在时报错', () => {
-    expect(() => group(workspaceWith(...flat), 'g1 c1 r9')).toThrow(new EditorError('no such shape: r9'));
+  it('任一成员不存在时报错', async () => {
+    await expect(async () => group((await workspaceWith(...flat)), 'g1 c1 r9')).rejects.toThrow(new EditorError('no such shape: r9'));
   });
 
-  it('成员 id 重复时在构造阶段报错', () => {
-    expect(() => new GroupCommand(createWorkspace(), 'g1 c1 box c1'.split(' '))).toThrow(new EditorError('duplicate id: c1'));
+  it('成员 id 重复时在构造阶段报错', async () => {
+    await expect(async () => new GroupCommand((await createWorkspace()), 'g1 c1 box c1'.split(' '))).rejects.toThrow(new EditorError('duplicate id: c1'));
   });
 
-  it('参数少于 2 个时报错并附语法', () => {
-    expect(() => new GroupCommand(createWorkspace(), ['g1'])).toThrow('wrong number of arguments. usage: group <newGid> <id1> <id2>…');
+  it('参数少于 2 个时报错并附语法', async () => {
+    await expect(async () => new GroupCommand((await createWorkspace()), ['g1'])).rejects.toThrow('wrong number of arguments. usage: group <newGid> <id1> <id2>…');
   });
 
-  it('无文档时报无文档', () => {
-    expect(() => group(createWorkspace(), 'g1 c1')).toThrow("no document. use 'init' or 'read' first");
+  it('无文档时报无文档', async () => {
+    await expect(async () => group((await createWorkspace()), 'g1 c1')).rejects.toThrow("no document. use 'init' or 'read' first");
   });
 
-  it('execute 之前 undo 属于程序缺陷', () => {
-    expect(() => new GroupCommand(createWorkspace(), ['g1', 'c1']).undo()).toThrow('undo before execute');
+  it('execute 之前 undo 属于程序缺陷', async () => {
+    await expect(async () => new GroupCommand((await createWorkspace()), ['g1', 'c1']).undo()).rejects.toThrow('undo before execute');
   });
 });

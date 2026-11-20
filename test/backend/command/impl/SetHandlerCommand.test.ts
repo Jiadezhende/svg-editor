@@ -3,7 +3,7 @@ import { Client, Document, EditorError } from '../../../../src/backend';
 import App from '../../../../src/App';
 import type { Shape } from '../../../../src/backend';
 import SetCommand from '../../../../plugins/commands/SetCommand';
-import { createWorkspace } from '../../../../src/host/defaults';
+import { createWorkspace } from '../../../support/Plugins';
 import CompositeShape from '../../../support/CompositeShape';
 import MemoryInputSource from '../../../support/MemoryInputSource';
 import MemoryOutputSink from '../../../support/MemoryOutputSink';
@@ -27,8 +27,8 @@ class CompositeAttributes {
   }
 }
 
-function sample(model = new CompositeShape('panel')) {
-  const workspace = createWorkspace();
+async function sample(model = new CompositeShape('panel')) {
+  const workspace = (await createWorkspace());
   const doc = new Document(100, 100);
   const node = doc.insert(model);
   workspace.replace(doc);
@@ -38,8 +38,8 @@ function sample(model = new CompositeShape('panel')) {
 }
 
 describe('SetCommand 的静态 Handler', () => {
-  it('fill 使用内部框体语义与领域回显，不调用模型默认 set/display', () => {
-    const { workspace, model, client } = sample();
+  it('fill 使用内部框体语义与领域回显，不调用模型默认 set/display', async () => {
+    const { workspace, model, client } = (await sample());
     workspace.attributeHandlerRegistry().register(CompositeAttributes);
     const fallback = vi.spyOn(model, 'set');
     const fallbackDisplay = vi.spyOn(model, 'display');
@@ -54,8 +54,8 @@ describe('SetCommand 的静态 Handler', () => {
     expect(model.frameShape().value('fill')).toBe('red');
   });
 
-  it.each(['label', 'title'])('%s 及别名保留输入 key，多轮撤销重做保持模型与节点身份', (key) => {
-    const { workspace, doc, node, model, client } = sample();
+  it.each(['label', 'title'])('%s 及别名保留输入 key，多轮撤销重做保持模型与节点身份', async (key) => {
+    const { workspace, doc, node, model, client } = (await sample());
     workspace.attributeHandlerRegistry().register(CompositeAttributes);
     expect(client.execute(['set', 'panel', key, 'new title']).lines()).toEqual([`g#panel updated: ${key}="new title"`]);
     for (let i = 0; i < 2; i++) {
@@ -69,8 +69,8 @@ describe('SetCommand 的静态 Handler', () => {
     }
   });
 
-  it('相同 g 标签的普通 Group 不会误命中，零命中保持默认属性和错误', () => {
-    const { workspace, doc, client } = sample();
+  it('相同 g 标签的普通 Group 不会误命中，零命中保持默认属性和错误', async () => {
+    const { workspace, doc, client } = (await sample());
     workspace.attributeHandlerRegistry().register(CompositeAttributes);
     const group = workspace.shapes().create('g', 'group');
     doc.insert(group);
@@ -78,11 +78,11 @@ describe('SetCommand 的静态 Handler', () => {
     expect(group.value('fill')).toBe('green');
     expect(() => client.execute(['set', 'group', 'label', 'title'])).toThrow('unknown attribute: label');
     expect(() => client.execute(['set', 'panel', 'unknown', 'x'])).toThrow('unknown attribute: unknown');
-    expect(() => sample().client.execute(['set', 'panel', 'label', 'title'])).toThrow('unknown attribute: label');
+    await expect(async () => (await sample()).client.execute(['set', 'panel', 'label', 'title'])).rejects.toThrow('unknown attribute: label');
   });
 
-  it('一次 set 修改多个私有部件，只有一个撤销单元', () => {
-    const { workspace, model, client } = sample();
+  it('一次 set 修改多个私有部件，只有一个撤销单元', async () => {
+    const { workspace, model, client } = (await sample());
     class MultiPart extends CompositeAttributes {
       static override apply(shape: Shape, _key: string, token: string): void {
         const model = shape as CompositeShape;
@@ -103,8 +103,8 @@ describe('SetCommand 的静态 Handler', () => {
     expect(model.captionShape().value('text')).toBe('red');
   });
 
-  it('部分修改后失败整体恢复，不匹配后续项、不回退，保留 redo 并可重试', () => {
-    const { workspace, model, client } = sample();
+  it('部分修改后失败整体恢复，不匹配后续项、不回退，保留 redo 并可重试', async () => {
+    const { workspace, model, client } = (await sample());
     let fail = true;
     class Broken extends CompositeAttributes {
       static override apply(shape: Shape, key: string, token: string): void {
@@ -140,8 +140,8 @@ describe('SetCommand 的静态 Handler', () => {
     expect(model.value('stroke')).toBe('blue');
   });
 
-  it('修改后展示失败恢复状态，失败 redo 保留历史并可重试', () => {
-    const { workspace, model, client } = sample();
+  it('修改后展示失败恢复状态，失败 redo 保留历史并可重试', async () => {
+    const { workspace, model, client } = (await sample());
     let fail = false;
     class BrokenDisplay extends CompositeAttributes {
       static override display(shape: Shape, key: string): string | null {
@@ -165,8 +165,8 @@ describe('SetCommand 的静态 Handler', () => {
     expect(model.frameShape().value('fill')).toBeNull();
   });
 
-  it('旧值展示失败不执行修改，原有 undo 仍然有效', () => {
-    const { workspace, model, client } = sample();
+  it('旧值展示失败不执行修改，原有 undo 仍然有效', async () => {
+    const { workspace, model, client } = (await sample());
     client.execute(['set', 'panel', 'stroke', 'blue']);
     class BrokenDisplay extends CompositeAttributes {
       static override readonly apply = vi.fn();
@@ -180,8 +180,8 @@ describe('SetCommand 的静态 Handler', () => {
     expect(model.value('stroke')).toBeNull();
   });
 
-  it('display 返回 null 仍为已处理，不回退模型规则', () => {
-    const { workspace, model, client } = sample();
+  it('display 返回 null 仍为已处理，不回退模型规则', async () => {
+    const { workspace, model, client } = (await sample());
     class NullDisplay extends CompositeAttributes {
       static override display(): string | null { return null; }
     }
@@ -193,8 +193,8 @@ describe('SetCommand 的静态 Handler', () => {
     expect(client.execute(['undo']).lines()).toEqual(['g#panel updated: fill unset']);
   });
 
-  it('匹配抛错直接失败，模型与现有历史不变', () => {
-    const { workspace, model, client } = sample();
+  it('匹配抛错直接失败，模型与现有历史不变', async () => {
+    const { workspace, model, client } = (await sample());
     client.execute(['set', 'panel', 'stroke', 'blue']);
     class BrokenMatch extends CompositeAttributes {
       static override matches(): boolean { throw new Error('match failed'); }
@@ -208,21 +208,21 @@ describe('SetCommand 的静态 Handler', () => {
     expect(model.value('stroke')).toBeNull();
   });
 
-  it('默认模型 set 的部分失败同样通过当前模型快照恢复', () => {
+  it('默认模型 set 的部分失败同样通过当前模型快照恢复', async () => {
     class BrokenModel extends CompositeShape {
       override set(key: string, token: string): void {
         super.set(key, token);
         throw new Error('model failed');
       }
     }
-    const { model, client } = sample(new BrokenModel('panel'));
+    const { model, client } = (await sample(new BrokenModel('panel')));
     expect(() => client.execute(['set', 'panel', 'fill', 'red'])).toThrow('model failed');
     expect(model.value('fill')).toBeNull();
     expect(() => client.execute(['undo'])).toThrow('nothing to undo');
   });
 
-  it('再次执行失败不覆盖上一次有效撤销记录', () => {
-    const { workspace, model } = sample();
+  it('再次执行失败不覆盖上一次有效撤销记录', async () => {
+    const { workspace, model } = (await sample());
     let fail = false;
     class Retry extends CompositeAttributes {
       static override apply(shape: Shape, key: string, token: string): void {
@@ -245,7 +245,7 @@ describe('SetCommand 的静态 Handler', () => {
   });
 
   it('Handler 的领域错误经 CLI 回显后仍可继续撤销和重做', async () => {
-    const { workspace, model, client } = sample();
+    const { workspace, model, client } = (await sample());
     class InvalidEdit extends CompositeAttributes {
       static override apply(shape: Shape, key: string, token: string): void {
         super.apply(shape, key, token);

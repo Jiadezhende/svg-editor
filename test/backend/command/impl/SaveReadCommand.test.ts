@@ -1,4 +1,4 @@
-import { createWorkspace } from '../../../../src/host/defaults';
+import { createWorkspace } from '../../../support/Plugins';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -23,8 +23,8 @@ afterEach(() => {
 });
 
 /** 文档含 bg、title、markers{c1, box}。 */
-function sample(): Workspace {
-  const workspace = createWorkspace();
+async function sample(): Promise<Workspace> {
+  const workspace = (await createWorkspace());
   workspace.replace(new Document(800, 600));
   for (const args of [
     ['rect', 'bg', '0', '0', '800', '600', '#ffffff'],
@@ -43,16 +43,16 @@ function tree(workspace: Workspace): string[] {
 }
 
 describe('SaveCommand', () => {
-  it('是文档类命令；保存并回显元素数（含 g，不含 svg 根）', () => {
+  it('是文档类命令；保存并回显元素数（含 g，不含 svg 根）', async () => {
     const path = join(dir, 'demo.svg');
-    const command = new SaveCommand(sample(), [path]);
+    const command = new SaveCommand((await sample()), [path]);
     expect(command).toBeInstanceOf(DocumentCommand);
     expect(command.execute().lines()).toEqual([`saved to ${path} (5 elements)`]);
     expect(readFileSync(path, 'utf8')).toContain('<circle id="c1" cx="100" cy="100" r="20" fill="red"/>');
   });
 
-  it('save <path> 后该路径成为当前路径，无参 save 保存到这里', () => {
-    const workspace = sample();
+  it('save <path> 后该路径成为当前路径，无参 save 保存到这里', async () => {
+    const workspace = (await sample());
     const path = join(dir, 'a.svg');
     new SaveCommand(workspace, [path]).execute();
     new CreateCommand(workspace, ['g', 'later']).execute();
@@ -60,12 +60,12 @@ describe('SaveCommand', () => {
     expect(readFileSync(path, 'utf8')).toContain('<g id="later"/>');
   });
 
-  it('文档来自 init（无路径）时无参 save 报错，提示指定文件名', () => {
-    expect(() => new SaveCommand(sample(), []).execute()).toThrow(new EditorError("no file path. use 'save <file.svg>'"));
+  it('文档来自 init（无路径）时无参 save 报错，提示指定文件名', async () => {
+    await expect(async () => new SaveCommand((await sample()), []).execute()).rejects.toThrow(new EditorError("no file path. use 'save <file.svg>'"));
   });
 
-  it('文件不可写时报错，当前路径不变', () => {
-    const workspace = sample();
+  it('文件不可写时报错，当前路径不变', async () => {
+    const workspace = (await sample());
     const good = join(dir, 'a.svg');
     new SaveCommand(workspace, [good]).execute();
     const bad = join(dir, 'missing', 'b.svg');
@@ -73,15 +73,15 @@ describe('SaveCommand', () => {
     expect(workspace.path()).toBe(good);
   });
 
-  it('无文档时报无文档；参数个数在构造时校验', () => {
-    expect(() => new SaveCommand(createWorkspace(), ['a.svg']).execute()).toThrow("no document. use 'init' or 'read' first");
-    expect(() => new SaveCommand(createWorkspace(), ['a', 'b'])).toThrow('wrong number of arguments. usage: save [file.svg]');
+  it('无文档时报无文档；参数个数在构造时校验', async () => {
+    await expect(async () => new SaveCommand((await createWorkspace()), ['a.svg']).execute()).rejects.toThrow("no document. use 'init' or 'read' first");
+    await expect(async () => new SaveCommand((await createWorkspace()), ['a', 'b'])).rejects.toThrow('wrong number of arguments. usage: save [file.svg]');
   });
 });
 
 describe('SaveCommand 的复合模型映射', () => {
-  it('保存复用会话注册的写出映射，内部成员不进入文档节点树', () => {
-    const workspace = createWorkspace();
+  it('保存复用会话注册的写出映射，内部成员不进入文档节点树', async () => {
+    const workspace = (await createWorkspace());
     const doc = new Document(100, 100);
     const panel = new CompositeShape('panel');
     doc.insert(panel);
@@ -107,11 +107,11 @@ describe('SaveCommand 的复合模型映射', () => {
 });
 
 describe('ReadCommand', () => {
-  it('是文档类命令；save 后 read 读回，tree 与保存前一致，回显元素数', () => {
-    const original = sample();
+  it('是文档类命令；save 后 read 读回，tree 与保存前一致，回显元素数', async () => {
+    const original = (await sample());
     const path = join(dir, 'demo.svg');
     new SaveCommand(original, [path]).execute();
-    const workspace = createWorkspace();
+    const workspace = (await createWorkspace());
     const command = new ReadCommand(workspace, [path]);
     expect(command).toBeInstanceOf(DocumentCommand);
     const result = command.execute();
@@ -120,34 +120,34 @@ describe('ReadCommand', () => {
     expect(tree(workspace)).toEqual(tree(original));
   });
 
-  it('read 后无参 save 保存到读入时的路径', () => {
+  it('read 后无参 save 保存到读入时的路径', async () => {
     const path = join(dir, 'demo.svg');
-    new SaveCommand(sample(), [path]).execute();
-    const workspace = createWorkspace();
+    new SaveCommand((await sample()), [path]).execute();
+    const workspace = (await createWorkspace());
     new ReadCommand(workspace, [path]).execute();
     expect(new SaveCommand(workspace, []).execute().lines()).toEqual([`saved to ${path} (5 elements)`]);
   });
 
-  it('补 id 等读入警告先于结果行；覆盖已有文档时追加丢弃警告', () => {
+  it('补 id 等读入警告先于结果行；覆盖已有文档时追加丢弃警告', async () => {
     const path = join(dir, 'other.svg');
     writeFileSync(path, '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect x="0" y="0" width="1" height="1"/></svg>');
-    const workspace = sample();
+    const workspace = (await sample());
     const result = new ReadCommand(workspace, [path]).execute();
     expect(result.warnings()).toEqual(['assigned id rect1 to unnamed <rect>', 'previous document discarded']);
     expect(result.lines()).toEqual([`read ${path} (1 elements)`]);
     expect([workspace.document().width(), workspace.document().height()]).toEqual([400, 300]);
   });
 
-  it('文件不存在时报 cannot read file，当前文档不变', () => {
-    const workspace = sample();
+  it('文件不存在时报 cannot read file，当前文档不变', async () => {
+    const workspace = (await sample());
     const before = workspace.document();
     const path = join(dir, 'a.svg');
     expect(() => new ReadCommand(workspace, [path]).execute()).toThrow(new EditorError(`cannot read file: ${path}`));
     expect(workspace.document()).toBe(before);
   });
 
-  it('文件内容非法时报错，当前文档与路径不变', () => {
-    const workspace = sample();
+  it('文件内容非法时报错，当前文档与路径不变', async () => {
+    const workspace = (await sample());
     const good = join(dir, 'good.svg');
     new SaveCommand(workspace, [good]).execute();
     const before = workspace.document();
@@ -158,7 +158,7 @@ describe('ReadCommand', () => {
     expect(workspace.path()).toBe(good);
   });
 
-  it('参数个数在构造时校验', () => {
-    expect(() => new ReadCommand(createWorkspace(), [])).toThrow('wrong number of arguments. usage: read <file.svg>');
+  it('参数个数在构造时校验', async () => {
+    await expect(async () => new ReadCommand((await createWorkspace()), [])).rejects.toThrow('wrong number of arguments. usage: read <file.svg>');
   });
 });

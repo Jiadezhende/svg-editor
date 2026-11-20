@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { assembleSources } from './PluginHost';
 import type { Contributions, PluginSource } from './PluginHost';
 
-/** 只发现应用 plugins/ 下的直接子包，按目录名稳定排序；目录不存在表示无附加插件。 */
+/** 只发现应用 plugins/ 下的直接子包，按目录名稳定排序；目录不存在表示无插件贡献，仅保留框架入口。 */
 export async function createDiscoveredHost(
   directory = fileURLToPath(new URL('../../plugins/', import.meta.url)),
   report: (message: string) => void = (message) => { process.stderr.write(`${message}\n`); },

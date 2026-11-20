@@ -1,4 +1,4 @@
-import { createWorkspace } from '../../../src/host/defaults';
+import { createWorkspace } from '../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import Invoker from '../../../src/backend/invoker/Invoker';
 import CommandResult from '../../../src/backend/command/CommandResult';
@@ -42,13 +42,13 @@ class SaveLikeCommand extends DocumentCommand {
   }
 }
 
-function display(): StubCommand {
-  return new StubCommand(createWorkspace(), ['a', '1']);
+async function display(): Promise<StubCommand> {
+  return new StubCommand((await createWorkspace()), ['a', '1']);
 }
 
 describe('Invoker 执行', () => {
-  it('执行命令并返回其结果', () => {
-    const result = new Invoker().execute(new StubCommand(createWorkspace(), ['a', '1', 'warn']));
+  it('执行命令并返回其结果', async () => {
+    const result = new Invoker().execute(new StubCommand((await createWorkspace()), ['a', '1', 'warn']));
     expect(result.warnings()).toEqual(['stub a warned']);
     expect(result.lines()).toEqual(['a 1']);
   });
@@ -120,17 +120,17 @@ describe('Invoker 撤销与重做', () => {
     expect(counter.value).toBe(1);
   });
 
-  it('显示类命令不影响历史：不入栈、不清空重做栈、不解除禁止', () => {
+  it('显示类命令不影响历史：不入栈、不清空重做栈、不解除禁止', async () => {
     const counter = new Counter();
     const invoker = new Invoker();
     invoker.execute(new AddCommand(counter, 1));
-    invoker.execute(display());
+    invoker.execute((await display()));
     invoker.undo();
-    invoker.execute(display());
+    invoker.execute((await display()));
     expect(invoker.redo().lines()).toEqual(['added 1']);
 
     invoker.execute(new SaveLikeCommand());
-    invoker.execute(display());
+    invoker.execute((await display()));
     expect(() => invoker.undo()).toThrow('undo not allowed after io command');
   });
 

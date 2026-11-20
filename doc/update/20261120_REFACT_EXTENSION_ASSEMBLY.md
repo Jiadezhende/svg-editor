@@ -1,6 +1,6 @@
 # 剩余架构：模型 id、树装饰与全部发现装配
 
-日期：2026-11-20。按用户新约定，不实现配置注册、白名单或禁用；自动发现 plugins/ 下的插件包并按稳定顺序全部装配。保留现有基础宿主，正式业务插件不在本次范围。
+日期：2026-11-20。按用户新约定，不实现配置注册、白名单或禁用；自动发现 plugins/ 下的插件包并按稳定顺序全部装配。本记录描述发现机制的初次交付；随后基础能力也已迁入同一插件路径，见[统一插件迁移](20261120_REFACT_UNIFIED_PLUGINS.md)。正式业务插件不在本次范围。
 
 第一步提交 `2b1d518`，第二步提交 `dd58aba`，第三步提交包含自动发现、原子装配和本次最终文档。
 
@@ -20,9 +20,9 @@ Client 在 Invoker 成功更新历史后通知装饰器 edit/undo/redo/replace/s
 
 ## 第三步：全部发现与原子装配（已完成）
 
-- main 使用 createDiscoveredHost，从应用 plugins/ 直接子包加载全部插件，按目录名稳定排序，不配置白名单或禁用。目录缺失和无包时保留基础 CLI；包入口由 name/main/contributes 定义，无具体插件名称清单。
+- main 使用 createDiscoveredHost，从应用 plugins/ 直接子包加载全部插件，按目录名稳定排序，不配置白名单或禁用。目录缺失和无包时仅保留五个框架入口；包入口由 name/main/contributes 定义，无具体插件名称清单。
 - 公共 ExtensionContext 仅开放四类注册，Shape 可附属 SVG 映射；激活后关闭入口。同步/异步激活均先暂存，声明一致后建立独立候选注册表、writer、装饰链和 Client，成功才接纳；失败丢弃当前包全部贡献与映射，保留先前会话继续加载。
-- assemblePlugins 与目录发现共用 assembleSources；跨包重名拒绝，命令包内部保留多个互斥形式。基础能力由 defaults 复用，不向内核引入插件实现。
+- assemblePlugins 与目录发现共用 assembleSources；跨包重名拒绝，命令包内部保留多个互斥形式。基础能力现由 shapes、commands 插件贡献，defaults 已删除，不向内核引入插件实现。
 - 覆盖四类实际扩展、附属映射、重复名称、声明失败、激活失败、装饰器构造失败、异步激活及延迟注册拒绝；真实 Node/tsx 进程验证磁盘发现、Windows 编码路径、加载异常继续启动及代码/发现输出一致。
 - AGENTS、README、剩余计划和 [ADR](../adr/20261120_TREE_AND_DISCOVERY.md) 已同步，插件目录包含使用说明，没有正式业务插件。
 

@@ -14,7 +14,7 @@ onSuccess 的异常逐项捕获并作为 CommandResult 的展示警告，后续�
 
 ## 全部发现与加载
 
-默认入口以应用根 plugins/ 为发现目录，扫描直接子包的 package.json，按目录名稳定排序。仅加载具有包清单的目录或链接，main 缺省为 index.js；不遍历 node_modules 或包内依赖，不硬编码具体插件名。包入口支持当前运行环境能加载的 JS/TS。目录不存在或没有包时，以基础宿主启动。
+默认入口以应用根 plugins/ 为发现目录，扫描直接子包的 package.json，按目录名稳定排序。仅加载具有包清单的目录或链接，main 缺省为 index.js；不遍历 node_modules 或包内依赖，不硬编码具体插件名。包入口支持当前运行环境能加载的 JS/TS。目录不存在或没有包时，仅提供五个 Client 框架入口。六种图形和 17 个命令形式分别由随应用分发的 shapes、commands 插件提供；没有隐式 defaults 注册。详见[统一插件迁移 ADR](20261120_UNIFIED_PLUGINS.md)。
 
 每个包声明 name、main、contributes，入口默认导出提供 activate(context)，支持异步激活。contributes 分类为 shapes、commands、attributes、decorators，分别使用模型 type、命令 command、Handler.handlerName、Decorator.decoratorName，未声明类别为空。名称非空，声明列表不重复，声明集合须与实际暂存贡献一致。包内部允许现有命令协议的多个互斥形式，共用一个 command 名称；跨包重名仍拒绝。
 

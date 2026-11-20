@@ -53,6 +53,8 @@
 - 普通操作可以直接调用模型公开方法；只有开放为扩展点的操作才需要查询 Handler，不强制每次操作都经过 Handler。
 - 命令通过命令类注册机制接入分发与执行流程，由宿主发现并按启用配置装配；启用后参与命令分发和 help 输出，禁用后不注册，执行时按未知命令处理。
 
+- help、undo、redo、exit、quit 是 Client 的框架入口，不实现为 Command 或插件；undo/redo 直接调用 Invoker，历史栈仍保存 EditCommand。init、read、save 和 canvas 等用例命令通过公开服务接口由插件提供。
+
 ## SVG 读写：持久化映射层
 
 - SvgReader 将 SVG 表示恢复为领域模型，SvgWriter 将模型映射为 SVG；文件访问负责实际读写，领域修改不通过序列化再解析来完成。
@@ -113,17 +115,18 @@ Document（画布、节点树、全局约束）
 
 ## 扩展发现与启用配置
 
-- 宿主从应用 plugins/ 的直接子包自动发现 Shape、Command、Handler 和 TreeDecorator，按目录名稳定排序并全部装配；新增包不修改内核或发现逻辑。基础六种图形和内置命令由宿主 defaults 提供。
-- 本阶段不实现配置注册、白名单、禁用或 options；这些不是当前验收范围。目录缺失或无附加插件时基础 CLI 正常启动。
+- 宿主从应用 plugins/ 的直接子包自动发现 Shape、Command、Handler 和 TreeDecorator，按目录名稳定排序并全部装配；新增包不修改内核或发现逻辑。六种基础图形由 plugins/shapes 提供，17 个具体命令形式由 plugins/commands 提供；两包随应用分发，与其他插件使用同一发现、激活和校验路径。
+- 本阶段不实现配置注册、白名单、禁用或 options；这些不是当前验收范围。目录缺失或无包时仅保留 help、undo、redo、exit、quit 五个框架入口；不隐式补入图形或用例命令。
 - 包通过 package.json 的 name、main 和 contributes 声明贡献，入口默认导出提供 activate(context)，同步或异步均可。贡献名称必须与实际暂存注册集合一致，跨插件同类重名拒绝；命令包内部仍可注册多个互斥形式。
 - 公共 ExtensionContext 只开放四种注册方法；registerShape 可附带 SVG 映射。宿主先暂存，再构建候选注册表、writer、装饰链和 Client，全部校验成功才接纳。单包失败丢弃其全部贡献及映射，报告错误并继续，保留先前有效会话。激活完成后上下文关闭。
+- 插件目录名不限定贡献类别，同包可同时注册模型、Handler、命令和装饰器。Handler 通过 registerAttributeHandler 接入 Workspace 注册表，由 SetCommand 查询和调用；activate 只声明贡献，不执行用户用例，也不要求图形先于命令注册。
 - 代码装配 assemblePlugins 与目录发现共用暂存和校验路径；插件不得依赖任意外部副作用能被回滚。
 
 ## 依赖与装配边界
 
 - 内核定义公开领域抽象和扩展契约，通过契约调用扩展，不导入具体插件。
 - 宿主和扩展的公共导入入口为 `src/backend/index.ts`；ShapeNode 只导出类型，节点构造及关系存储不作为扩展接口。
-- ShapeFactory 初始为空；`src/host/defaults.ts` 选择基础图形、命令和服务，main 使用自动发现宿主。Client 接收 Workspace，Workspace 接收工厂、文件访问、SvgReader、SvgWriter、AttributeHandlerRegistry 和 TreeRenderer，不在内核创建默认服务。基础宿主提供空 Handler 表和装饰链，Invoker 不依赖 Workspace。
+- ShapeFactory 初始为空；宿主只构造基础服务，main 使用自动发现宿主，具体能力由插件 activate 注册，不保留 defaults 直接注册路径。Client 接收 Workspace，Workspace 接收工厂、文件访问、SvgReader、SvgWriter、AttributeHandlerRegistry 和 TreeRenderer，不在内核创建默认服务。宿主从空 Handler 表和装饰链开始装配贡献，Invoker 不依赖 Workspace。
 - 插件只依赖内核公开契约，不依赖内核内部实现或宿主装配模块。
 - 宿主负责加载和注册全部发现的插件；代码装配与自动发现共用注册、声明校验及失败隔离路径。配置装配留待后续交付范围重新确定。
 - 树标签、CLI 格式化等展示行为留在展示扩展中，不混入领域 Handler 或模型。

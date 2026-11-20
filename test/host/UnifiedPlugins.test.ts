@@ -1,0 +1,126 @@
+import { describe, expect, it, vi } from 'vitest';
+import { Command, CommandResult, Shape } from '../../src/backend';
+import { assemblePlugins } from '../../src/host/PluginHost';
+import type { PluginRegistration } from '../../src/host/PluginHost';
+import { createHost, shippedPlugins } from '../support/Plugins';
+import { Panel, panelMapping } from '../support/SvgCompositeExtension';
+
+class PanelAttributes {
+  static readonly handlerName: string = 'panel-attributes';
+  static matches(shape: Shape, key: string): boolean { return shape instanceof Panel && ['label', 'title'].includes(key); }
+  static apply(shape: Shape, _key: string, token: string): void {
+    const panel = shape as Panel;
+    panel.setLabel(token);
+    panel.frameShape().set('fill', token);
+    if (token === 'fail') throw new Error('partial failure');
+  }
+  static display(shape: Shape): string | null {
+    const panel = shape as Panel;
+    if (panel.captionShape().value('text') === 'display-fail') throw new Error('display failure');
+    return panel.captionShape().display('text');
+  }
+}
+class LaterAttributes extends PanelAttributes {
+  static override readonly handlerName = 'later-attributes';
+  static override apply(): void { throw new Error('later handler must not run'); }
+}
+const panelPlugin: PluginRegistration = {
+  name: 'panel', contributes: { shapes: [Panel.type], attributes: [PanelAttributes.handlerName, LaterAttributes.handlerName] },
+  plugin: { activate(context) {
+    context.registerShape(Panel, panelMapping);
+    context.registerAttributeHandler(PanelAttributes);
+    context.registerAttributeHandler(LaterAttributes);
+  } },
+};
+
+async function panelSession() {
+  const host = await createHost([panelPlugin]);
+  host.client.execute(['init']);
+  host.client.execute(['create', Panel.type, 'p']);
+  return { ...host, panel: host.workspace.document().requireNode('p').value as Panel };
+}
+
+describe('统一插件边界', () => {
+  it('空装配只保留五个框架入口，不隐式注册图形或用例命令', async () => {
+    const host = await assemblePlugins([]);
+    expect(host.plugins).toEqual([]);
+    expect(host.client.execute(['help']).lines()).toEqual(['help', 'undo', 'redo', 'exit', 'quit']);
+    expect(host.workspace.shapes().has('rect')).toBe(false);
+    expect(() => host.client.execute(['init'])).toThrow('unknown command');
+    expect(() => host.client.execute(['undo'])).toThrow('nothing to undo');
+    expect(() => host.client.execute(['redo'])).toThrow('nothing to redo');
+    host.client.execute(['exit']);
+    expect(host.client.isExitRequested()).toBe(true);
+    const other = await assemblePlugins([]);
+    other.client.execute(['quit']);
+    expect(other.client.isExitRequested()).toBe(true);
+  });
+
+  it.each(['help', 'undo', 'redo', 'exit', 'quit'])('插件不能占用框架入口 %s', async (name) => {
+    class Reserved extends Command {
+      static override readonly command = name;
+      static override readonly usage = name;
+      execute(): CommandResult { return new CommandResult(); }
+    }
+    const host = await assemblePlugins([{ name: 'reserved', contributes: { commands: [name] }, plugin: { activate(context) { context.registerCommand(Reserved); } } }]);
+    expect(host.errors).toEqual([`duplicate registration: commands/${name}`]);
+    expect(host.plugins).toEqual([]);
+  });
+
+  it('命令包可以先于图形包激活，重复基础包遵循普通插件规则', async () => {
+    const commands = await assemblePlugins([shippedPlugins[0]]);
+    expect(commands.errors).toEqual([]);
+    commands.client.execute(['init']);
+    expect(() => commands.client.execute(['create', 'g', 'g'])).toThrow('unknown shape type');
+    const duplicate = { ...shippedPlugins[1], name: 'duplicate-shapes' };
+    const host = await assemblePlugins([...shippedPlugins, duplicate]);
+    expect(host.plugins).toEqual(['commands', 'shapes']);
+    expect(host.errors).toEqual(['duplicate registration: shapes/rect']);
+  });
+
+  it('同包模型与 Handler 接入 set，别名优先且多部件整体撤销重做', async () => {
+    const { client, panel, workspace } = await panelSession();
+    expect(client.execute(['set', 'p', 'title', 'red']).lines()[0]).toContain('title="red"');
+    for (let i = 0; i < 3; i++) {
+      expect(panel.frameShape().value('fill')).toBe('red');
+      expect(panel.captionShape().value('text')).toBe('red');
+      client.execute(['undo']);
+      expect(panel.frameShape().value('fill')).toBeNull();
+      expect(panel.captionShape().value('text')).toBe('hello');
+      client.execute(['redo']);
+      expect(workspace.document().requireNode('p').value).toBe(panel);
+    }
+    client.execute(['set', 'p', 'stroke', 'blue']);
+    expect(panel.value('stroke')).toBe('blue');
+    expect(() => client.execute(['set', 'p', 'unknown', 'x'])).toThrow('unknown attribute');
+  });
+
+  it.each(['fail', 'display-fail'])('命中后 %s 恢复私有部件并保留 redo，不调用后续 Handler', async (token) => {
+    const { client, panel } = await panelSession();
+    client.execute(['set', 'p', 'label', 'red']);
+    client.execute(['undo']);
+    expect(() => client.execute(['set', 'p', 'title', token])).toThrow(token === 'fail' ? 'partial failure' : 'display failure');
+    expect(panel.captionShape().value('text')).toBe('hello');
+    expect(panel.frameShape().value('fill')).toBeNull();
+    client.execute(['redo']);
+    expect(panel.captionShape().value('text')).toBe('red');
+  });
+
+  it('redo 部分失败保持原撤销记录并可重试', async () => {
+    const { client, panel } = await panelSession();
+    client.execute(['set', 'p', 'label', 'red']);
+    client.execute(['undo']);
+    const spy = vi.spyOn(PanelAttributes, 'apply').mockImplementationOnce((shape) => {
+      (shape as Panel).setLabel('partial');
+      throw new Error('retry');
+    });
+    try {
+      expect(() => client.execute(['redo'])).toThrow('retry');
+      expect(panel.captionShape().value('text')).toBe('hello');
+      client.execute(['redo']);
+      expect(panel.captionShape().value('text')).toBe('red');
+      client.execute(['undo']);
+      expect(panel.captionShape().value('text')).toBe('hello');
+    } finally { spy.mockRestore(); }
+  });
+});

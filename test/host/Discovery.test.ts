@@ -48,6 +48,27 @@ function runHost(body: string): any {
 }
 
 describe('全部插件目录发现', () => {
+  it('发行包与代码装配输出一致，基础能力确实来自已发现包', () => {
+    const result = runHost(`const { readFileSync } = await import('node:fs');
+      const registrations = [];
+      for (const name of ['commands', 'shapes']) {
+        const folder = join(process.cwd(), 'plugins', name);
+        const manifest = JSON.parse(readFileSync(join(folder, 'package.json'), 'utf8'));
+        const loaded = await import(pathToFileURL(join(folder, manifest.main)).href);
+        registrations.push({ name: manifest.name, contributes: manifest.contributes, plugin: loaded.default });
+      }
+      const direct = await assemblePlugins(registrations);
+      const discovered = await createDiscoveredHost(undefined, () => {});
+      console.log(JSON.stringify([direct, discovered].map(host => {
+        host.client.execute(['init']);
+        host.client.execute(['create', 'g', 'g']);
+        return { plugins: host.plugins, errors: host.errors, help: host.client.execute(['help']).lines(), tree: host.client.execute(['tree']).lines() };
+      })));`);
+    expect(result[0].plugins).toEqual(['commands', 'shapes']);
+    expect(result[0].errors).toEqual([]);
+    expect(result[1]).toEqual(result[0]);
+  });
+
   it('目录缺失或没有插件时仅保留框架入口', async () => {
     const empty = await createDiscoveredHost(directory, () => {});
     const missing = await createDiscoveredHost(join(directory, 'missing'), () => {});

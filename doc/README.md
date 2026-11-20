@@ -2,7 +2,7 @@
 
 内核分批重构进度：已完成[第一批：Shape 与 Document 的约束边界](update/20261119_REFACT_DOMAIN_BOUNDARIES.md)，以及[文档节点树与 Shape 职责分离](update/20261119_REFACT_DOCUMENT_SHAPE_NODES.md)。最新设计由 Document 统一维护 ShapeNode 树，Shape 仅维护图形状态和领域行为。下文 Phase 1 的架构及质量数据保留为历史基线；当前接口变化与验证结果见最新重构记录。
 
-已完成[第二批：三类命令与局部撤销](update/20261119_REFACT_UNDO_REDO_SIMPLIFICATION.md)、[第三批：公开契约与依赖注入](update/20261119_REFACT_PUBLIC_CONTRACTS.md)、[第四批：静态 AttributeHandler](update/20261120_REFACT_ATTRIBUTE_HANDLERS.md)、[第五批：SVG 编排与模型构造](update/20261120_REFACT_SVG_PARSE.md)，以及[树装饰、私有 id 与全部插件发现装配](update/20261120_REFACT_EXTENSION_ASSEMBLY.md)。按最新约定，配置注册暂缓；当前架构范围已完成，Phase 2 正式插件、VSCode 和交付材料尚未完成。[后续计划](update/20261119_PLAN_REMAINING_CORE_REFACTOR.md)已同步。
+已完成[第二批：三类命令与局部撤销](update/20261119_REFACT_UNDO_REDO_SIMPLIFICATION.md)、[第三批：公开契约与依赖注入](update/20261119_REFACT_PUBLIC_CONTRACTS.md)、[第四批：静态 AttributeHandler](update/20261120_REFACT_ATTRIBUTE_HANDLERS.md)、[第五批：SVG 编排与模型构造](update/20261120_REFACT_SVG_PARSE.md)，以及[树装饰、私有 id 与全部插件发现装配](update/20261120_REFACT_EXTENSION_ASSEMBLY.md)。随后完成[内置能力统一插件迁移](update/20261120_REFACT_UNIFIED_PLUGINS.md)。按最新约定，配置注册暂缓；当前架构范围已完成，Phase 2 正式插件、VSCode 和交付材料尚未完成。[后续计划](update/20261119_PLAN_REMAINING_CORE_REFACTOR.md)已同步。
 
 仓库地址：<https://github.com/Jiadezhende/svg-editor>（最终提交为 tag `final`）
 
@@ -51,7 +51,7 @@ npm run coverage             # 覆盖率报告
 - Shape 封装领域状态和私有部件；Document 维护 ShapeNode 树与全局约束，查询统一返回节点，通过 node.value 取得原模型引用。identifiers() 声明模型及私有部件 id，创建及结构恢复前统一检查。
 - `src/backend/index.ts` 提供模型、只读节点、属性规格、工厂、命令和持久化公共入口。ShapeClass 是工厂内部约束，ShapeNode 仅导出类型。
 - ShapeFactory 初始为空，提供 register、has、definition、create；规格视图不公开构造签名。课程 ShapeProvider 由具体 Shape 类的静态描述与构造能力承担，不增加包装对象。
-- `src/host/defaults.ts` 选择六种内置图形、17 个命令形式、原生文件服务与 SVG 读写器。main.ts 将装配后的 Client 接到控制台。
+- `plugins/shapes` 和 `plugins/commands` 分别提供六种图形、17 个命令形式，经统一发现、activate、暂存与校验装配；宿主只构造基础服务。Client 保留 help、undo、redo、exit、quit 框架入口。main.ts 将装配后的 Client 接到控制台。
 - Workspace 接收工厂、文件访问、reader、writer、AttributeHandlerRegistry 和 TreeRenderer，保存当前文档和路径；Client 接收 Workspace。read 使用注入 reader，save 复用会话 writer 及其映射。
 - AttributeHandlerRegistry 直接注册静态类，按注册顺序首次匹配。目标类型、属性名和别名由 Handler.matches 判断，SetCommand 调用命中项的 apply/display；零命中回退模型规则。默认注册表为空，不包装普通属性；命中失败恢复模型快照且不继续尝试。详见[属性处理器 ADR](adr/20261120_ATTRIBUTE_HANDLER_CONTRACT.md)。
 - SvgReader 负责 XML、类型选择、按需递归及候选文档组装；经 ShapeFactory.parse 调用可覆写 Shape.parse，由模型解析属性并消费私有部件，返回其余文档成员。已安装 data-kind 优先，未安装按原标签降级，结构无效拒绝。模型不接触 XML 库或 ShapeNode。
@@ -61,7 +61,7 @@ npm run coverage             # 覆盖率报告
 - main 经宿主自动发现 plugins/ 直接子包，按稳定顺序全部装配。ExtensionContext 只暂存四类贡献及 Shape 附属映射，声明和候选装配成功才接纳；单包失败保留之前会话继续启动。目录为空保持基础 CLI；当前没有配置注册、白名单或禁用。[插件接入说明](../plugins/README.md)，[架构 ADR](adr/20261120_TREE_AND_DISCOVERY.md)。
 
 ```text
-宿主 defaults → 选择图形和命令 → 工厂注册表、Client 命令表
+宿主发现 plugins → 包 activate → 暂存与声明校验 → 工厂注册表、Client 命令表
               → 创建文件服务、reader、writer、Handler 表 → Workspace → Client
 main → 自动发现插件并校验候选装配 → App → Client
 Client → Command → Workspace 提供的文档、工厂和读写能力

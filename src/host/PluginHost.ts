@@ -10,7 +10,7 @@ export interface PluginSource {
   readonly name: string;
   readonly module: string;
   readonly contributes: Contributions;
-  load(): Promise<{ default?: unknown }>;
+  load(): Promise<{ activate?: unknown }>;
 }
 export interface PluginRegistration {
   readonly name: string;
@@ -105,10 +105,10 @@ export async function assembleSources(sources: readonly PluginSource[], report: 
   const fail = (message: string) => { errors.push(message); report(`error: ${message}`); };
   for (const source of sources) {
     if (typeof source.name !== 'string' || !source.name.trim()) { fail('invalid plugin name'); continue; }
-    let module: { default?: unknown };
+    let module: { activate?: unknown };
     try { module = await source.load(); }
     catch (error) { fail(`plugin failed to load: ${source.name} (${messageOf(error)})`); continue; }
-    if (module.default === undefined) { fail(`plugin has no default export: ${source.module}`); continue; }
+    if (typeof module.activate !== 'function') { fail(`plugin must export activate(context): ${source.module}`); continue; }
     if (accepted.some((plugin) => plugin.name === source.name)) { fail(`duplicate registration: plugins/${source.name}`); continue; }
     const staged: Staged = { name: source.name, shapes: [], commands: [], attributes: [], decorators: [] };
     let open = true;
@@ -120,9 +120,7 @@ export async function assembleSources(sources: readonly PluginSource[], report: 
       registerTreeDecorator: (decorator) => { checkOpen(); staged.decorators.push(decorator); },
     } satisfies ExtensionContext);
     try {
-      const plugin = module.default as ExtensionPlugin;
-      if (plugin === null || typeof plugin.activate !== 'function') throw new Error('default export must provide activate(context)');
-      await plugin.activate(context);
+      await (module as ExtensionPlugin).activate(context);
       open = false;
       validateManifest(source, staged);
       const candidate = build([...accepted, staged]);
@@ -138,7 +136,7 @@ export async function assembleSources(sources: readonly PluginSource[], report: 
 
 export function assemblePlugins(plugins: readonly PluginRegistration[], report?: (message: string) => void) {
   return assembleSources(plugins.map((plugin) => ({
-    ...plugin, module: plugin.name, load: async () => ({ default: plugin.plugin }),
+    ...plugin, module: plugin.name, load: async () => plugin.plugin,
   })), report);
 }
 

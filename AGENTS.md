@@ -117,7 +117,7 @@ Document（画布、节点树、全局约束）
 
 - 宿主从应用 plugins/ 的直接子包自动发现 Shape、Command、Handler 和 TreeDecorator，按目录名稳定排序并全部装配；新增包不修改内核或发现逻辑。六种基础图形由 plugins/shapes 提供，17 个具体命令形式由 plugins/commands 提供；两包随应用分发，与其他插件使用同一发现、激活和校验路径。
 - 本阶段不实现配置注册、白名单、禁用或 options；这些不是当前验收范围。目录缺失或无包时仅保留 help、undo、redo、exit、quit 五个框架入口；不隐式补入图形或用例命令。
-- 包通过 package.json 的 name、main 和 contributes 声明贡献，入口默认导出提供 activate(context)，同步或异步均可。贡献名称必须与实际暂存注册集合一致，跨插件同类重名拒绝；命令包内部仍可注册多个互斥形式。
+- 包通过 package.json 的 name、main 和 contributes 声明贡献，入口具名导出 activate(context) 函数，同步或异步均可。贡献名称必须与实际暂存注册集合一致，跨插件同类重名拒绝；命令包内部仍可注册多个互斥形式。
 - 公共 ExtensionContext 只开放四种注册方法；registerShape 可附带 SVG 映射。宿主先暂存，再构建候选注册表、writer、装饰链和 Client，全部校验成功才接纳。单包失败丢弃其全部贡献及映射，报告错误并继续，保留先前有效会话。激活完成后上下文关闭。
 - 插件目录名不限定贡献类别，同包可同时注册模型、Handler、命令和装饰器。Handler 通过 registerAttributeHandler 接入 Workspace 注册表，由 SetCommand 查询和调用；activate 只声明贡献，不执行用户用例，也不要求图形先于命令注册。
 - 代码装配 assemblePlugins 与目录发现共用暂存和校验路径；插件不得依赖任意外部副作用能被回滚。

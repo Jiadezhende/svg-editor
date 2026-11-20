@@ -29,7 +29,7 @@ function commandSource(name: string): string {
       static usage = ${JSON.stringify(name)};
       execute() { return new CommandResult().line('discovered ${name}'); }
     }
-    export default { activate(context) { context.registerCommand(Greeting); } };`;
+    export function activate(context) { context.registerCommand(Greeting); }`;
 }
 
 // 用真实 Node/tsx 加载磁盘包，避免测试转换器替代原生模块解析（尤其 Windows 编码路径）。
@@ -55,7 +55,7 @@ describe('全部插件目录发现', () => {
         const folder = join(process.cwd(), 'plugins', name);
         const manifest = JSON.parse(readFileSync(join(folder, 'package.json'), 'utf8'));
         const loaded = await import(pathToFileURL(join(folder, manifest.main)).href);
-        registrations.push({ name: manifest.name, contributes: manifest.contributes, plugin: loaded.default });
+        registrations.push({ name: manifest.name, contributes: manifest.contributes, plugin: loaded });
       }
       const direct = await assemblePlugins(registrations);
       const discovered = await createDiscoveredHost(undefined, () => {});
@@ -96,7 +96,7 @@ describe('全部插件目录发现', () => {
   it('实际模块经过相同注册路径，代码与自动发现装配输出一致', async () => {
     packageOf('one', 'one', commandSource('discovered'), ['discovered']);
     const results = runHost(`const loaded = await import(pathToFileURL(join(directory, 'one', 'index.mjs')).href);
-      const direct = await assemblePlugins([{ name: 'one', contributes: { commands: ['discovered'] }, plugin: loaded.default }]);
+      const direct = await assemblePlugins([{ name: 'one', contributes: { commands: ['discovered'] }, plugin: loaded }]);
       const discovered = await createDiscoveredHost(directory, () => {});
       console.log(JSON.stringify([direct, discovered].map(host => ({ errors: host.errors, help: host.client.execute(['help']).lines(), result: host.client.execute(['discovered']).lines() }))));`);
     expect(results[0].errors).toEqual([]);
@@ -104,12 +104,12 @@ describe('全部插件目录发现', () => {
     expect(results[0]).toEqual(results[1]);
   });
 
-  it('入口缺失、无默认导出、依赖失败或激活异常均报告，继续加载后续包', async () => {
-    packageOf('a-missing', 'missing', 'export default {};');
+  it('入口缺失、无具名 activate 导出、依赖失败或激活异常均报告，继续加载后续包', async () => {
+    packageOf('a-missing', 'missing', 'export const value = 1;');
     writeFileSync(join(directory, 'a-missing', 'package.json'), JSON.stringify({ name: 'missing', main: 'absent.mjs', contributes: {} }));
-    packageOf('b-no-default', 'no-default', 'export const value = 1;');
-    packageOf('c-dependency', 'dependency', 'import "./missing-dependency.mjs"; export default { activate() {} };');
-    packageOf('d-activate', 'activate', 'export default { activate() { throw new Error("activation failed"); } };');
+    packageOf('b-no-activate', 'no-activate', 'export const value = 1;');
+    packageOf('c-dependency', 'dependency', 'import "./missing-dependency.mjs"; export function activate() {}');
+    packageOf('d-activate', 'activate', 'export function activate() { throw new Error("activation failed"); }');
     packageOf('z-good', 'good', commandSource('healthy'), ['healthy']);
     const host = runHost(`const messages = []; const host = await createDiscoveredHost(directory, message => messages.push(message));
       console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins, messages, result: host.client.execute(['healthy']).lines() }));`);
@@ -117,16 +117,16 @@ describe('全部插件目录发现', () => {
     expect(host.plugins).toEqual(['good']);
     expect(host.errors).toHaveLength(4);
     expect(messages.some((message) => message.startsWith('error: plugin not found:'))).toBe(true);
-    expect(messages.some((message) => message.startsWith('error: plugin has no default export:'))).toBe(true);
+    expect(messages.some((message) => message.startsWith('error: plugin must export activate(context):'))).toBe(true);
     expect(messages.some((message) => message.startsWith('error: plugin failed to load: dependency'))).toBe(true);
     expect(messages.some((message) => message.startsWith('error: plugin failed to activate: activate'))).toBe(true);
     expect(host.result).toEqual(['discovered healthy']);
   });
 
   it('非法清单或贡献不一致不阻止基础宿主启动', async () => {
-    packageOf('a-invalid-json', 'invalid-json', 'export default {};');
+    packageOf('a-invalid-json', 'invalid-json', 'export const value = 1;');
     writeFileSync(join(directory, 'a-invalid-json', 'package.json'), '{ broken');
-    packageOf('b-invalid-schema', 'invalid-schema', 'export default {};');
+    packageOf('b-invalid-schema', 'invalid-schema', 'export const value = 1;');
     writeFileSync(join(directory, 'b-invalid-schema', 'package.json'), JSON.stringify({ name: 1, contributes: [] }));
     packageOf('c-mismatch', 'mismatch', commandSource('unexpected'), []);
     const host = runHost(`const host = await createDiscoveredHost(directory, () => {});

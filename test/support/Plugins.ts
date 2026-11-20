@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
-import commands from '../../plugins/commands';
-import shapes from '../../plugins/shapes';
+import * as commands from '../../plugins/commands';
+import * as shapes from '../../plugins/shapes';
 import { assemblePlugins } from '../../src/host/PluginHost';
 import type { ExtensionPlugin } from '../../src/backend';
 import type { Contributions } from '../../src/host/PluginHost';

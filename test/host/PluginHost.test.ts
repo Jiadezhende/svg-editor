@@ -157,15 +157,15 @@ describe('插件暂存与原子装配', () => {
     }
   });
 
-  it('缺少默认导出或模块依赖加载失败均报告并继续', async () => {
+  it('缺少具名 activate 导出或模块依赖加载失败均报告并继续', async () => {
     const messages: string[] = [];
     const host = await assembleSources([
-      { name: 'no-default', module: 'no-default.mjs', contributes: {}, load: async () => ({}) },
+      { name: 'no-activate', module: 'no-activate.mjs', contributes: {}, load: async () => ({}) },
       { name: 'dependency', module: 'dependency.mjs', contributes: {}, load: async () => { throw new Error('missing nested dependency'); } },
-      { name: 'good', module: 'good', contributes: all.contributes, load: async () => ({ default: all.plugin }) },
+      { name: 'good', module: 'good', contributes: all.contributes, load: async () => all.plugin },
     ], (message) => messages.push(message));
     expect(host.plugins).toEqual(['good']);
-    expect(messages[0]).toBe('error: plugin has no default export: no-default.mjs');
+    expect(messages[0]).toBe('error: plugin must export activate(context): no-activate.mjs');
     expect(messages[1]).toContain('error: plugin failed to load: dependency');
     expect(messages[1]).not.toContain('plugin not found');
   });

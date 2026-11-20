@@ -1,4 +1,4 @@
-import type { ExtensionPlugin } from '../../src/backend';
+import type { ExtensionContext } from '../../src/backend';
 import AddtoCommand from './AddtoCommand';
 import BackCommand from './BackCommand';
 import CanvasResizeCommand from './CanvasResizeCommand';
@@ -17,24 +17,22 @@ import ShowCommand from './ShowCommand';
 import TreeCommand from './TreeCommand';
 import UngroupCommand from './UngroupCommand';
 
-export default {
-  activate(context) {
-    context.registerCommand(AddtoCommand);
-    context.registerCommand(BackCommand);
-    context.registerCommand(CanvasResizeCommand);
-    context.registerCommand(CanvasShowCommand);
-    context.registerCommand(CreateCommand);
-    context.registerCommand(DeleteCommand);
-    context.registerCommand(FrontCommand);
-    context.registerCommand(GroupCommand);
-    context.registerCommand(InitCommand);
-    context.registerCommand(MoveCommand);
-    context.registerCommand(ReadCommand);
-    context.registerCommand(SaveCommand);
-    context.registerCommand(ScaleCommand);
-    context.registerCommand(SetCommand);
-    context.registerCommand(ShowCommand);
-    context.registerCommand(TreeCommand);
-    context.registerCommand(UngroupCommand);
-  },
-} satisfies ExtensionPlugin;
+export function activate(context: ExtensionContext): void {
+  context.registerCommand(AddtoCommand);
+  context.registerCommand(BackCommand);
+  context.registerCommand(CanvasResizeCommand);
+  context.registerCommand(CanvasShowCommand);
+  context.registerCommand(CreateCommand);
+  context.registerCommand(DeleteCommand);
+  context.registerCommand(FrontCommand);
+  context.registerCommand(GroupCommand);
+  context.registerCommand(InitCommand);
+  context.registerCommand(MoveCommand);
+  context.registerCommand(ReadCommand);
+  context.registerCommand(SaveCommand);
+  context.registerCommand(ScaleCommand);
+  context.registerCommand(SetCommand);
+  context.registerCommand(ShowCommand);
+  context.registerCommand(TreeCommand);
+  context.registerCommand(UngroupCommand);
+}

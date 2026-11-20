@@ -4,7 +4,7 @@
 
 ## 决策
 
-六种具体 Shape 放入 plugins/shapes，17 个具体命令形式放入 plugins/commands。每包以 package.json 声明贡献，默认导出 activate(context)。包只依赖内核公共入口，命令通过工厂访问类型，不直接导入图形包。
+六种具体 Shape 放入 plugins/shapes，17 个具体命令形式放入 plugins/commands。每包以 package.json 声明贡献，具名导出 activate(context) 函数。包只依赖内核公共入口，命令通过工厂访问类型，不直接导入图形包。
 
 宿主从空注册表构建会话。基础包和附加包使用同一发现、加载、暂存、声明校验和失败隔离流程。删除 defaults，不保留第二份默认注册表、旧路径转导出或隐藏兜底。代码装配显式提供所需包；指定目录只发现该目录。
 

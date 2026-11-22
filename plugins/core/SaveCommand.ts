@@ -1,6 +1,6 @@
 import { CommandResult } from '../../src/backend';
 import { DocumentCommand } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 /** `save [file.svg]`：保存当前文档；无参时保存到当前路径，带参时保存到该路径并使其成为当前路径。 */
 export default class SaveCommand extends DocumentCommand {
@@ -12,7 +12,7 @@ export default class SaveCommand extends DocumentCommand {
   private readonly target: string | null;
 
   constructor(
-    private readonly workspace: Workspace,
+    private readonly receiver: Receiver,
     args: readonly string[],
   ) {
     super();
@@ -21,10 +21,7 @@ export default class SaveCommand extends DocumentCommand {
   }
 
   execute(): CommandResult {
-    const doc = this.workspace.document();
-    const path = this.target ?? this.workspace.path();
-    this.workspace.files().write(path, this.workspace.svgWriter().write(doc));
-    this.workspace.setPath(path);
-    return new CommandResult().line(`saved to ${path} (${doc.nodes().length} elements)`);
+    const { document, path } = this.receiver.saveDocument(this.target);
+    return new CommandResult().line(`saved to ${path} (${document.nodes().length} elements)`);
   }
 }

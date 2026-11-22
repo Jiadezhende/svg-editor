@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import StringSpec from '../../../../../src/backend/receiver/document/attribute/StringSpec';
+import StringSpec from '../../../../../../src/backend/receiver/document/shape/attribute/StringSpec';
 
 describe('StringSpec 字符串属性', () => {
   const spec = new StringSpec('fill');

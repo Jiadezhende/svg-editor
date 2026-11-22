@@ -1,4 +1,3 @@
-import { createWorkspace } from '../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import Invoker from '../../../src/backend/invoker/Invoker';
 import CommandResult from '../../../src/backend/command/CommandResult';
@@ -43,12 +42,12 @@ class SaveLikeCommand extends DocumentCommand {
 }
 
 async function display(): Promise<StubCommand> {
-  return new StubCommand((await createWorkspace()), ['a', '1']);
+  return new StubCommand(['a', '1']);
 }
 
 describe('Invoker 执行', () => {
   it('执行命令并返回其结果', async () => {
-    const result = new Invoker().execute(new StubCommand((await createWorkspace()), ['a', '1', 'warn']));
+    const result = new Invoker().execute(new StubCommand(['a', '1', 'warn']));
     expect(result.warnings()).toEqual(['stub a warned']);
     expect(result.lines()).toEqual(['a 1']);
   });

@@ -1,7 +1,7 @@
 import {
   CommandResult, CoordinateSpec, EditCommand, EditorError, Shape, UndoRecord,
 } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 /** 仅依赖公共入口的测试扩展，不参与默认宿主装配。 */
 export class Marker extends Shape {
@@ -40,7 +40,7 @@ export class NudgeMarkerCommand extends EditCommand {
   private readonly dx: number;
   private readonly record = new UndoRecord();
 
-  constructor(private readonly workspace: Workspace, args: readonly string[]) {
+  constructor(private readonly receiver: Receiver, args: readonly string[]) {
     super();
     this.expectArgCount(args, 2);
     this.id = args[0];
@@ -48,7 +48,7 @@ export class NudgeMarkerCommand extends EditCommand {
   }
 
   execute(): CommandResult {
-    const model = this.workspace.document().requireNode(this.id).value;
+    const model = this.receiver.document().requireNode(this.id).value;
     if (!(model instanceof Marker)) throw new EditorError('expected test-marker');
     return this.record.execute(model.capture(), () => {
       model.nudge(this.dx);

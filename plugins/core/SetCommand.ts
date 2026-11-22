@@ -2,7 +2,7 @@ import { CommandResult } from '../../src/backend';
 import { EditCommand } from '../../src/backend';
 import type { Shape } from '../../src/backend';
 import type { ShapeMemento } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 /**
  * `set <id> <attr> <value>`：优先调用首个匹配的静态 Handler，零命中时使用模型属性规则。
@@ -19,7 +19,7 @@ export default class SetCommand extends EditCommand {
   private updated: { shape: Shape; memento: ShapeMemento; previous: string | null } | null = null;
 
   constructor(
-    private readonly workspace: Workspace,
+    private readonly receiver: Receiver,
     args: readonly string[],
   ) {
     super();
@@ -28,8 +28,8 @@ export default class SetCommand extends EditCommand {
   }
 
   execute(): CommandResult {
-    const shape = this.workspace.document().requireNode(this.id).value;
-    const handler = this.workspace.attributeHandlerRegistry().resolve(shape, this.attribute);
+    const shape = this.receiver.document().requireNode(this.id).value;
+    const handler = this.receiver.resolveAttributeHandler(shape, this.attribute);
     const memento = shape.capture();
     const display = () => handler === null
       ? shape.display(this.attribute)

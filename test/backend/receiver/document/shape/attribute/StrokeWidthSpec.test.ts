@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import StrokeWidthSpec from '../../../../../src/backend/receiver/document/attribute/StrokeWidthSpec';
+import StrokeWidthSpec from '../../../../../../src/backend/receiver/document/shape/attribute/StrokeWidthSpec';
 
 describe('StrokeWidthSpec 线宽', () => {
   const spec = new StrokeWidthSpec('stroke-width');

@@ -1,7 +1,7 @@
 import { CommandResult } from '../../src/backend';
 import { EditCommand } from '../../src/backend';
 import { UndoRecord } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 /** `addto <gid> <id>`：节点迁移用例，由 Document 维护结构约束。 */
 export default class AddtoCommand extends EditCommand {
@@ -11,7 +11,7 @@ export default class AddtoCommand extends EditCommand {
   private readonly id: string;
   private readonly containerId: string;
 
-  constructor(private readonly workspace: Workspace, args: readonly string[]) {
+  constructor(private readonly receiver: Receiver, args: readonly string[]) {
     super();
     this.expectArgCount(args, 2);
     this.id = args[1];
@@ -19,7 +19,7 @@ export default class AddtoCommand extends EditCommand {
   }
 
   execute(): CommandResult {
-    const doc = this.workspace.document();
+    const doc = this.receiver.document();
     return this.undoRecord.execute(doc.captureStructure(), () => {
       const node = doc.requireNode(this.id);
       const target = doc.requireNode(this.containerId);

@@ -1,6 +1,6 @@
 import { DOMParser, type Element } from '@xmldom/xmldom';
 import EditorError from '../../error/EditorError';
-import DecimalFormat from '../document/attribute/DecimalFormat';
+import DecimalFormat from '../../utils/DecimalFormat';
 import type ShapeNode from '../document/ShapeNode';
 import Document, { type ViewBox } from '../document/Document';
 import type ShapeFactory from '../document/shape/ShapeFactory';

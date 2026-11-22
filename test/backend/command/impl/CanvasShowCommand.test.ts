@@ -1,4 +1,4 @@
-import { createWorkspace } from '../../../support/Plugins';
+import { createReceiver } from '../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import CanvasShowCommand from '../../../../plugins/core/CanvasShowCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
@@ -11,12 +11,12 @@ describe('CanvasShowCommand', () => {
   });
 
   it('显示当前尺寸，按数值格式输出', async () => {
-    const workspace = (await createWorkspace());
-    workspace.replace(new Document(800, 600.5));
-    expect(new CanvasShowCommand(workspace, []).execute().lines()).toEqual(['canvas 800x600.5']);
+    const receiver = (await createReceiver());
+    receiver.replace(new Document(800, 600.5));
+    expect(new CanvasShowCommand(receiver, []).execute().lines()).toEqual(['canvas 800x600.5']);
   });
 
   it('无文档时报"无文档"', async () => {
-    await expect(async () => new CanvasShowCommand((await createWorkspace()), []).execute()).rejects.toThrow("no document. use 'init' or 'read' first");
+    await expect(async () => new CanvasShowCommand((await createReceiver()), []).execute()).rejects.toThrow("no document. use 'init' or 'read' first");
   });
 });

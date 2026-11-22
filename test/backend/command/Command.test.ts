@@ -1,9 +1,8 @@
-import { createWorkspace } from '../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import StubCommand from '../../support/StubCommand';
 
 async function run(...args: string[]): Promise<string[]> {
-  return [...new StubCommand((await createWorkspace()), args).execute().lines()];
+  return [...new StubCommand(args).execute().lines()];
 }
 
 describe('Command 通用参数校验', () => {
@@ -13,8 +12,8 @@ describe('Command 通用参数校验', () => {
   });
 
   it('参数个数不符时报错并附语法', async () => {
-    await expect(async () => new StubCommand((await createWorkspace()), ['a'])).rejects.toThrow('wrong number of arguments. usage: stub <name> <n> [warn]');
-    await expect(async () => new StubCommand((await createWorkspace()), ['a', '1', 'warn', 'x'])).rejects.toThrow('usage: stub <name> <n> [warn]');
+    await expect(async () => new StubCommand(['a'])).rejects.toThrow('wrong number of arguments. usage: stub <name> <n> [warn]');
+    await expect(async () => new StubCommand(['a', '1', 'warn', 'x'])).rejects.toThrow('usage: stub <name> <n> [warn]');
   });
 
   it('负数与浮点为合法数字', async () => {
@@ -26,7 +25,7 @@ describe('Command 通用参数校验', () => {
   });
 
   it.each(['a', '', '1e3', 'Infinity', 'NaN', '0x10', '1.2.3', '-', '1 '])('非数字 %j 报错', async (token) => {
-    await expect(async () => new StubCommand((await createWorkspace()), ['a', token])).rejects.toThrow(`not a number: ${token}`);
+    await expect(async () => new StubCommand(['a', token])).rejects.toThrow(`not a number: ${token}`);
   });
 });
 

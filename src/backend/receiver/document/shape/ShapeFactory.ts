@@ -1,5 +1,5 @@
 import EditorError from '../../../error/EditorError';
-import type { AttributeValue } from '../attribute/AttributeSpec';
+import type { AttributeValue } from './attribute/AttributeSpec';
 import Shape from './Shape';
 import type { ShapeParseResult } from './Shape';
 

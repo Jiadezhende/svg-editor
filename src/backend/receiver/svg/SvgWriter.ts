@@ -1,5 +1,5 @@
-import type { AttributeValue } from '../document/attribute/AttributeSpec';
-import DecimalFormat from '../document/attribute/DecimalFormat';
+import type { AttributeValue } from '../document/shape/attribute/AttributeSpec';
+import DecimalFormat from '../../utils/DecimalFormat';
 import type Document from '../document/Document';
 import type ShapeNode from '../document/ShapeNode';
 import Shape from '../document/shape/Shape';

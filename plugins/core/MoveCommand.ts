@@ -2,7 +2,7 @@ import { CommandResult } from '../../src/backend';
 import { EditCommand } from '../../src/backend';
 import type { Shape } from '../../src/backend';
 import type { ShapeMemento } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 /**
  * `move <id> <dx> <dy>`：增量平移；容器整体平移（递归到每个子孙）。
@@ -19,7 +19,7 @@ export default class MoveCommand extends EditCommand {
   private moved: { shape: Shape; memento: ShapeMemento } | null = null;
 
   constructor(
-    private readonly workspace: Workspace,
+    private readonly receiver: Receiver,
     args: readonly string[],
   ) {
     super();
@@ -30,7 +30,7 @@ export default class MoveCommand extends EditCommand {
   }
 
   execute(): CommandResult {
-    const doc = this.workspace.document();
+    const doc = this.receiver.document();
     const node = doc.requireNode(this.id);
     const shape = node.value;
     const memento = doc.capture(node);

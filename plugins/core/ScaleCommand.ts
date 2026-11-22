@@ -3,7 +3,7 @@ import { EditCommand } from '../../src/backend';
 import { EditorError } from '../../src/backend';
 import type { Shape } from '../../src/backend';
 import type { ShapeMemento } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 /** `scale <id> <factor>`：以坐标原点为中心等比缩放位置与尺寸；容器递归到每个子孙；stroke-width 不缩放。 */
 export default class ScaleCommand extends EditCommand {
@@ -16,7 +16,7 @@ export default class ScaleCommand extends EditCommand {
   private scaled: { shape: Shape; memento: ShapeMemento } | null = null;
 
   constructor(
-    private readonly workspace: Workspace,
+    private readonly receiver: Receiver,
     args: readonly string[],
   ) {
     super();
@@ -29,7 +29,7 @@ export default class ScaleCommand extends EditCommand {
   }
 
   execute(): CommandResult {
-    const doc = this.workspace.document();
+    const doc = this.receiver.document();
     const node = doc.requireNode(this.id);
     const shape = node.value;
     const memento = doc.capture(node);

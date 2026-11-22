@@ -46,6 +46,8 @@ export const mapping: SvgShapeMapping = {
 
 扫描器直接返回分类后的类，并将 SVG 映射和对应的 Shape 一起交给宿主。自动发现按包目录名和包内文件名确定装饰器包装与 Handler 匹配顺序。
 
+需要编辑器操作的命令声明构造函数 `constructor(receiver: Receiver, args: readonly string[])`，并从公共入口导入 `Receiver`。宿主把会话的接收者绑定到创建函数，并将校验好的命令表注入 Client。Client 按参数选择创建函数，Invoker 调用创建出的命令。
+
 扫描文件缺少有效默认导出、模块或依赖加载失败、声明不一致或名称重复时，宿主报告错误，跳过该包并继续加载。
 
 CLI 通过 `bootstrapEditor` 发现插件。指定发现目录时，宿主只加载该目录下的包。插件实现通过 `src/backend` 公共入口使用领域和注册契约。
@@ -56,6 +58,6 @@ CLI 通过 `bootstrapEditor` 发现插件。指定发现目录时，宿主只加
 
 业务包可以在两个文件中分别默认导出 Shape 和 Handler，并在 `contributes` 中同时声明 `shapes` 和 `attributes`。
 
-`core` 包的 SetCommand 通过 Workspace.attributeHandlerRegistry().resolve(shape, key) 选择处理器；首个命中调用 apply/display，无命中才调用 Shape 默认属性规则。匹配逻辑及别名只在 Handler 中维护。部分修改或展示失败恢复模型快照，一次 set 仍为一个撤销单元。
+`core` 包的 SetCommand 通过 `receiver.resolveAttributeHandler(shape, key)` 选择处理器。首个命中调用 apply/display，无命中才调用 Shape 默认属性规则。匹配逻辑及别名只在 Handler 中维护。部分修改或展示失败恢复模型快照，一次 set 仍为一个撤销单元。
 
 命令在用户执行创建或读入用例时通过工厂查询图形类型。`help`、`undo`、`redo`、`exit`、`quit` 由 Client 提供。

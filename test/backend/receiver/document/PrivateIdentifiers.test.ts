@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { Client, Document, Shape } from '../../../../src/backend';
+import { Document, Shape } from '../../../../src/backend';
 import CreateCommand from '../../../../plugins/core/CreateCommand';
-import { createWorkspace } from '../../../support/Plugins';
+import { createClientWithCommands, createHost } from '../../../support/Plugins';
 import { Frame, Panel } from '../../../support/SvgCompositeExtension';
 
 describe('Document 私有部件 id', () => {
@@ -51,15 +51,14 @@ describe('Document 私有部件 id', () => {
   });
 
   it('create 通过 Document 在提交前拒绝冲突，保留 redo 并可重试', async () => {
-    const workspace = (await createWorkspace());
-    workspace.shapes().register(Panel);
+    const { receiver, factory } = await createHost();
+    factory.register(Panel);
     const doc = new Document(100, 100);
-    workspace.replace(doc);
-    const client = new Client(workspace);
-    client.register(CreateCommand);
+    receiver.replace(doc);
+    const client = createClientWithCommands(receiver, [CreateCommand]);
     client.execute(['create', 'g', 'other']);
     client.execute(['undo']);
-    const existing = doc.insert(workspace.shapes().create('g', 'p-frame'));
+    const existing = doc.insert(receiver.createShape('g', 'p-frame'));
     expect(() => client.execute(['create', Panel.type, 'p'])).toThrow('id already exists: p-frame');
     expect(doc.findNode('p')).toBeNull();
     client.execute(['redo']);

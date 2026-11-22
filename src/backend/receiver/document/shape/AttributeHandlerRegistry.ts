@@ -1,4 +1,4 @@
-import type Shape from '../receiver/document/shape/Shape';
+import type Shape from './Shape';
 import type AttributeHandler from './AttributeHandler';
 
 /** 有序静态 Handler 注册表；匹配规则完全由 Handler 提供。 */

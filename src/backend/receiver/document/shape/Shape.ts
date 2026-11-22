@@ -1,7 +1,7 @@
-import type AttributeSpec from '../attribute/AttributeSpec';
-import type { AttributeValue } from '../attribute/AttributeSpec';
-import StringSpec from '../attribute/StringSpec';
-import StrokeWidthSpec from '../attribute/StrokeWidthSpec';
+import type AttributeSpec from './attribute/AttributeSpec';
+import type { AttributeValue } from './attribute/AttributeSpec';
+import StringSpec from './attribute/StringSpec';
+import StrokeWidthSpec from './attribute/StrokeWidthSpec';
 import EditorError from '../../../error/EditorError';
 import ShapeMemento from './ShapeMemento';
 

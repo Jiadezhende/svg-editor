@@ -1,11 +1,11 @@
-import { createWorkspace } from '../../../support/Plugins';
+import { createReceiver } from '../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import Document from '../../../../src/backend/receiver/document/Document';
 import type ShapeNode from '../../../../src/backend/receiver/document/ShapeNode';
 import Group from '../../../../plugins/core/Group';
 import Rect from '../../../../plugins/core/Rect';
 import type Shape from '../../../../src/backend/receiver/document/shape/Shape';
-import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
+import Receiver from '../../../../src/backend/receiver/Receiver';
 import GroupCommand from '../../../../plugins/core/GroupCommand';
 import UngroupCommand from '../../../../plugins/core/UngroupCommand';
 import DeleteCommand from '../../../../plugins/core/DeleteCommand';
@@ -19,10 +19,10 @@ class ProtectedGroup extends Group {
   }
 }
 
-async function workspaceWith(doc: Document): Promise<Workspace> {
-  const workspace = (await createWorkspace());
-  workspace.replace(doc);
-  return workspace;
+async function receiverWith(doc: Document): Promise<Receiver> {
+  const receiver = (await createReceiver());
+  receiver.replace(doc);
+  return receiver;
 }
 
 describe('Document 结构边界', () => {
@@ -149,7 +149,7 @@ describe('Document 结构边界', () => {
     const a = doc.insert(rect('a'));
     const protectedNode = doc.insert(new ProtectedGroup('protected'));
     const part = doc.insert(rect('part'), protectedNode);
-    const command = new GroupCommand((await workspaceWith(doc)), ['new', 'a', 'part']);
+    const command = new GroupCommand((await receiverWith(doc)), ['new', 'a', 'part']);
     expect(() => command.execute()).toThrow('required part');
     expect(doc.children()).toEqual([a, protectedNode]);
     expect(doc.findNode('new')).toBeNull();
@@ -168,7 +168,7 @@ describe('Document 结构边界', () => {
     const group = doc.insert(new Group('group'), parent);
     const a = doc.insert(rect('a'), group);
     const b = doc.insert(rect('b'), group);
-    await expect(async () => new UngroupCommand((await workspaceWith(doc)), ['group']).execute()).rejects.toThrow('member rejected');
+    await expect(async () => new UngroupCommand((await receiverWith(doc)), ['group']).execute()).rejects.toThrow('member rejected');
     expect(parent.children()).toEqual([group]);
     expect(group.children()).toEqual([a, b]);
   });
@@ -186,9 +186,9 @@ describe('Document 结构边界', () => {
     const root = doc.insert(new FailingGroup('root'));
     const a = doc.insert(rect('a'), root);
     const b = doc.insert(rect('b'), root);
-    const workspace = (await workspaceWith(doc));
+    const receiver = (await receiverWith(doc));
     const invoker = new Invoker();
-    const command = new GroupCommand(workspace, ['new', 'a', 'b']);
+    const command = new GroupCommand(receiver, ['new', 'a', 'b']);
     expect(() => invoker.execute(command)).toThrow('late failure');
     expect(doc.children()).toEqual([root]);
     expect(root.children()).toEqual([a, b]);
@@ -200,9 +200,9 @@ describe('Document 结构边界', () => {
     const doc = new Document(100, 100);
     const group = doc.insert(new Group('g'));
     const a = doc.insert(rect('a'), group);
-    const workspace = (await workspaceWith(doc));
+    const receiver = (await receiverWith(doc));
     const invoker = new Invoker();
-    invoker.execute(new DeleteCommand(workspace, ['g']));
+    invoker.execute(new DeleteCommand(receiver, ['g']));
     invoker.undo();
     expect(doc.requireNode('g')).toBe(group);
     expect(doc.requireNode('a')).toBe(a);

@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createAssembler, loadPlugin, readPluginManifest } from '../../src/bootstrap';
+import { buildCommandTable, createAssembler, loadPlugin, readPluginManifest } from '../../src/bootstrap';
 import type { ContributionNames, PluginContributions } from '../../src/bootstrap';
+import { Client } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 export interface PluginRegistration {
   readonly name: string;
@@ -45,6 +47,15 @@ export async function createHost(extra: readonly PluginRegistration[] = []) {
   return host;
 }
 
-export async function createWorkspace() { return (await createHost()).workspace; }
-export async function createShapeFactory() { return (await createWorkspace()).shapes(); }
+export async function createReceiver() { return (await createHost()).receiver; }
+export async function createShapeFactory() { return (await createHost()).factory; }
 export async function createClient() { return (await createHost()).client; }
+
+/** 以测试提供的 Receiver 装配指定命令。 */
+export function createClientWithCommands(receiver: Receiver, commands: PluginContributions['commands']): Client {
+  const table = buildCommandTable(commands.map((definition) => ({
+    definition,
+    create: (args) => new definition(receiver, args),
+  })));
+  return new Client(table, (kind) => receiver.notifyTree(kind));
+}

@@ -1,4 +1,4 @@
-import type Shape from '../receiver/document/shape/Shape';
+import type Shape from './Shape';
 
 /** 静态 Handler 类的公开契约；注册类本身，不创建实例。 */
 export default interface AttributeHandler {

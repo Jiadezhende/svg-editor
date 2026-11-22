@@ -1,6 +1,5 @@
 import CommandResult from '../../src/backend/command/CommandResult';
 import Command from '../../src/backend/command/Command';
-import type Workspace from '../../src/backend/receiver/workspace/Workspace';
 
 /**
  * 测试桩命令：`stub <name> <n> [warn]`。
@@ -14,7 +13,7 @@ export default class StubCommand extends Command {
   private readonly value: number;
   private readonly warns: boolean;
 
-  constructor(_workspace: Workspace, args: readonly string[]) {
+  constructor(args: readonly string[]) {
     super();
     this.expectArgCount(args, 2, 3);
     this.label = args[0];

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import LengthSpec from '../../../../../src/backend/receiver/document/attribute/LengthSpec';
-import EditorError from '../../../../../src/backend/error/EditorError';
+import LengthSpec from '../../../../../../src/backend/receiver/document/shape/attribute/LengthSpec';
+import EditorError from '../../../../../../src/backend/error/EditorError';
 
 describe('LengthSpec 尺寸', () => {
   const spec = new LengthSpec('width');

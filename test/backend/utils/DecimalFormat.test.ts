@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import DecimalFormat from '../../../../../src/backend/receiver/document/attribute/DecimalFormat';
+import DecimalFormat from '../../../src/backend/utils/DecimalFormat';
 
 // 规则的完整用例经 Command 的 parseNumber / formatNumber 覆盖（Command.test），这里只验证直接调用。
 describe('DecimalFormat', () => {

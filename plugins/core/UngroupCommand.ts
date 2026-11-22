@@ -2,7 +2,7 @@ import { CommandResult } from '../../src/backend';
 import { EditCommand } from '../../src/backend';
 import { UndoRecord } from '../../src/backend';
 import { EditorError } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 /**
  * `ungroup <gid>`：解散容器，子图形按原顺序提升到其父级、占据容器原来的位置。
@@ -15,7 +15,7 @@ export default class UngroupCommand extends EditCommand {
 
   private readonly id: string;
   constructor(
-    private readonly workspace: Workspace,
+    private readonly receiver: Receiver,
     args: readonly string[],
   ) {
     super();
@@ -26,7 +26,7 @@ export default class UngroupCommand extends EditCommand {
   undo(): CommandResult { return this.undoRecord.undo(); }
 
   execute(): CommandResult {
-    const doc = this.workspace.document();
+    const doc = this.receiver.document();
     return this.undoRecord.execute(doc.captureStructure(), () => {
       const node = doc.requireNode(this.id);
       if (!node.value.acceptsChildren()) throw new EditorError(`not a container: ${this.id}`);

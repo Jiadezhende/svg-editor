@@ -1,4 +1,4 @@
-import EditorError from '../../../error/EditorError';
+import EditorError from '../error/EditorError';
 
 /**
  * 十进制数值的文本规则，命令参数与数值属性共用一份。

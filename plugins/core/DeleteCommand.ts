@@ -1,7 +1,7 @@
 import { CommandResult } from '../../src/backend';
 import { EditCommand } from '../../src/backend';
 import { UndoRecord } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 export default class DeleteCommand extends EditCommand {
   static override readonly command = 'delete';
@@ -9,7 +9,7 @@ export default class DeleteCommand extends EditCommand {
   private readonly undoRecord = new UndoRecord();
   private readonly id: string;
 
-  constructor(private readonly workspace: Workspace, args: readonly string[]) {
+  constructor(private readonly receiver: Receiver, args: readonly string[]) {
     super();
     this.expectArgCount(args, 1);
     this.id = args[0];
@@ -18,7 +18,7 @@ export default class DeleteCommand extends EditCommand {
   undo(): CommandResult { return this.undoRecord.undo(); }
 
   execute(): CommandResult {
-    const doc = this.workspace.document();
+    const doc = this.receiver.document();
     return this.undoRecord.execute(doc.captureStructure(), () => {
       const node = doc.requireNode(this.id);
       const parent = node.parent();

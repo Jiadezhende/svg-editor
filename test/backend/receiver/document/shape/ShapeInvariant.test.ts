@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import Rect from '../../../../../plugins/core/Rect';
 import Group from '../../../../../plugins/core/Group';
 import Document from '../../../../../src/backend/receiver/document/Document';
-import type { AttributeValue } from '../../../../../src/backend/receiver/document/attribute/AttributeSpec';
+import type { AttributeValue } from '../../../../../src/backend/receiver/document/shape/attribute/AttributeSpec';
 
 const geometry = new Map<string, AttributeValue>([['x', 1], ['y', 2], ['width', 3], ['height', 4]]);
 

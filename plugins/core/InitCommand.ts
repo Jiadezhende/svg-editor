@@ -1,7 +1,7 @@
 import { DocumentCommand } from '../../src/backend';
 import { CommandResult } from '../../src/backend';
 import { Document } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 /** `init [w] [h]`：新建文档并替换当前文档，默认画布 800×600；覆盖已有文档时给出警告。 */
 export default class InitCommand extends DocumentCommand {
@@ -12,7 +12,7 @@ export default class InitCommand extends DocumentCommand {
   private readonly height: number;
 
   constructor(
-    private readonly workspace: Workspace,
+    private readonly receiver: Receiver,
     args: readonly string[],
   ) {
     super();
@@ -23,7 +23,7 @@ export default class InitCommand extends DocumentCommand {
 
   execute(): CommandResult {
     const result = new CommandResult();
-    if (this.workspace.replace(new Document(this.width, this.height))) {
+    if (this.receiver.replace(new Document(this.width, this.height))) {
       result.warn('previous document discarded');
     }
     return result.line(`canvas ${this.formatNumber(this.width)}x${this.formatNumber(this.height)} created`);

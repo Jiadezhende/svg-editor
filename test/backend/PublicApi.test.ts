@@ -1,5 +1,6 @@
+import { createClientWithCommands } from '../support/Plugins';
 import { describe, expect, it } from 'vitest';
-import { AttributeHandlerRegistry, TreeRenderer, Client, ShapeFactory, Document, SvgReader, SvgWriter, Workspace } from '../../src/backend';
+import { AttributeHandlerRegistry, TreeRenderer, ShapeFactory, Document, SvgReader, SvgWriter, Receiver } from '../../src/backend';
 import type { AttributeHandler, ShapeNode } from '../../src/backend';
 import { Marker, MarkerAttributesHandler, NudgeMarkerCommand } from '../support/PublicExtension';
 import SetCommand from '../../plugins/core/SetCommand';
@@ -35,14 +36,12 @@ describe('扩展公共入口', () => {
     const factory = new ShapeFactory();
     factory.register(Marker);
     const files = { read: () => '', write: () => {} };
-    const workspace = new Workspace(factory, files, new SvgReader(factory), new SvgWriter(), new AttributeHandlerRegistry(), new TreeRenderer());
+    const receiver = new Receiver(factory, files, new SvgReader(factory), new SvgWriter(), new AttributeHandlerRegistry(), new TreeRenderer());
     const doc = new Document(100, 100);
     const model = factory.create('test-marker', 'marker', new Map([['x', 1], ['y', 2]]));
     const node = doc.insert(model);
-    workspace.replace(doc);
-    const client = new Client(workspace);
-    expect(() => client.execute(['nudge-marker', 'marker', '3'])).toThrow('unknown command: nudge-marker');
-    client.register(NudgeMarkerCommand);
+    receiver.replace(doc);
+    const client = createClientWithCommands(receiver, [NudgeMarkerCommand]);
     expect(client.execute(['help']).lines()).toContain('nudge-marker <id> <dx>');
     expect(client.execute(['nudge-marker', 'marker', '3']).lines()).toEqual(['test-marker#marker nudged']);
     expect(model.value('x')).toBe(4);
@@ -54,8 +53,8 @@ describe('扩展公共入口', () => {
       expect(doc.requireNode('marker')).toBe(node);
       expect(node.value).toBe(model);
     }
-    // 注册属于 Client 实例，不自动传播给另一个分发器。
-    expect(() => new Client(workspace).execute(['nudge-marker', 'marker', '3'])).toThrow('unknown command: nudge-marker');
+    // 不同会话使用各自装配的命令表。
+    expect(() => createClientWithCommands(receiver, []).execute(['nudge-marker', 'marker', '3'])).toThrow('unknown command: nudge-marker');
   });
 
   it('公共契约支持直接注册独立静态 Handler，通过内置 set 使用属性别名', () => {
@@ -63,13 +62,12 @@ describe('扩展公共入口', () => {
     factory.register(Marker);
     const handlers = new AttributeHandlerRegistry();
     const files = { read: () => '', write: () => {} };
-    const workspace = new Workspace(factory, files, new SvgReader(factory), new SvgWriter(), handlers, new TreeRenderer());
+    const receiver = new Receiver(factory, files, new SvgReader(factory), new SvgWriter(), handlers, new TreeRenderer());
     const doc = new Document(100, 100);
     const model = factory.create('test-marker', 'marker', new Map([['x', 1], ['y', 2]]));
     const node = doc.insert(model);
-    workspace.replace(doc);
-    const client = new Client(workspace);
-    client.register(SetCommand);
+    receiver.replace(doc);
+    const client = createClientWithCommands(receiver, [SetCommand]);
     expect(() => client.execute(['set', 'marker', 'horizontal', '4'])).toThrow('unknown attribute: horizontal');
     handlers.register(MarkerAttributesHandler satisfies AttributeHandler);
     expect(client.execute(['set', 'marker', 'horizontal', '4']).lines()).toEqual(['test-marker#marker updated: horizontal=4']);

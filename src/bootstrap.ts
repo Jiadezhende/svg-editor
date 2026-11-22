@@ -2,11 +2,13 @@ import { readFile, readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
-  AttributeHandlerRegistry, Client, Command, Shape, ShapeFactory, SvgFile, SvgReader, SvgWriter, TreeDecorator, TreeRenderer, Workspace,
+  AttributeHandlerRegistry, Client, Command, Shape, ShapeFactory, SvgFile, SvgReader, SvgWriter, TreeDecorator, TreeRenderer, Receiver,
+  frameworkCommandNames,
 } from './backend';
-import type { AttributeHandler, SvgShapeMapping } from './backend';
+import type { AttributeHandler, CommandForm, CommandSession, CommandTable, SvgShapeMapping } from './backend';
 
-type CommandContribution = Parameters<Client['register']>[0];
+type CommandContribution = CommandForm['definition'] &
+  (new (receiver: Receiver, args: readonly string[]) => Command);
 type DecoratorContribution = typeof TreeDecorator;
 type ShapeContribution = {
   readonly model: typeof Shape;
@@ -60,8 +62,16 @@ export function readPluginManifest(value: unknown): PluginManifest {
 export async function bootstrapEditor(
   directory = fileURLToPath(new URL('../plugins/', import.meta.url)),
   report: (message: string) => void = (message) => { process.stderr.write(`${message}\n`); },
-) {
+): Promise<{ client: CommandSession; errors: readonly string[]; plugins: readonly string[] }> {
   const assembler = createAssembler(report);
+  function result() {
+    const { client, errors, plugins } = assembler.getAssemblyResult();
+    return {
+      client: { execute: client.execute.bind(client), isExitRequested: client.isExitRequested.bind(client) },
+      errors,
+      plugins,
+    };
+  }
   let directories: string[];
   try {
     directories = (await readdir(directory, { withFileTypes: true }))
@@ -72,7 +82,7 @@ export async function bootstrapEditor(
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
       assembler.recordPluginError(`cannot discover plugins: ${directory}`);
     }
-    return assembler.getAssemblyResult();
+    return result();
   }
 
   for (const entry of directories) {
@@ -108,7 +118,7 @@ export async function bootstrapEditor(
     assembler.registerPlugin(manifest, contributions);
   }
 
-  return assembler.getAssemblyResult();
+  return result();
 }
 
 const contributionExtensions = new Set(['.ts', '.mts', '.js', '.mjs']);
@@ -218,6 +228,30 @@ export function createAssembler(report: (message: string) => void) {
   return { registerPlugin, recordPluginError, getAssemblyResult };
 }
 
+/** 将已绑定的命令按名称分组，校验后交给分发器。 */
+export function buildCommandTable(forms: readonly CommandForm[]): CommandTable {
+  const reserved = new Set<string>(frameworkCommandNames);
+  const table = new Map<string, CommandForm[]>();
+  for (const form of forms) {
+    const { definition } = form;
+    const { command, usage } = definition;
+    if (reserved.has(command)) throw new Error(`duplicate registration: commands/${command}`);
+    if (!command || !usage) {
+      throw new Error(`command class ${definition.name} must declare static command and usage`);
+    }
+    const existing = table.get(command) ?? [];
+    if (existing.some((entry) => entry.definition === definition)) {
+      throw new Error(`duplicate command: ${command}`);
+    }
+    const next = [...existing, form];
+    if (next.length > 1 && next.some((entry) => entry.definition.accepts === Command.accepts)) {
+      throw new Error(`command ${command} has multiple forms; each must override static accepts`);
+    }
+    table.set(command, next);
+  }
+  return table;
+}
+
 function buildSession(plugins: readonly RegisteredPlugin[]) {
   // 装配图形、SVG 映射、属性处理器和树装饰器。
   const factory = new ShapeFactory();
@@ -248,19 +282,19 @@ function buildSession(plugins: readonly RegisteredPlugin[]) {
     }
   }
 
-  // 构建编辑器会话，再注册命令。
-  const workspace = new Workspace(factory, new SvgFile(), new SvgReader(factory), writer, handlers, new TreeRenderer(decorators));
-  const client = new Client(workspace);
-  const commandNames = new Set(['help', 'undo', 'redo', 'exit', 'quit']);
+  const receiver = new Receiver(factory, new SvgFile(), new SvgReader(factory), writer, handlers, new TreeRenderer(decorators));
+  const forms: CommandForm[] = [];
+  const commandNames = new Set<string>();
   for (const plugin of plugins) {
     const local = new Set<string>();
     for (const command of plugin.commands) {
       if (typeof command !== 'function' || !(command.prototype instanceof Command) || typeof command.accepts !== 'function') throw new Error('command must extend Command and provide accepts');
       if (commandNames.has(command.command)) throw new Error(`duplicate registration: commands/${command.command}`);
-      client.register(command);
+      forms.push({ definition: command, create: (args) => new command(receiver, args) });
       local.add(command.command);
     }
     for (const name of local) commandNames.add(name);
   }
-  return { workspace, client };
+  const client = new Client(buildCommandTable(forms), (kind) => receiver.notifyTree(kind));
+  return { receiver, client, factory, handlers, writer };
 }

@@ -1,4 +1,4 @@
-import DecimalFormat from '../receiver/document/attribute/DecimalFormat';
+import DecimalFormat from '../utils/DecimalFormat';
 import type ShapeNode from '../receiver/document/ShapeNode';
 import type TreeLineRenderer from './TreeLineRenderer';
 import type { CanvasInfo } from './TreeLineRenderer';

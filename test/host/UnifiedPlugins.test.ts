@@ -35,7 +35,7 @@ async function panelSession() {
   const host = await createHost([panelPlugin]);
   host.client.execute(['init']);
   host.client.execute(['create', Panel.type, 'p']);
-  return { ...host, panel: host.workspace.document().requireNode('p').value as Panel };
+  return { ...host, panel: host.receiver.document().requireNode('p').value as Panel };
 }
 
 describe('统一插件边界', () => {
@@ -43,7 +43,7 @@ describe('统一插件边界', () => {
     const host = assemblePlugins([]);
     expect(host.plugins).toEqual([]);
     expect(host.client.execute(['help']).lines()).toEqual(['help', 'undo', 'redo', 'exit', 'quit']);
-    expect(host.workspace.shapes().has('rect')).toBe(false);
+    expect(host.factory.has('rect')).toBe(false);
     expect(() => host.client.execute(['init'])).toThrow('unknown command');
     expect(() => host.client.execute(['undo'])).toThrow('nothing to undo');
     expect(() => host.client.execute(['redo'])).toThrow('nothing to redo');
@@ -73,11 +73,11 @@ describe('统一插件边界', () => {
     expect(host.errors[0]).toContain('duplicate registration: shapes/');
     host.client.execute(['init']);
     host.client.execute(['create', 'g', 'g']);
-    expect(host.workspace.document().requireNode('g').value.type()).toBe('g');
+    expect(host.receiver.document().requireNode('g').value.type()).toBe('g');
   });
 
   it('同包模型与 Handler 接入 set，别名优先且多部件整体撤销重做', async () => {
-    const { client, panel, workspace } = await panelSession();
+    const { client, panel, receiver } = await panelSession();
     expect(client.execute(['set', 'p', 'title', 'red']).lines()[0]).toContain('title="red"');
     for (let i = 0; i < 3; i++) {
       expect(panel.frameShape().value('fill')).toBe('red');
@@ -86,7 +86,7 @@ describe('统一插件边界', () => {
       expect(panel.frameShape().value('fill')).toBeNull();
       expect(panel.captionShape().value('text')).toBe('hello');
       client.execute(['redo']);
-      expect(workspace.document().requireNode('p').value).toBe(panel);
+      expect(receiver.document().requireNode('p').value).toBe(panel);
     }
     client.execute(['set', 'p', 'stroke', 'blue']);
     expect(panel.value('stroke')).toBe('blue');

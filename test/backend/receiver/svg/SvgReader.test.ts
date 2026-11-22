@@ -1,4 +1,4 @@
-import { createWorkspace, createShapeFactory } from '../../../support/Plugins';
+import { createReceiver, createShapeFactory } from '../../../support/Plugins';
 import { describe, expect, it, vi } from 'vitest';
 import TreeCommand from '../../../../plugins/core/TreeCommand';
 import CreateCommand from '../../../../plugins/core/CreateCommand';
@@ -12,9 +12,9 @@ async function read(text: string) {
 }
 
 async function tree(doc: Document): Promise<string[]> {
-  const workspace = (await createWorkspace());
-  workspace.replace(doc);
-  return [...new TreeCommand(workspace, []).execute().lines()];
+  const receiver = (await createReceiver());
+  receiver.replace(doc);
+  return [...new TreeCommand(receiver, []).execute().lines()];
 }
 
 function svg(body: string, root = 'width="400" height="300" viewBox="0 0 400 300"'): string {
@@ -60,8 +60,8 @@ describe('SvgReader', () => {
   });
 
   it('SvgWriter 写出的文件读回后 tree 一致，再次写出逐字相同', async () => {
-    const workspace = (await createWorkspace());
-    workspace.replace(new Document(400, 200));
+    const receiver = (await createReceiver());
+    receiver.replace(new Document(400, 200));
     for (const args of [
       ['g', 'flow'],
       ['rect', 'start', '30', '70', '120', '60', '#4a90d9', 'in', 'flow'],
@@ -69,13 +69,13 @@ describe('SvgReader', () => {
       ['g', 'scene'],
       ['line', 'edge', '150', '100', '250.5', '100', 'black'],
     ]) {
-      new CreateCommand(workspace, args).execute();
+      new CreateCommand(receiver, args).execute();
     }
-    workspace.document().requireNode('edge').value.set('stroke-width', '2');
-    const written = new SvgWriter().write(workspace.document());
+    receiver.document().requireNode('edge').value.set('stroke-width', '2');
+    const written = new SvgWriter().write(receiver.document());
     const { document, warnings } = (await read(written));
     expect(warnings).toEqual([]);
-    expect((await tree(document))).toEqual((await tree(workspace.document())));
+    expect((await tree(document))).toEqual((await tree(receiver.document())));
     expect(document.requireNode('label').value.value('text')).toBe('开始 <a> & "b"');
     expect(new SvgWriter().write(document)).toBe(written);
   });

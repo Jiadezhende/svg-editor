@@ -47,13 +47,14 @@ describe('插件暂存与原子装配', () => {
     const dir = mkdtempSync(join(tmpdir(), 'svg-assembly-'));
     directories.push(dir);
     const host = await createHost([all]);
+    expect(host.client).not.toHaveProperty('register');
     expect(host.errors).toEqual([]);
     expect(host.plugins).toEqual(['core', 'all']);
     host.client.execute(['init']);
     host.client.execute(['create', Panel.type, 'p']);
     expect(host.client.execute(['test-hello']).lines()).toEqual(['hello from plugin']);
     host.client.execute(['undo']);
-    expect(host.workspace.document().findNode('p')).toBeNull();
+    expect(host.receiver.document().findNode('p')).toBeNull();
     host.client.execute(['redo']);
     host.client.execute(['set', 'p', 'label', 'changed']);
     expect(host.client.execute(['tree']).lines()).toEqual(['svg (800x600) *', '└── test-panel#p * (panel)']);
@@ -62,8 +63,8 @@ describe('插件暂存与原子装配', () => {
     expect(readFileSync(path, 'utf8')).toContain('data-kind="test-panel"');
     expect(host.client.execute(['tree']).lines()[1]).toBe('└── test-panel#p (panel)');
     host.client.execute(['read', path]);
-    expect(host.workspace.document().requireNode('p').value).toBeInstanceOf(Panel);
-    expect((host.workspace.document().requireNode('p').value as Panel).captionShape().value('text')).toBe('changed');
+    expect(host.receiver.document().requireNode('p').value).toBeInstanceOf(Panel);
+    expect((host.receiver.document().requireNode('p').value as Panel).captionShape().value('text')).toBe('changed');
   });
 
   it('命令注册失败时丢弃整包及 SVG 映射，之后同名扩展可正常装配', () => {
@@ -74,23 +75,23 @@ describe('插件暂存与原子装配', () => {
       classes: { ...all.classes, commands: [Hello, Reserved] },
     };
     const rejected = assemblePlugins([failed]);
-    expect(rejected.workspace.shapes().has(Panel.type)).toBe(false);
+    expect(rejected.factory.has(Panel.type)).toBe(false);
     expect(() => rejected.client.execute([Hello.command])).toThrow('unknown command');
     const doc = new Document(100, 100);
     doc.insert(new Panel('p'));
-    expect(rejected.workspace.svgWriter().write(doc)).not.toContain('data-kind');
-    expect(rejected.workspace.attributeHandlerRegistry().resolve(new Panel('p'), 'label')).toBeNull();
+    expect(rejected.writer.write(doc)).not.toContain('data-kind');
+    expect(rejected.handlers.resolve(new Panel('p'), 'label')).toBeNull();
     const continued = assemblePlugins([failed, all]);
     expect(continued.plugins).toEqual(['all']);
     expect(continued.errors).toEqual(['duplicate registration: commands/help']);
-    expect(continued.workspace.shapes().has(Panel.type)).toBe(true);
+    expect(continued.factory.has(Panel.type)).toBe(true);
   });
 
   it('贡献声明不一致拒绝整个插件，包括其 SVG 映射', () => {
     const host = assemblePlugins([{ ...all, contributes: {} }]);
     expect(host.errors[0]).toContain('plugin manifest mismatch: all');
     expect(host.plugins).toEqual([]);
-    expect(host.workspace.shapes().has(Panel.type)).toBe(false);
+    expect(host.factory.has(Panel.type)).toBe(false);
   });
 
   it.each(['shapes', 'commands', 'attributes', 'decorators'] as const)('跨插件重复 %s 名称时拒绝后者，保留先前插件', (category) => {

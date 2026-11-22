@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import TextSpec from '../../../../../src/backend/receiver/document/attribute/TextSpec';
+import TextSpec from '../../../../../../src/backend/receiver/document/shape/attribute/TextSpec';
 
 describe('TextSpec 文本内容', () => {
   const spec = new TextSpec('text');

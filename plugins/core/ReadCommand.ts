@@ -1,6 +1,6 @@
 import { CommandResult } from '../../src/backend';
 import { DocumentCommand } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 /** `read <file.svg>`：读入 SVG 文件为当前文档；读取或解析失败时当前文档不变。 */
 export default class ReadCommand extends DocumentCommand {
@@ -10,7 +10,7 @@ export default class ReadCommand extends DocumentCommand {
   private readonly path: string;
 
   constructor(
-    private readonly workspace: Workspace,
+    private readonly receiver: Receiver,
     args: readonly string[],
   ) {
     super();
@@ -19,13 +19,12 @@ export default class ReadCommand extends DocumentCommand {
   }
 
   execute(): CommandResult {
-    const text = this.workspace.files().read(this.path);
-    const { document, warnings } = this.workspace.svgReader().read(text);
+    const { document, warnings, replaced } = this.receiver.readDocument(this.path);
     const result = new CommandResult();
     for (const warning of warnings) {
       result.warn(warning);
     }
-    if (this.workspace.replace(document, this.path)) {
+    if (replaced) {
       result.warn('previous document discarded');
     }
     return result.line(`read ${this.path} (${document.nodes().length} elements)`);

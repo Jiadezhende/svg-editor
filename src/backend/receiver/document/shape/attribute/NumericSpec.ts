@@ -1,6 +1,6 @@
 import AttributeSpec from './AttributeSpec';
-import DecimalFormat from './DecimalFormat';
-import EditorError from '../../../error/EditorError';
+import DecimalFormat from '../../../../utils/DecimalFormat';
+import EditorError from '../../../../error/EditorError';
 
 /** 数值属性：按十进制数字解析，按数值格式展示。 */
 export default abstract class NumericSpec extends AttributeSpec<number> {

@@ -1,4 +1,4 @@
-import { createWorkspace } from '../../support/Plugins';
+import { createReceiver } from '../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import Invoker from '../../../src/backend/invoker/Invoker';
 import Document from '../../../src/backend/receiver/document/Document';
@@ -13,12 +13,12 @@ import UndoRecord from '../../../src/backend/command/UndoRecord';
 import CommandResult from '../../../src/backend/command/CommandResult';
 
 async function scene() {
-  const workspace = (await createWorkspace());
+  const receiver = (await createReceiver());
   const doc = new Document(100, 100);
   const group = doc.insert(new Group('g'));
   const child = doc.insert(new Rect('r', new Map([['x', 10], ['y', 20], ['width', 30], ['height', 40]])), group);
-  workspace.replace(doc);
-  return { workspace, doc, group, child, invoker: new Invoker() };
+  receiver.replace(doc);
+  return { receiver, doc, group, child, invoker: new Invoker() };
 }
 
 function contents(doc: Document) {
@@ -45,11 +45,11 @@ describe('真实编辑命令的历史组合', () => {
   });
 
   it('属性、变换和分组可多轮整体撤销与重做，不丢失原节点身份', async () => {
-    const { workspace, doc, group, child, invoker } = (await scene());
+    const { receiver, doc, group, child, invoker } = (await scene());
     const original = contents(doc);
-    invoker.execute(new SetCommand(workspace, ['r', 'fill', 'red']));
-    invoker.execute(new MoveCommand(workspace, ['g', '5', '10']));
-    invoker.execute(new GroupCommand(workspace, ['outer', 'g']));
+    invoker.execute(new SetCommand(receiver, ['r', 'fill', 'red']));
+    invoker.execute(new MoveCommand(receiver, ['g', '5', '10']));
+    invoker.execute(new GroupCommand(receiver, ['outer', 'g']));
     const edited = contents(doc);
     for (let round = 0; round < 2; round += 1) {
       expect(invoker.undo().lines()).toEqual(['g#outer removed, 1 children restored']);
@@ -67,10 +67,10 @@ describe('真实编辑命令的历史组合', () => {
   });
 
   it('失败的新编辑不清空 redo，重做遇到 id 冲突也可在冲突消除后重试', async () => {
-    const { workspace, doc, invoker } = (await scene());
-    invoker.execute(new CreateCommand(workspace, ['g', 'new']));
+    const { receiver, doc, invoker } = (await scene());
+    invoker.execute(new CreateCommand(receiver, ['g', 'new']));
     invoker.undo();
-    expect(() => invoker.execute(new CreateCommand(workspace, ['g', 'g']))).toThrow('id already exists: g');
+    expect(() => invoker.execute(new CreateCommand(receiver, ['g', 'g']))).toThrow('id already exists: g');
     const conflict = doc.insert(new Group('new'));
     expect(() => invoker.redo()).toThrow('id already exists: new');
     expect(doc.requireNode('new')).toBe(conflict);
@@ -82,8 +82,8 @@ describe('真实编辑命令的历史组合', () => {
   });
 
   it('跨文档归属冲突使撤销失败，历史不转移，释放后恢复原节点与顺序', async () => {
-    const { workspace, doc, group, child, invoker } = (await scene());
-    invoker.execute(new DeleteCommand(workspace, ['g']));
+    const { receiver, doc, group, child, invoker } = (await scene());
+    invoker.execute(new DeleteCommand(receiver, ['g']));
     const other = new Document(20, 20);
     const foreign = other.insert(child.value);
     expect(() => invoker.undo()).toThrow('shape already attached: r');

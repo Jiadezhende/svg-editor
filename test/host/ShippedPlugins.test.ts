@@ -1,14 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { createClient, createShapeFactory, createWorkspace } from '../support/Plugins';
+import { createClient, createShapeFactory, createHost } from '../support/Plugins';
 
 describe('宿主默认装配', () => {
   it('每次装配独立的工厂和会话，默认能力不会泄漏到其他实例', async () => {
-    const first = (await createWorkspace());
-    const second = (await createWorkspace());
-    expect(first).not.toBe(second);
-    expect(first.shapes()).not.toBe(second.shapes());
-    expect(first.attributeHandlerRegistry()).not.toBe(second.attributeHandlerRegistry());
-    expect(first.attributeHandlerRegistry().resolve(first.shapes().create('g', 'group'), 'fill')).toBeNull();
+    const first = await createHost();
+    const second = await createHost();
+    expect(first.receiver).not.toBe(second.receiver);
+    expect(first.factory).not.toBe(second.factory);
+    expect(first.handlers).not.toBe(second.handlers);
+    expect(first.handlers.resolve(first.factory.create('g', 'group'), 'fill')).toBeNull();
+    first.client.execute(['init']);
+    second.client.execute(['init']);
+    first.client.execute(['create', 'g', 'first']);
+    second.client.execute(['create', 'g', 'second']);
+    first.client.execute(['undo']);
+    expect(first.receiver.document().children()).toHaveLength(0);
+    expect(second.receiver.document().children().map((node) => node.value.id())).toEqual(['second']);
     for (const type of ['rect', 'circle', 'ellipse', 'line', 'text', 'g']) {
       expect((await createShapeFactory()).has(type)).toBe(true);
     }

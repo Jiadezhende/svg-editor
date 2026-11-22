@@ -1,4 +1,4 @@
-import type Client from './backend/Client';
+import type { CommandSession } from './backend';
 import EditorError from './backend/error/EditorError';
 import CommandReader from './frontend/CommandReader';
 import type InputSource from './frontend/io/InputSource';
@@ -17,7 +17,7 @@ export default class App {
   constructor(
     input: InputSource,
     output: OutputSink,
-    private readonly client: Client,
+    private readonly client: CommandSession,
   ) {
     this.reader = new CommandReader(input, output);
     this.printer = new ResultPrinter(output);

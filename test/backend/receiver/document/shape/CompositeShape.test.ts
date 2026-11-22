@@ -1,4 +1,4 @@
-import { createWorkspace, createShapeFactory } from '../../../../support/Plugins';
+import { createReceiver, createShapeFactory } from '../../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import CompositeShape from '../../../../support/CompositeShape';
 import Shape from '../../../../../src/backend/receiver/document/shape/Shape';
@@ -12,17 +12,17 @@ import SvgWriter from '../../../../../src/backend/receiver/svg/SvgWriter';
 import SvgReader from '../../../../../src/backend/receiver/svg/SvgReader';
 
 async function scene() {
-  const workspace = (await createWorkspace());
+  const receiver = (await createReceiver());
   const doc = new Document(800, 600);
   const panel = new CompositeShape('panel');
   const node = doc.insert(panel);
-  workspace.replace(doc);
-  return { workspace, doc, panel, node };
+  receiver.replace(doc);
+  return { receiver, doc, panel, node };
 }
 
 describe('业务复合模型与文档节点分离', () => {
   it('内部成员由具体模型持有，不自动成为文档节点', async () => {
-    const { doc, panel, node, workspace } = (await scene());
+    const { doc, panel, node, receiver } = (await scene());
     expect(panel).toBeInstanceOf(Shape);
     expect(panel).not.toBeInstanceOf(Group);
     expect(node.children()).toEqual([]);
@@ -30,7 +30,7 @@ describe('业务复合模型与文档节点分离', () => {
     expect(doc.findNode('panel-label')).toBeNull();
     expect('children' in panel).toBe(false);
     expect(() => doc.insert(new Group('extra'), node)).toThrow('not a container: panel');
-    expect(new TreeCommand(workspace, []).execute().lines()).toEqual(['svg (800x600)', '└── g#panel']);
+    expect(new TreeCommand(receiver, []).execute().lines()).toEqual(['svg (800x600)', '└── g#panel']);
   });
 
   it('领域方法修改部件，属性快照恢复整个业务模型', async () => {
@@ -50,14 +50,14 @@ describe('业务复合模型与文档节点分离', () => {
   });
 
   it('普通节点分组与复合模型变换不重复处理内部成员，命令撤销也恢复部件', async () => {
-    const { workspace, doc, panel, node } = (await scene());
-    const group = new GroupCommand(workspace, ['outer', 'panel']);
+    const { receiver, doc, panel, node } = (await scene());
+    const group = new GroupCommand(receiver, ['outer', 'panel']);
     group.execute();
-    const move = new MoveCommand(workspace, ['outer', '5', '10']);
+    const move = new MoveCommand(receiver, ['outer', '5', '10']);
     move.execute();
     expect(panel.frameShape().position()).toEqual(['15', '30']);
     move.undo();
-    const scale = new ScaleCommand(workspace, ['outer', '2']);
+    const scale = new ScaleCommand(receiver, ['outer', '2']);
     scale.execute();
     expect(panel.frameShape().position()).toEqual(['20', '40']);
     scale.undo();

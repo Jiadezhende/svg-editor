@@ -1,6 +1,6 @@
 import { Command } from '../../src/backend';
 import { CommandResult } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 /** `canvas`：显示当前画布尺寸（显示类）。与 CanvasResizeCommand 同名，只接受无参。 */
 export default class CanvasShowCommand extends Command {
@@ -12,7 +12,7 @@ export default class CanvasShowCommand extends Command {
   }
 
   constructor(
-    private readonly workspace: Workspace,
+    private readonly receiver: Receiver,
     args: readonly string[],
   ) {
     super();
@@ -20,7 +20,7 @@ export default class CanvasShowCommand extends Command {
   }
 
   execute(): CommandResult {
-    const doc = this.workspace.document();
+    const doc = this.receiver.document();
     return new CommandResult().line(`canvas ${this.formatNumber(doc.width())}x${this.formatNumber(doc.height())}`);
   }
 }

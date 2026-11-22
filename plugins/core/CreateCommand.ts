@@ -3,8 +3,7 @@ import { CommandResult } from '../../src/backend';
 import { EditCommand } from '../../src/backend';
 import { UndoRecord } from '../../src/backend';
 import type { AttributeValue } from '../../src/backend';
-import type { ShapeFactory } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 /**
  * `create <type> <id> [params…] [in <containerId>]`：按类型创建图形，挂在画布根或指定容器的末尾。
@@ -19,20 +18,20 @@ export default class CreateCommand extends EditCommand {
 
   private static readonly keyword = 'in';
 
-  private readonly shapeDefinition: ReturnType<ShapeFactory['definition']>;
+  private readonly shapeDefinition: ReturnType<Receiver['shapeDefinition']>;
   private readonly id: string;
   private readonly values = new Map<string, AttributeValue>();
   private readonly containerId: string | null;
 
   constructor(
-    private readonly workspace: Workspace,
+    private readonly receiver: Receiver,
     args: readonly string[],
   ) {
     super();
     if (args.length === 0) {
       throw this.wrongArgCount();
     }
-    this.shapeDefinition = workspace.shapes().definition(args[0]);
+    this.shapeDefinition = receiver.shapeDefinition(args[0]);
 
     const params = this.shapeDefinition.params;
     if (args.length < 2 + params.length) {
@@ -65,12 +64,12 @@ export default class CreateCommand extends EditCommand {
   undo(): CommandResult { return this.undoRecord.undo(); }
 
   execute(): CommandResult {
-    const doc = this.workspace.document();
+    const doc = this.receiver.document();
     return this.undoRecord.execute(doc.captureStructure(), () => {
       const parent = this.containerId === null ? null : doc.findNode(this.containerId);
       if (this.containerId !== null && parent === null) throw new EditorError(`no such container: ${this.containerId}`);
       if (parent !== null && !parent.value.acceptsChildren()) throw new EditorError(`not a container: ${this.containerId}`);
-      const shape = this.workspace.shapes().create(this.shapeDefinition.type, this.id, this.values);
+      const shape = this.receiver.createShape(this.shapeDefinition.type, this.id, this.values);
       doc.insert(shape, parent);
       const where = this.containerId === null ? '' : ` in ${parent?.value.label() ?? 'svg'}`;
       return { result: new CommandResult().line(`${shape.label()} created${where}`), undo: `${shape.label()} removed` };

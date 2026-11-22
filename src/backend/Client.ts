@@ -1,61 +1,47 @@
 import CommandResult from './command/CommandResult';
 import EditorError from './error/EditorError';
-import Command from './command/Command';
+import type Command from './command/Command';
 import Invoker from './invoker/Invoker';
 import EditCommand from './command/EditCommand';
 import DocumentCommand from './command/DocumentCommand';
 import type { TreeSuccess } from './tree/TreeLineRenderer';
-import type Workspace from './receiver/workspace/Workspace';
 
-/** 可注册的 ConcreteCommand 类：静态部分即定义，构造函数即工厂。 */
-type ConcreteCommandClass = Pick<typeof Command, 'command' | 'usage' | 'accepts'> &
-  (new (workspace: Workspace, args: readonly string[]) => Command);
+type CommandDefinition = Pick<typeof Command, 'command' | 'usage' | 'accepts'> & { readonly name: string };
+type CommandFactory = (args: readonly string[]) => Command;
+type SuccessListener = (kind: TreeSuccess['kind']) => readonly string[];
 
-/** 内置命令：操作会话自身（命令表、历史、生命周期），不经过 Invoker。 */
-interface BuiltinEntry {
-  readonly usage: string;
-  readonly run: () => CommandResult;
+export interface CommandForm {
+  readonly definition: CommandDefinition;
+  readonly create: CommandFactory;
 }
 
+export type CommandTable = ReadonlyMap<string, readonly CommandForm[]>;
+export type CommandSession = Pick<Client, 'execute' | 'isExitRequested'>;
+
+export const frameworkCommandNames = Object.freeze(['help', 'undo', 'redo', 'exit', 'quit'] as const);
+
 /**
- * 后端唯一入口，Command 模式中的 Client。
+ * CLI 会话的命令分发入口。
  * 按命令名查表分派：先内置命令，再 ConcreteCommand；同名多形式时按 `accepts` 唯一命中选择形式。
- * 创建 ConcreteCommand 时交给它 Receiver（Workspace），再交给 Invoker 执行。
- * 具体命令由宿主注册，Client 不扫描或选择默认命令实现。
+ * 宿主提供已装配的命令表，Client 将工厂创建的命令交给 Invoker。
  */
 export default class Client {
   private readonly invoker = new Invoker();
-  private readonly builtins = new Map<string, BuiltinEntry>();
-  /** 命令名 → 该名下的全部形式（顺序不影响选择）。 */
-  private readonly commands = new Map<string, ConcreteCommandClass[]>();
+  private readonly builtins: ReadonlyMap<string, () => CommandResult>;
   private exitRequested = false;
 
-  constructor(private readonly workspace: Workspace) {
-    this.builtins.set('help', { usage: 'help', run: () => this.help() });
-    this.builtins.set('undo', { usage: 'undo', run: () => this.undo() });
-    this.builtins.set('redo', { usage: 'redo', run: () => this.redo() });
-    this.builtins.set('exit', { usage: 'exit', run: () => this.exit() });
-    this.builtins.set('quit', { usage: 'quit', run: () => this.exit() });
-  }
-
-  /**
-   * 注册 ConcreteCommand；以下情况属于程序缺陷，启动即失败：
-   * 定义缺失、与内置命令重名、重复注册同一个类、同名多形式中有形式未覆盖 `accepts`。
-   */
-  register(cls: ConcreteCommandClass): void {
-    const { command, usage } = cls;
-    if (!command || !usage) {
-      throw new Error(`command class ${cls.name} must declare static command and usage`);
-    }
-    const forms = this.commands.get(command) ?? [];
-    if (this.builtins.has(command) || forms.includes(cls)) {
-      throw new Error(`duplicate command: ${command}`);
-    }
-    const next = [...forms, cls];
-    if (next.length > 1 && next.some((form) => form.accepts === Command.accepts)) {
-      throw new Error(`command ${command} has multiple forms; each must override static accepts`);
-    }
-    this.commands.set(command, next);
+  constructor(
+    private readonly commands: CommandTable,
+    private readonly onSuccess: SuccessListener = () => [],
+  ) {
+    const run: Record<typeof frameworkCommandNames[number], () => CommandResult> = {
+      help: () => this.help(),
+      undo: () => this.undo(),
+      redo: () => this.redo(),
+      exit: () => this.exit(),
+      quit: () => this.exit(),
+    };
+    this.builtins = new Map(frameworkCommandNames.map((name) => [name, run[name]]));
   }
 
   /** 执行一条已分词的命令；失败时抛出 EditorError。 */
@@ -65,17 +51,17 @@ export default class Client {
     const builtin = this.builtins.get(name);
     if (builtin) {
       if (args.length > 0) {
-        throw new EditorError(`wrong number of arguments. usage: ${builtin.usage}`);
+        throw new EditorError(`wrong number of arguments. usage: ${name}`);
       }
-      return builtin.run();
+      return builtin();
     }
 
     const forms = this.commands.get(name);
     if (!forms) {
       throw new EditorError(`unknown command: ${name}`);
     }
-    const cls = this.select(name, forms, args);
-    const command = new cls(this.workspace, args);
+    const form = this.select(name, forms, args);
+    const command = form.create(args);
     const kind = command instanceof EditCommand ? 'edit' : command instanceof DocumentCommand ? command.successKind() : null;
     const result = this.invoker.execute(command);
     return kind === null ? result : this.notify(result, kind);
@@ -86,13 +72,13 @@ export default class Client {
   }
 
   /** 在同名的形式中选出唯一接受 args 的那个；没有时报参数个数不符并列出全部语法，多于一个属于程序缺陷。 */
-  private select(name: string, forms: readonly ConcreteCommandClass[], args: readonly string[]): ConcreteCommandClass {
-    const matched = forms.filter((form) => form.accepts(args));
+  private select(name: string, forms: readonly CommandForm[], args: readonly string[]): CommandForm {
+    const matched = forms.filter((form) => form.definition.accepts(args));
     if (matched.length === 0) {
-      throw new EditorError(`wrong number of arguments. usage: ${forms.map((form) => form.usage).join(' | ')}`);
+      throw new EditorError(`wrong number of arguments. usage: ${forms.map((form) => form.definition.usage).join(' | ')}`);
     }
     if (matched.length > 1) {
-      throw new Error(`ambiguous forms of ${name}: ${matched.map((form) => form.name).join(', ')}`);
+      throw new Error(`ambiguous forms of ${name}: ${matched.map((form) => form.definition.name).join(', ')}`);
     }
     return matched[0];
   }
@@ -100,12 +86,12 @@ export default class Client {
   private help(): CommandResult {
     const result = new CommandResult();
     for (const forms of this.commands.values()) {
-      for (const cls of forms) {
-        result.line(cls.usage);
+      for (const { definition } of forms) {
+        result.line(definition.usage);
       }
     }
-    for (const entry of this.builtins.values()) {
-      result.line(entry.usage);
+    for (const name of frameworkCommandNames) {
+      result.line(name);
     }
     return result;
   }
@@ -119,7 +105,7 @@ export default class Client {
   }
 
   private notify(result: CommandResult, kind: TreeSuccess['kind']): CommandResult {
-    for (const warning of this.workspace.treeRenderer().notify(kind, this.workspace.document())) result.warn(warning);
+    for (const warning of this.onSuccess(kind)) result.warn(warning);
     return result;
   }
 

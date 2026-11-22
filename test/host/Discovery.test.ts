@@ -23,6 +23,11 @@ function scannedPackageOf(folder: string, name: string, contributes: Record<stri
   return target;
 }
 
+function coreCommandSource(file: string): string {
+  const url = pathToFileURL(resolve('plugins/core', file)).href;
+  return `export { default } from ${JSON.stringify(url)};`;
+}
+
 function scannedCommandSource(name: string): string {
   return `import { Command, CommandResult } from ${backendApi};
     export default class Greeting extends Command {
@@ -93,6 +98,8 @@ describe('全部插件目录发现', () => {
     const empty = await bootstrapEditor(directory, () => {});
     const missing = await bootstrapEditor(join(directory, 'missing'), () => {});
     expect(empty.errors).toEqual([]);
+    expect(empty).not.toHaveProperty('receiver');
+    expect(Object.keys(empty.client).sort()).toEqual(['execute', 'isExitRequested']);
     expect(missing.errors).toEqual([]);
     expect(empty.client.execute(['help']).lines()).toEqual(['help', 'undo', 'redo', 'exit', 'quit']);
   });
@@ -125,35 +132,36 @@ describe('全部插件目录发现', () => {
 
   it('扫描包根目录，按文件名排序自动注册四类贡献', () => {
     scannedPackageOf('scan', 'scan', {
-      shapes: ['scan-dot'], commands: ['scan-a', 'scan-z'], attributes: ['scan-handler'], decorators: ['scan-tag'],
+      shapes: ['scan-dot'], commands: ['scan-a', 'scan-z', 'init', 'create', 'set', 'tree'], attributes: ['scan-handler'], decorators: ['scan-tag'],
     }, {
       'Dot.mjs': shapeSource('scan-dot'),
+      'Init.mjs': coreCommandSource('InitCommand.ts'),
+      'Create.mjs': coreCommandSource('CreateCommand.ts'),
+      'Set.mjs': coreCommandSource('SetCommand.ts'),
+      'Tree.mjs': coreCommandSource('TreeCommand.ts'),
       'ACommand.mjs': scannedCommandSource('scan-a'),
       'ZCommand.mjs': scannedCommandSource('scan-z'),
       'Handler.mjs': handlerSource('scan-handler', 'scan-dot'),
       'Tag.mjs': decoratorSource('scan-tag', 'scan-dot'),
       'Types.d.mts': 'export declare const helper: string;',
     });
-    const host = runHost(`const { Document } = await import(${backendApi});
-      const host = await bootstrapEditor(directory, () => {});
+    const host = runHost(`const host = await bootstrapEditor(directory, () => {});
       const help = host.client.execute(['help']).lines();
-      const shape = host.workspace.shapes().create('scan-dot', 'd');
-      const handler = host.workspace.attributeHandlerRegistry().resolve(shape, 'fill');
-      if (handler) handler.apply(shape, 'fill', 'blue');
-      const doc = new Document(100, 100);
-      doc.insert(shape);
+      host.client.execute(['init']);
+      const created = host.client.execute(['create', 'scan-dot', 'd']).lines();
+      const updated = host.client.execute(['set', 'd', 'fill', 'blue']).lines();
       console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins,
         a: host.client.execute(['scan-a']).lines(), z: host.client.execute(['scan-z']).lines(),
-        tree: host.workspace.treeRenderer().render(doc), fill: handler ? handler.display(shape, 'fill') : null,
-        hasShape: host.workspace.shapes().has('scan-dot'),
+        tree: host.client.execute(['tree']).lines(),
+        created, updated,
         aBeforeZ: help.indexOf('scan-a') < help.indexOf('scan-z') }));`);
     expect(host.errors).toEqual([]);
     expect(host.plugins).toEqual(['scan']);
     expect(host.a).toEqual(['discovered scan-a']);
     expect(host.z).toEqual(['discovered scan-z']);
-    expect(host.hasShape).toBe(true);
+    expect(host.created).toEqual(['scan-dot#d created']);
     expect(host.tree[1]).toContain('(dot)');
-    expect(host.fill).toBe('red');
+    expect(host.updated[0]).toContain('fill=red');
     expect(host.aBeforeZ).toBe(true);
   });
 
@@ -164,13 +172,19 @@ describe('全部插件目录发现', () => {
         matches: (shape) => shape.type() === 'scan-mapped',
         write: (shape) => ({ type: 'rect', attributes: [['id', shape.id()], ['data-kind', 'scan-mapped']] }),
       };`;
-    scannedPackageOf('mapped', 'mapped', { shapes: ['scan-mapped'] }, { 'Mapped.mjs': source });
-    const host = runHost(`const { Document } = await import(${backendApi});
+    scannedPackageOf('mapped', 'mapped', { shapes: ['scan-mapped'], commands: ['init', 'create', 'save'] }, {
+      'Mapped.mjs': source,
+      'Init.mjs': coreCommandSource('InitCommand.ts'),
+      'Create.mjs': coreCommandSource('CreateCommand.ts'),
+      'Save.mjs': coreCommandSource('SaveCommand.ts'),
+    });
+    const host = runHost(`const { readFileSync } = await import('node:fs');
       const host = await bootstrapEditor(directory, () => {});
-      const shape = host.workspace.shapes().create('scan-mapped', 'm');
-      const doc = new Document(100, 100);
-      doc.insert(shape);
-      console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins, svg: host.workspace.svgWriter().write(doc) }));`);
+      const path = join(directory, 'mapped.svg');
+      host.client.execute(['init']);
+      host.client.execute(['create', 'scan-mapped', 'm']);
+      host.client.execute(['save', path]);
+      console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins, svg: readFileSync(path, 'utf8') }));`);
     expect(host.errors).toEqual([]);
     expect(host.plugins).toEqual(['mapped']);
     expect(host.svg).toContain('<rect id="m" data-kind="scan-mapped"/>');
@@ -183,17 +197,21 @@ describe('全部插件目录发现', () => {
     scannedPackageOf('b-invalid', 'invalid', {}, {
       'Helper.mjs': 'export default {};',
     });
-    scannedPackageOf('z-good', 'good', { commands: ['healthy'] }, { 'Command.mjs': scannedCommandSource('healthy') });
+    scannedPackageOf('z-good', 'good', { commands: ['healthy', 'create'] }, {
+      'Command.mjs': scannedCommandSource('healthy'),
+      'Create.mjs': coreCommandSource('CreateCommand.ts'),
+    });
     const host = runHost(`const host = await bootstrapEditor(directory, () => {});
+      let createError; try { host.client.execute(['create', 'actual-dot', 'd']); } catch (error) { createError = error.message; }
       console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins,
-        result: host.client.execute(['healthy']).lines(), hasDot: host.workspace.shapes().has('actual-dot') }));`);
+        result: host.client.execute(['healthy']).lines(), createError }));`);
     expect(host.plugins).toEqual(['good']);
     expect(host.errors).toHaveLength(2);
     expect(host.errors[0]).toContain('plugin manifest mismatch: mismatch');
     expect(host.errors[1]).toContain('plugin failed to load: invalid');
     expect(host.errors[1]).toContain('plugin contribution must be a class: Helper.mjs');
     expect(host.result).toEqual(['discovered healthy']);
-    expect(host.hasDot).toBe(false);
+    expect(host.createError).toContain('unknown shape type: actual-dot');
   });
 
   it('扫描文件缺少默认导出、依赖加载失败或模块执行异常均报告，继续加载后续包', () => {
@@ -220,12 +238,11 @@ describe('全部插件目录发现', () => {
     scannedPackageOf('c-mismatch', 'mismatch', {}, { 'Command.mjs': scannedCommandSource('unexpected') });
     const host = runHost(`const host = await bootstrapEditor(directory, () => {});
       let unknown; try { host.client.execute(['unexpected']); } catch (error) { unknown = error.message; }
-      console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins, unknown, hasGroup: host.workspace.shapes().has('g') }));`);
+      console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins, unknown }));`);
     expect(host.plugins).toEqual([]);
     expect(host.errors).toHaveLength(3);
     expect(host.errors[2]).toContain('plugin manifest mismatch: mismatch');
     expect(host.unknown).toContain('unknown command');
-    expect(host.hasGroup).toBe(false);
   });
 
   it('导入前拒绝未知类别、空值和重复的贡献名称', () => {

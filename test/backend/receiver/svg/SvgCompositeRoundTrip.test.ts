@@ -1,5 +1,6 @@
+import { createClientWithCommands } from '../../../support/Plugins';
 import { describe, expect, it, vi } from 'vitest';
-import { AttributeHandlerRegistry, TreeRenderer, Client, Document, EditorError, Shape, ShapeFactory, SvgReader, SvgWriter, Workspace } from '../../../../src/backend';
+import { AttributeHandlerRegistry, TreeRenderer, Document, EditorError, Shape, ShapeFactory, SvgReader, SvgWriter, Receiver } from '../../../../src/backend';
 import type { SvgElement, SvgShapeMapping } from '../../../../src/backend';
 import ReadCommand from '../../../../plugins/core/ReadCommand';
 import SaveCommand from '../../../../plugins/core/SaveCommand';
@@ -30,30 +31,30 @@ function sample(mapping: SvgShapeMapping = panelMapping) {
     write: vi.fn((path: string, text: string) => { storage.set(path, text); }),
   };
   const writer = new SvgWriter([mapping]);
-  const workspace = new Workspace(shapes, files, new SvgReader(shapes), writer, new AttributeHandlerRegistry(), new TreeRenderer());
+  const handlers = new AttributeHandlerRegistry();
+  const receiver = new Receiver(shapes, files, new SvgReader(shapes), writer, handlers, new TreeRenderer());
   const document = new Document(100, 100);
   const panel = shapes.create(Panel.type, 'p') as Panel;
   const node = document.insert(panel);
-  workspace.replace(document, 'original.svg');
-  const client = new Client(workspace);
-  for (const command of [ReadCommand, SaveCommand, MoveCommand, TreeCommand]) client.register(command);
-  return { workspace, document, panel, node, client, writer, storage, files };
+  receiver.replace(document, 'original.svg');
+  const client = createClientWithCommands(receiver, [ReadCommand, SaveCommand, MoveCommand, TreeCommand]);
+  return { receiver, document, panel, node, client, writer, storage, files, handlers };
 }
 
 describe('SVG 复合类型完整读写', () => {
   it('私有部件、普通成员和嵌套模型一起保存，读回后再次写出一致', () => {
-    const { workspace, document, panel, node, client, writer, storage } = sample();
+    const { receiver, document, panel, node, client, writer, storage, handlers } = sample();
     panel.setLabel('new <title> & text');
     const group = document.insert(new Group('members'), node);
     document.insert(Frame.parse('extra', new Map([['x', '7']])).shape, group);
     document.insert(new Panel('nested'), group);
-    const resolve = vi.spyOn(workspace.attributeHandlerRegistry(), 'resolve');
+    const resolve = vi.spyOn(handlers, 'resolve');
     client.execute(['save', 'scene.svg']);
     const original = storage.get('scene.svg')!;
     expect(original).toContain('data-kind="test-panel"');
     expect(original).toContain('new &lt;title&gt; &amp; text');
     expect(client.execute(['read', 'scene.svg']).lines()).toEqual(['read scene.svg (4 elements)']);
-    const restored = workspace.document();
+    const restored = receiver.document();
     const model = restored.requireNode('p').value as Panel;
     expect(model).toBeInstanceOf(Panel);
     expect(model.captionShape().value('text')).toBe('new <title> & text');
@@ -82,12 +83,12 @@ describe('SVG 复合类型完整读写', () => {
   });
 
   it('非法复合读入保持文档、路径、对象身份及编辑历史', () => {
-    const { workspace, document, panel, node, client, storage } = sample();
+    const { receiver, document, panel, node, client, storage } = sample();
     client.execute(['move', 'p', '5', '6']);
     storage.set('bad.svg', '<svg><g id="broken" data-kind="test-panel"><rect id="broken-frame"/></g></svg>');
     expect(() => client.execute(['read', 'bad.svg'])).toThrow('invalid panel parts: broken');
-    expect(workspace.document()).toBe(document);
-    expect(workspace.path()).toBe('original.svg');
+    expect(receiver.document()).toBe(document);
+    expect(receiver.path()).toBe('original.svg');
     expect(document.requireNode('p')).toBe(node);
     expect(node.value).toBe(panel);
     client.execute(['undo']);
@@ -97,7 +98,7 @@ describe('SVG 复合类型完整读写', () => {
   });
 
   it('私有部件与文档节点 id 冲突在写文件前拒绝，文件、路径和历史不变', () => {
-    const { workspace, document, panel, client, storage, files } = sample({
+    const { receiver, document, panel, client, storage, files } = sample({
       matches: panelMapping.matches,
       write: (shape) => ({ ...panelMapping.write(shape), children: [{ type: 'rect', attributes: [['id', 'external']] }] }),
     });
@@ -107,7 +108,7 @@ describe('SVG 复合类型完整读写', () => {
     expect(() => client.execute(['save', 'existing.svg'])).toThrow('id already exists: external');
     expect(files.write).not.toHaveBeenCalled();
     expect(storage.get('existing.svg')).toBe('keep this file');
-    expect(workspace.path()).toBe('original.svg');
+    expect(receiver.path()).toBe('original.svg');
     client.execute(['undo']);
     expect(panel.frameShape().value('x')).toBe(1);
   });

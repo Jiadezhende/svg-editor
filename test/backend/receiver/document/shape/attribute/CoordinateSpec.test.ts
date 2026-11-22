@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import CoordinateSpec from '../../../../../src/backend/receiver/document/attribute/CoordinateSpec';
+import CoordinateSpec from '../../../../../../src/backend/receiver/document/shape/attribute/CoordinateSpec';
 
 describe('CoordinateSpec 坐标', () => {
   const spec = new CoordinateSpec('cx', 'x');

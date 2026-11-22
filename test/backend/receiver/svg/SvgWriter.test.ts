@@ -1,16 +1,16 @@
-import { createWorkspace } from '../../../support/Plugins';
+import { createReceiver } from '../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import CreateCommand from '../../../../plugins/core/CreateCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
 import SvgWriter from '../../../../src/backend/receiver/svg/SvgWriter';
 
 async function documentWith(width: number, height: number, ...lines: string[][]): Promise<Document> {
-  const workspace = (await createWorkspace());
-  workspace.replace(new Document(width, height));
+  const receiver = (await createReceiver());
+  receiver.replace(new Document(width, height));
   for (const args of lines) {
-    new CreateCommand(workspace, args).execute();
+    new CreateCommand(receiver, args).execute();
   }
-  return workspace.document();
+  return receiver.document();
 }
 
 describe('SvgWriter', () => {

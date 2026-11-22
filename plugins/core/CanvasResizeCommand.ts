@@ -1,6 +1,6 @@
 import { CommandResult } from '../../src/backend';
 import { DocumentCommand } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 /** `canvas <w> <h>`：修改画布尺寸（文档类），不改动 viewBox。与 CanvasShowCommand 同名，接受有参的输入。 */
 export default class CanvasResizeCommand extends DocumentCommand {
@@ -17,7 +17,7 @@ export default class CanvasResizeCommand extends DocumentCommand {
   private readonly height: number;
 
   constructor(
-    private readonly workspace: Workspace,
+    private readonly receiver: Receiver,
     args: readonly string[],
   ) {
     super();
@@ -27,7 +27,7 @@ export default class CanvasResizeCommand extends DocumentCommand {
   }
 
   execute(): CommandResult {
-    const doc = this.workspace.document();
+    const doc = this.receiver.document();
     doc.resize(this.width, this.height);
     return new CommandResult().line(`canvas resized to ${this.formatNumber(doc.width())}x${this.formatNumber(doc.height())}`);
   }

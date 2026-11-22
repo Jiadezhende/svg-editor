@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AttributeHandlerRegistry, Client, SvgReader, SvgWriter, TreeDecorator, TreeRenderer, Workspace } from '../../../src/backend';
+import { AttributeHandlerRegistry, SvgReader, SvgWriter, TreeDecorator, TreeRenderer, Receiver } from '../../../src/backend';
 import type { TreeSuccess } from '../../../src/backend';
-import { createShapeFactory } from '../../support/Plugins';
+import { createClientWithCommands, createShapeFactory } from '../../support/Plugins';
 import InitCommand from '../../../plugins/core/InitCommand';
 import CreateCommand from '../../../plugins/core/CreateCommand';
 import ReadCommand from '../../../plugins/core/ReadCommand';
@@ -21,10 +21,9 @@ async function session(broken = false) {
   }
   const factory = (await createShapeFactory());
   const files = { read: vi.fn(() => '<svg/>'), write: vi.fn((_path: string, _text: string) => {}) };
-  const workspace = new Workspace(factory, files, new SvgReader(factory), new SvgWriter(), new AttributeHandlerRegistry(), new TreeRenderer([Recording]));
-  const client = new Client(workspace);
-  for (const command of [InitCommand, CreateCommand, ReadCommand, SaveCommand, TreeCommand, CanvasResizeCommand]) client.register(command);
-  return { client, workspace, files, events };
+  const receiver = new Receiver(factory, files, new SvgReader(factory), new SvgWriter(), new AttributeHandlerRegistry(), new TreeRenderer([Recording]));
+  const client = createClientWithCommands(receiver, [InitCommand, CreateCommand, ReadCommand, SaveCommand, TreeCommand, CanvasResizeCommand]);
+  return { client, receiver, files, events };
 }
 
 describe('成功后的树展示通知', () => {
@@ -44,7 +43,7 @@ describe('成功后的树展示通知', () => {
   });
 
   it('编辑、读写及 undo/redo 失败不通知，失败后仍可重试', async () => {
-    const { client, workspace, files, events } = (await session());
+    const { client, receiver, files, events } = (await session());
     client.execute(['init']);
     client.execute(['create', 'g', 'g']);
     const before = events.length;
@@ -55,10 +54,10 @@ describe('成功后的树展示通知', () => {
     expect(() => client.execute(['save', 'bad.svg'])).toThrow('write failed');
     expect(events).toHaveLength(before);
     client.execute(['undo']);
-    const conflict = workspace.document().insert(workspace.shapes().create('g', 'g'));
+    const conflict = receiver.document().insert(receiver.createShape('g', 'g'));
     expect(() => client.execute(['redo'])).toThrow('id already exists: g');
     expect(events).toHaveLength(before + 1);
-    workspace.document().remove(conflict);
+    receiver.document().remove(conflict);
     client.execute(['redo']);
     client.execute(['save', 'good.svg']);
     const after = events.length;
@@ -67,12 +66,12 @@ describe('成功后的树展示通知', () => {
   });
 
   it('观察者错误只增加警告，已提交的操作及历史保持成功', async () => {
-    const { client, workspace } = (await session(true));
+    const { client, receiver } = (await session(true));
     client.execute(['init']);
     const result = client.execute(['create', 'g', 'g']);
     expect(result.warnings()).toEqual(['tree decorator recording: notification failed']);
-    expect(workspace.document().requireNode('g').value.id()).toBe('g');
+    expect(receiver.document().requireNode('g').value.id()).toBe('g');
     client.execute(['undo']);
-    expect(workspace.document().findNode('g')).toBeNull();
+    expect(receiver.document().findNode('g')).toBeNull();
   });
 });

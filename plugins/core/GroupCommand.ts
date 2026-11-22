@@ -2,7 +2,7 @@ import { CommandResult } from '../../src/backend';
 import { EditCommand } from '../../src/backend';
 import { UndoRecord } from '../../src/backend';
 import { EditorError } from '../../src/backend';
-import type { Workspace } from '../../src/backend';
+import type { Receiver } from '../../src/backend';
 
 /**
  * `group <newGid> <id1> <id2>…`：新建容器并收入若干图形。
@@ -16,7 +16,7 @@ export default class GroupCommand extends EditCommand {
   private readonly groupId: string;
   private readonly memberIds: readonly string[];
   constructor(
-    private readonly workspace: Workspace,
+    private readonly receiver: Receiver,
     args: readonly string[],
   ) {
     super();
@@ -33,9 +33,9 @@ export default class GroupCommand extends EditCommand {
   undo(): CommandResult { return this.undoRecord.undo(); }
 
   execute(): CommandResult {
-    const doc = this.workspace.document();
+    const doc = this.receiver.document();
     return this.undoRecord.execute(doc.captureStructure(), () => {
-      const group = this.workspace.shapes().create('g', this.groupId);
+      const group = this.receiver.createShape('g', this.groupId);
       const members = this.memberIds.map((id) => doc.requireNode(id));
       for (const outer of members) {
         if (members.some((inner) => inner !== outer && doc.nodes(outer).includes(inner))) {

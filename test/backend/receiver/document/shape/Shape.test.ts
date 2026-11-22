@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import Rect from '../../../../../src/backend/receiver/document/shape/Rect';
-import Group from '../../../../../src/backend/receiver/document/shape/Group';
+import Rect from '../../../../../plugins/core/Rect';
+import Group from '../../../../../plugins/core/Group';
 import EditorError from '../../../../../src/backend/error/EditorError';
 
 const geometry = new Map<string, number | string>([
@@ -82,25 +82,12 @@ describe('Shape 通用行为', () => {
     expect(Rect.attribute('r')).toBeNull();
   });
 
-  it('叶子的 find 只比对自身，不是容器', () => {
+  it('叶子不开放文档成员，也没有树关系与结构修改 API', () => {
     const rect = new Rect('r1', geometry);
-    expect(rect.find('r1')).toBe(rect);
-    expect(rect.find('R1')).toBeNull();
-    expect(rect.asContainer()).toBeNull();
-  });
-
-  it('未加入容器时取父节点属于程序缺陷；加入后为该容器', () => {
-    const rect = new Rect('r1', geometry);
-    expect(() => rect.parent()).toThrow(Error);
-    const group = new Group('g1');
-    group.insert(rect);
-    expect(rect.parent()).toBe(group);
-  });
-
-  it('已有父节点时再次插入属于程序缺陷', () => {
-    const rect = new Rect('r1', geometry);
-    new Group('g1').insert(rect);
-    expect(() => new Group('g2').insert(rect)).toThrow(Error);
+    expect(rect.acceptsChildren()).toBe(false);
+    for (const name of ['children', 'parent', 'requireParent', 'find', 'insert', 'remove', 'relocate', 'attachTo', 'detach']) {
+      expect(name in rect).toBe(false);
+    }
   });
 });
 
@@ -177,28 +164,6 @@ describe('Shape 快照', () => {
     rect.move(2, 2);
     memento.restore();
     expect(rect.position()).toEqual(['10', '20']);
-  });
-});
-
-describe('Shape 移动位置', () => {
-  it('relocate：未加入容器时直接插入；已在容器中时先摘下再插入', () => {
-    const rect = new Rect('r1', geometry);
-    const [g1, g2] = [new Group('g1'), new Group('g2')];
-    rect.relocate(g1);
-    expect(rect.parent()).toBe(g1);
-    rect.relocate(g2);
-    expect(g1.children()).toEqual([]);
-    expect(g2.children()).toEqual([rect]);
-  });
-
-  it('relocate 到同一父节点的指定位置', () => {
-    const group = new Group('g');
-    const [a, b, c] = [new Rect('a', geometry), new Rect('b', geometry), new Rect('c', geometry)];
-    for (const shape of [a, b, c]) shape.relocate(group);
-    a.relocate(group);
-    expect(group.children()).toEqual([b, c, a]);
-    a.relocate(group, 0);
-    expect(group.children()).toEqual([a, b, c]);
   });
 });
 

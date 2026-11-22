@@ -4,7 +4,6 @@ import CommandResult from '../../../src/backend/command/CommandResult';
 import DocumentCommand from '../../../src/backend/command/DocumentCommand';
 import EditCommand from '../../../src/backend/command/EditCommand';
 import EditorError from '../../../src/backend/error/EditorError';
-import Workspace from '../../../src/backend/receiver/workspace/Workspace';
 import StubCommand from '../../support/StubCommand';
 
 /** 测试用接收者：一个计数器。 */
@@ -42,13 +41,13 @@ class SaveLikeCommand extends DocumentCommand {
   }
 }
 
-function display(): StubCommand {
-  return new StubCommand(new Workspace(), ['a', '1']);
+async function display(): Promise<StubCommand> {
+  return new StubCommand(['a', '1']);
 }
 
 describe('Invoker 执行', () => {
-  it('执行命令并返回其结果', () => {
-    const result = new Invoker().execute(new StubCommand(new Workspace(), ['a', '1', 'warn']));
+  it('执行命令并返回其结果', async () => {
+    const result = new Invoker().execute(new StubCommand(['a', '1', 'warn']));
     expect(result.warnings()).toEqual(['stub a warned']);
     expect(result.lines()).toEqual(['a 1']);
   });
@@ -120,17 +119,17 @@ describe('Invoker 撤销与重做', () => {
     expect(counter.value).toBe(1);
   });
 
-  it('显示类命令不影响历史：不入栈、不清空重做栈、不解除禁止', () => {
+  it('显示类命令不影响历史：不入栈、不清空重做栈、不解除禁止', async () => {
     const counter = new Counter();
     const invoker = new Invoker();
     invoker.execute(new AddCommand(counter, 1));
-    invoker.execute(display());
+    invoker.execute((await display()));
     invoker.undo();
-    invoker.execute(display());
+    invoker.execute((await display()));
     expect(invoker.redo().lines()).toEqual(['added 1']);
 
     invoker.execute(new SaveLikeCommand());
-    invoker.execute(display());
+    invoker.execute((await display()));
     expect(() => invoker.undo()).toThrow('undo not allowed after io command');
   });
 
@@ -143,5 +142,49 @@ describe('Invoker 撤销与重做', () => {
     invoker.undo();
     expect(counter.value).toBe(0);
     expect(() => invoker.undo()).toThrow('nothing to undo');
+  });
+});
+
+
+describe('Invoker 失败时保留历史栈', () => {
+  it('undo 失败后仍可重试同一个命令，重做栈不增加', () => {
+    let failUndo = true;
+    class RetryCommand extends AddCommand {
+      override undo(): CommandResult {
+        if (failUndo) throw new EditorError('undo failed');
+        return super.undo();
+      }
+    }
+    const counter = new Counter();
+    const invoker = new Invoker();
+    invoker.execute(new RetryCommand(counter, 3));
+    expect(() => invoker.undo()).toThrow('undo failed');
+    expect(counter.value).toBe(3);
+    expect(() => invoker.redo()).toThrow('nothing to redo');
+    failUndo = false;
+    expect(invoker.undo().lines()).toEqual(['removed 3']);
+    expect(counter.value).toBe(0);
+    expect(invoker.redo().lines()).toEqual(['added 3']);
+  });
+
+  it('redo 失败后仍可重试，撤销栈不增加', () => {
+    let failExecute = false;
+    class RetryCommand extends AddCommand {
+      override execute(): CommandResult {
+        if (failExecute) throw new EditorError('redo failed');
+        return super.execute();
+      }
+    }
+    const counter = new Counter();
+    const invoker = new Invoker();
+    invoker.execute(new RetryCommand(counter, 3));
+    invoker.undo();
+    failExecute = true;
+    expect(() => invoker.redo()).toThrow('redo failed');
+    expect(counter.value).toBe(0);
+    expect(() => invoker.undo()).toThrow('nothing to undo');
+    failExecute = false;
+    expect(invoker.redo().lines()).toEqual(['added 3']);
+    expect(invoker.undo().lines()).toEqual(['removed 3']);
   });
 });

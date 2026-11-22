@@ -1,11 +1,11 @@
 import CommandResult from './CommandResult';
 import EditorError from '../error/EditorError';
-import DecimalFormat from '../receiver/document/attribute/DecimalFormat';
+import DecimalFormat from '../utils/DecimalFormat';
 
 /**
  * Command 模式中的抽象命令。
  *
- * 静态成员即命令定义：子类覆盖 `command`（命令名）与 `usage`（语法），注册时由 Client 校验非空；
+ * 静态成员即命令定义：子类覆盖 `command`（命令名）与 `usage`（语法），宿主装配时校验非空；
  * 同一命令名可有多个形式（如 `canvas` 与 `canvas <w> <h>`），各形式覆盖 `accepts` 声明自己接受的参数结构。
  * 构造函数即工厂：子类在构造时解析参数，每次执行都是一个独立对象。
  */

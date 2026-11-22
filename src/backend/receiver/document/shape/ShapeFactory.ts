@@ -1,36 +1,21 @@
 import EditorError from '../../../error/EditorError';
-import type { AttributeValue } from '../attribute/AttributeSpec';
-import Circle from './Circle';
-import Ellipse from './Ellipse';
-import Group from './Group';
-import Line from './Line';
-import Rect from './Rect';
-import type Shape from './Shape';
-import Text from './Text';
-
-/** 可注册的图形类：静态部分即定义，构造函数即工厂。 */
-export type ShapeClass = Pick<
-  typeof Shape,
-  'type' | 'params' | 'paint' | 'anchor' | 'content' | 'attributes' | 'attribute'
-> &
-  (new (id: string, values?: ReadonlyMap<string, AttributeValue>) => Shape);
+import type { AttributeValue } from './attribute/AttributeSpec';
+import Shape from './Shape';
+import type { ShapeParseResult } from './Shape';
 
 /**
- * 图形工厂：类型名 → 图形类的注册表，构造时注册 6 种内置图形；后续插件类型向同一工厂注册。
- *
- * 待重构：按名分派是课程允许的两处之一（图形工厂），见 doc/update/20261020_FEAT_SHAPE_CREATE_DELETE.md。
+ * 图形工厂：内部保存类型名 → 图形类，使用侧查询规格并由工厂创建实例。
+ * 初始注册表为空，具体类型由宿主选择并注册。
+ * 使用侧只查询规格与创建实例，具体类的选择和注册留在宿主。
  */
 export default class ShapeFactory {
-  private readonly classes = new Map<string, ShapeClass>();
+  private readonly classes = new Map<string, typeof Shape>();
 
-  constructor() {
-    for (const cls of [Rect, Circle, Ellipse, Line, Text, Group]) {
-      this.register(cls);
+  /** 注册 Shape 子类，并校验其解析方法、类型名和锚点。 */
+  register(cls: typeof Shape): void {
+    if (typeof cls !== 'function' || !(cls.prototype instanceof Shape) || typeof cls.parse !== 'function') {
+      throw new Error('shape must extend Shape and provide parse');
     }
-  }
-
-  /** 注册图形类；类型名缺失、重名、锚点不是本类的 x / y 坐标属性，都属于程序缺陷。 */
-  register(cls: ShapeClass): void {
     if (!cls.type) {
       throw new Error('shape class must declare static type');
     }
@@ -41,7 +26,35 @@ export default class ShapeFactory {
     this.classes.set(cls.type, cls);
   }
 
-  private static checkAnchor(cls: ShapeClass): void {
+  /** 是否支持该类型；不构造对象，供读入流程决定是否跳过。 */
+  has(type: string): boolean {
+    return this.classes.has(type);
+  }
+
+  /** 已注册类的只读规格视图，不暴露构造签名或注册校验信息。 */
+  definition(type: string): Readonly<Pick<
+    typeof Shape, 'type' | 'params' | 'paint' | 'content' | 'attributes' | 'attribute'
+  >> {
+    return this.lookup(type);
+  }
+
+  /** 统一创建入口；属性与自身结构的有效性由具体模型保证。 */
+  create(type: string, id: string, values: ReadonlyMap<string, AttributeValue> = new Map()): Shape {
+    // typeof Shape 带有抽象构造签名，注册表保存的是已校验的子类。
+    return Reflect.construct(this.lookup(type), [id, values]) as Shape;
+  }
+
+  /** 调用已注册类的数据构造能力；递归函数由读入编排者提供。 */
+  parse(
+    type: string,
+    id: string,
+    attributes: ReadonlyMap<string, string>,
+    readChildren: () => readonly Shape[] = () => [],
+  ): ShapeParseResult {
+    return this.lookup(type).parse(id, attributes, readChildren);
+  }
+
+  private static checkAnchor(cls: typeof Shape): void {
     const anchor = cls.anchor;
     if (anchor === null) {
       return;
@@ -53,17 +66,12 @@ export default class ShapeFactory {
     });
   }
 
-  /** 按类型名取图形类，未注册时报错。 */
-  lookup(type: string): ShapeClass {
-    const cls = this.find(type);
-    if (cls === null) {
+  /** 构造函数只在注册表内部查找，未知类型保持原错误语义。 */
+  private lookup(type: string): typeof Shape {
+    const cls = this.classes.get(type);
+    if (cls === undefined) {
       throw new EditorError(`unknown shape type: ${type} (is the plugin loaded?)`);
     }
     return cls;
-  }
-
-  /** 按类型名取图形类，未注册时为 null（read 据此跳过不支持的元素）。 */
-  find(type: string): ShapeClass | null {
-    return this.classes.get(type) ?? null;
   }
 }

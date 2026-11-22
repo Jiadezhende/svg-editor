@@ -1,0 +1,32 @@
+{
+  "name": "core",
+  "type": "module",
+  "contributes": {
+    "shapes": [
+      "rect",
+      "circle",
+      "ellipse",
+      "line",
+      "text",
+      "g"
+    ],
+    "commands": [
+      "addto",
+      "back",
+      "canvas",
+      "create",
+      "delete",
+      "front",
+      "group",
+      "init",
+      "move",
+      "read",
+      "save",
+      "scale",
+      "set",
+      "show",
+      "tree",
+      "ungroup"
+    ]
+  }
+}

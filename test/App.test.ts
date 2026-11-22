@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import App from '../src/App';
-import Client from '../src/backend/Client';
+import { Client } from '../src/backend';
+import CommandReader from '../src/frontend/CommandReader';
+import ResultPrinter from '../src/frontend/ResultPrinter';
 import MemoryInputSource from './support/MemoryInputSource';
 import MemoryOutputSink from './support/MemoryOutputSink';
 import StubCommand from './support/StubCommand';
@@ -8,11 +10,14 @@ import StubCommand from './support/StubCommand';
 const BANNER = "svg-editor 0.1 — type 'help' for commands";
 
 async function replay(lines: string[], interactive = false) {
-  const client = new Client();
-  client.register(StubCommand);
+  const client = new Client(new Map([
+    [StubCommand.command, [{ definition: StubCommand, create: (args) => new StubCommand(args) }]],
+  ]));
   const input = new MemoryInputSource(lines, interactive);
   const output = new MemoryOutputSink();
-  await new App(input, output, client).run();
+  const reader = new CommandReader(input, output);
+  const printer = new ResultPrinter(output);
+  await new App(reader, printer, client).run();
   return { input, output };
 }
 

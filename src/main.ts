@@ -1,18 +1,21 @@
-import { readdirSync } from 'node:fs';
 import App from './App';
-import Client from './backend/Client';
+import { bootstrapEditor } from './bootstrap';
+import CommandReader from './frontend/CommandReader';
+import ResultPrinter from './frontend/ResultPrinter';
 import ConsoleInputSource from './frontend/io/ConsoleInputSource';
 import ConsoleOutputSink from './frontend/io/ConsoleOutputSink';
 
-// 入口：扫描 backend/command/impl/ 注册全部 ConcreteCommand，组装控制台 IO、Client、App 后启动。
-
-const client = new Client();
-const implDir = new URL('./backend/command/impl/', import.meta.url);
-for (const file of readdirSync(implDir).filter((name) => name.endsWith('.ts')).sort()) {
-  const module = await import(new URL(file, implDir).href);
-  client.register(module.default);
-}
+// 自动发现全部插件，单插件失败只报告错误，保留有效装配继续启动。
+const { client } = await bootstrapEditor();
 
 const input = new ConsoleInputSource();
-await new App(input, new ConsoleOutputSink(), client).run();
-input.close();
+const output = new ConsoleOutputSink();
+const reader = new CommandReader(input, output);
+const printer = new ResultPrinter(output);
+const app = new App(reader, printer, client);
+
+try {
+  await app.run();
+} finally {
+  input.close();
+}

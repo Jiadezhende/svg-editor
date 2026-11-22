@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Document, EditorError } from '../../../../src/backend';
 import App from '../../../../src/App';
-import type { Shape } from '../../../../src/backend';
+import { Document, EditorError, type Shape } from '../../../../src/backend';
+import CommandReader from '../../../../src/frontend/CommandReader';
+import ResultPrinter from '../../../../src/frontend/ResultPrinter';
 import SetCommand from '../../../../plugins/core/SetCommand';
 import { createHost } from '../../../support/Plugins';
 import CompositeShape from '../../../support/CompositeShape';
@@ -252,8 +253,11 @@ describe('SetCommand 的静态 Handler', () => {
     }
     handlers.register(InvalidEdit);
     client.execute(['set', 'panel', 'stroke', 'blue']);
+    const input = new MemoryInputSource(['set panel fill red', 'undo', 'redo'], false);
     const output = new MemoryOutputSink();
-    await new App(new MemoryInputSource(['set panel fill red', 'undo', 'redo'], false), output, client).run();
+    const reader = new CommandReader(input, output);
+    const printer = new ResultPrinter(output);
+    await new App(reader, printer, client).run();
     expect(output.lines().slice(1)).toEqual([
       'svg> set panel fill red', 'error: invalid composite edit',
       'svg> undo', 'g#panel updated: stroke unset',

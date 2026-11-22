@@ -1,5 +1,7 @@
 import App from './App';
 import { bootstrapEditor } from './bootstrap';
+import CommandReader from './frontend/CommandReader';
+import ResultPrinter from './frontend/ResultPrinter';
 import ConsoleInputSource from './frontend/io/ConsoleInputSource';
 import ConsoleOutputSink from './frontend/io/ConsoleOutputSink';
 
@@ -7,5 +9,13 @@ import ConsoleOutputSink from './frontend/io/ConsoleOutputSink';
 const { client } = await bootstrapEditor();
 
 const input = new ConsoleInputSource();
-await new App(input, new ConsoleOutputSink(), client).run();
-input.close();
+const output = new ConsoleOutputSink();
+const reader = new CommandReader(input, output);
+const printer = new ResultPrinter(output);
+const app = new App(reader, printer, client);
+
+try {
+  await app.run();
+} finally {
+  input.close();
+}

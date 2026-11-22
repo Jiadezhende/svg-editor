@@ -1,26 +1,20 @@
-import type { CommandSession } from './backend';
-import EditorError from './backend/error/EditorError';
-import CommandReader from './frontend/CommandReader';
-import type InputSource from './frontend/io/InputSource';
-import type OutputSink from './frontend/io/OutputSink';
+import { EditorError, type CommandSession } from './backend';
+import type CommandReader from './frontend/CommandReader';
 import ParseError from './frontend/ParseError';
-import ResultPrinter from './frontend/ResultPrinter';
+import type ResultPrinter from './frontend/ResultPrinter';
 
 /**
- * 前后端通信与主循环：前端负责读入与展示，后端负责执行，两者互不依赖。
- * 前后端之间的数据转换只在这里进行：参数数组交给后端，CommandResult 拆成字符串交给前端，两侧的错误统一输出。
+ * 组织 CLI 主循环：读取参数、执行命令、展示结果，并统一输出用户可纠正的错误。
  */
 export default class App {
   private readonly reader: CommandReader;
   private readonly printer: ResultPrinter;
+  private readonly client: CommandSession;
 
-  constructor(
-    input: InputSource,
-    output: OutputSink,
-    private readonly client: CommandSession,
-  ) {
-    this.reader = new CommandReader(input, output);
-    this.printer = new ResultPrinter(output);
+  constructor(reader: CommandReader, printer: ResultPrinter, client: CommandSession) {
+    this.reader = reader;
+    this.printer = printer;
+    this.client = client;
   }
 
   /** 运行至请求退出或输入结束。 */

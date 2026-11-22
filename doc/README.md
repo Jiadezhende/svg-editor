@@ -1,10 +1,8 @@
 # SVG Editor
 
-内核分批重构进度：已完成[第一批：Shape 与 Document 的约束边界](update/20261119_REFACT_DOMAIN_BOUNDARIES.md)，以及[文档节点树与 Shape 职责分离](update/20261119_REFACT_DOCUMENT_SHAPE_NODES.md)。最新设计由 Document 统一维护 ShapeNode 树，Shape 仅维护图形状态和领域行为。下文 Phase 1 的架构及质量数据保留为历史基线；当前接口变化与验证结果见最新重构记录。
+课程 Lab1 的 TypeScript 命令行 SVG 编辑器。本分支完成 Phase 2 CLI，当前内核能力、装配方式和验收证据见下文。Phase 1 的设计记录保留为历史基线。
 
-已完成[第二批：三类命令与局部撤销](update/20261119_REFACT_UNDO_REDO_SIMPLIFICATION.md)、[第三批：公开契约与依赖注入](update/20261119_REFACT_PUBLIC_CONTRACTS.md)、[第四批：静态 AttributeHandler](update/20261120_REFACT_ATTRIBUTE_HANDLERS.md)、[第五批：SVG 编排与模型构造](update/20261120_REFACT_SVG_PARSE.md)、[树装饰、私有 id 与全部插件发现装配](update/20261120_REFACT_EXTENSION_ASSEMBLY.md)、[内置能力统一插件迁移](update/20261120_REFACT_UNIFIED_PLUGINS.md)，以及[插件贡献自动扫描](update/20261120_REFACT_PLUGIN_AUTOSCAN.md)。按最新约定，配置注册暂缓；当前架构范围已完成，Phase 2 正式插件、VSCode 和交付材料尚未完成。[后续计划](update/20261119_PLAN_REMAINING_CORE_REFACTOR.md)已同步。
-
-仓库地址：<https://github.com/Jiadezhende/svg-editor>（最终提交为 tag `final`）
+Phase 1 基线是同一仓库的 `final` 标签。 [项目仓库](https://github.com/Jiadezhende/svg-editor)
 
 ## 项目背景
 
@@ -26,54 +24,148 @@ SVG 是用 XML 文本描述矢量图形的格式：纯文本、树形结构（`<
 - **编程范式**：面向对象（类层次 + 多态、字段封装、一类一文件），避免贫血模型与按类型名到处分派的过程式写法；
 - **过程可追溯**：git 分步提交，记录与 AI 协作中的关键讨论、问题发现与纠正。
 
-### 阶段规划
+## Phase 2 CLI
 
-| 阶段 | 内容 |
-| --- | --- |
-| Phase 1 | CLI 编辑器内核：文档读写、六种内置图形（rect / circle / ellipse / line / text / g）、编辑命令、结构树显示、undo / redo |
-| 后续阶段 | 插件化扩展，例如以 ShapeProvider 插件注册复合图形类型 `box`（带标题的矩形框），内核无需改动 |
+### 运行与配置
 
-### 使用方式
+使用 Node.js 22.14 或更新的兼容版本。本轮使用 Node.js 22.23.2 验收。
 
 ```bash
 npm install
-npm run cli                  # 交互运行（提示符 svg>）
-npm run cli < script.txt     # 脚本回放：逐行回显命令与结果
-npm test                     # 单元测试 + 端到端测试
-npm run typecheck            # 类型检查
-npm run coverage             # 覆盖率报告
+npm run cli -- --config plugins.config.json
+npm run cli:code
+npm run cli -- --config doc/transcript/phase1.plugins.json
+npm test
+npm run typecheck
+npm run verify:transcripts
 ```
 
-各阶段需求见 [prd/](prd/)，每次开发的提案、决策与验证记录见 [update/](update/)。
+`npm run cli` 要求传入 `--config <path>`。仓库配置按顺序启用 `core`、`stats`、`dir`、`modified-star`、`box`。`cli:code` 在 [代码装配入口](../src/cli-code.ts) 静态导入同一套插件，再逐包调用 `registerPlugin`。代码装配可以传入插件的激活函数，也可以直接传入已有的四类贡献对象。
 
-## 当前内核与装配
+配置文件只含 `plugins` 数组。每项声明 `module`，可选 `enabled` 和 `options`。
 
-- Shape 封装领域状态和私有部件；Document 维护 ShapeNode 树与全局约束，查询统一返回节点，通过 node.value 取得原模型引用。identifiers() 声明模型及私有部件 id，创建及结构恢复前统一检查。
-- 图形属性规格位于 `shape/attribute/`。命令、数值属性、SVG 读写和树渲染共享 `backend/utils/DecimalFormat.ts`。
-- `src/backend/index.ts` 提供模型、只读节点、属性规格、工厂、命令和持久化公共入口。ShapeClass 是工厂内部约束，ShapeNode 仅导出类型。
-- ShapeFactory 初始为空，提供 register、has、definition、create；规格视图不公开构造签名。课程 ShapeProvider 由具体 Shape 类的静态描述与构造能力承担，不增加包装对象。
-- `plugins/core` 提供六种基础图形和 17 个命令形式。`plugins/extensions` 用于业务扩展，当前没有贡献。宿主扫描各包根目录的默认导出，经暂存与校验完成装配。Client 提供 help、undo、redo、exit、quit 框架入口。main.ts 将装配后的 Client 接到控制台。
-- Receiver 保存当前文档和路径，并通过公开操作调用宿主注入的工厂、SVG 读写服务、Handler 注册表与树渲染器。读入成功才替换文档，写出成功才更新路径。
-- 宿主承担经典命令模式的装配职责，将 Receiver 绑定到各命令创建函数，并将校验好的只读命令表与成功通知回调注入 Client。App 只使用会话的命令执行和退出查询接口。
-- AttributeHandlerRegistry 直接注册静态类，按注册顺序首次匹配。目标类型、属性名和别名由 Handler.matches 判断，SetCommand 调用命中项的 apply/display；零命中回退模型规则。默认注册表为空，不包装普通属性；命中失败恢复模型快照且不继续尝试。详见[属性处理器 ADR](adr/20261120_ATTRIBUTE_HANDLER_CONTRACT.md)。
-- SvgReader 负责 XML、类型选择、按需递归及候选文档组装；经 ShapeFactory.parse 调用可覆写 Shape.parse，由模型解析属性并消费私有部件，返回其余文档成员。已安装 data-kind 优先，未安装按原标签降级，结构无效拒绝。模型不接触 XML 库或 ShapeNode。
-- SvgShapeMapping 保持独立，生成私有组成；Writer 追加文档成员，完整校验映射结果后才写出，涵盖内部部件与节点 id 冲突。读入同样检查全输入 id。详见[SVG 读回 ADR](adr/20261120_SVG_COMPOSITE_PARSE.md)。
-- 命令仅分查询、编辑、文档三类。Invoker 保存 EditCommand，成功后更新历史；具体命令通过局部快照组织撤销及必要的失败恢复，不存在通用会话事务。
-- TreeCommand 只定位根，TreeRenderer 编排节点行，TreeDecorator 经典包装并按列表顺序追加标签；状态属于会话实例。Client 只在成功和历史更新后通知装饰器，失败不通知，观察者异常作为展示警告。
-- main 经宿主自动发现 plugins/ 直接子包，按稳定顺序全部装配。扫描各包根目录的默认导出并生成装配入口；ExtensionContext 只暂存四类贡献及 Shape 附属映射，声明和候选装配成功才接纳；单包失败保留之前会话继续启动。目录为空保持基础 CLI；当前没有配置注册、白名单或禁用。[插件接入说明](../plugins/README.md)，[架构 ADR](adr/20261120_TREE_AND_DISCOVERY.md)、[自动扫描 ADR](adr/20261120_PLUGIN_AUTOSCAN.md)。
-
-```text
-装配  宿主发现 plugins → 注册图形、Handler、装饰器和映射 → 构建 Receiver
-      宿主绑定 Receiver 到命令创建函数 → 构建并校验命令表 → 注入 Client
-执行  App → Client（分派）→ Invoker（执行与历史）→ Command → Receiver
-展示  Client 的成功通知回调 → Receiver → TreeRenderer → Decorator 链
+```json
+{
+  "plugins": [
+    { "module": "./plugins/core" },
+    { "module": "./plugins/stats", "enabled": false },
+    { "module": "./plugins/dir" },
+    { "module": "./plugins/modified-star" },
+    { "module": "./plugins/box", "options": {} }
+  ]
+}
 ```
 
-最新验证通过类型检查和全部 536 个测试，覆盖 56 个测试文件。
+相对路径从配置文件所在目录解析，可指向声明了 `main` 的插件目录或已有包的入口文件。包名由 Node ESM 以配置文件为解析基准解析。禁用项跳过模块解析和求值。选项对象交给入口默认导出的同步 `activate(options)`，省略时使用空对象。当前发行插件使用自身默认行为。`plugins: []` 只保留 `help`、`undo`、`redo`、`exit`、`quit`。配置整体无效时报告 `error: invalid plugin config` 并装配 `core`。单包失败后继续装配后续包。 [插件编写示例](../plugins/README.md)
+
+### 扩展点清单
+
+| 内核契约 | 职责与调用位置 | 发行实现 | 禁用可选扩展时 | 违反契约时 |
+| --- | --- | --- | --- | --- |
+| [Shape](../src/backend/receiver/document/shape/Shape.ts) 的静态类契约，即课程 `ShapeProvider` | 提供类型、创建参数和 SVG 模型构造。内核 `ShapeFactory.create` / `ShapeFactory.parse` 分别调用构造函数和静态 `parse`，持久化由 `SvgReader.children` 编排 | `core` 的 rect、circle、ellipse、line、text、g，另有 `box` | `create box` 报未知类型，带 `data-kind="box"` 的 SVG 按标签读为普通 `g` | 类、解析方法、锚点或注册名非法时拒绝整包。已声明类型的无效模型或重复 id 拒绝创建或读入 |
+| [Command](../src/backend/command/Command.ts) | 定义命令、参数形式和执行能力。`Client.execute` 选定已绑定的命令表条目，`Invoker.execute` 调用并按命令种类管理历史 | `core` 的 17 种形式，独立的 `stats` 和 `dir` | 未装入的命令从 `help` 消失，执行时报 `unknown command` | 与框架或其他包命令重名、命令定义非法时拒绝整包。用户参数不符时返回用法 |
+| [TreeDecorator](../src/backend/receiver/tree/TreeDecorator.ts) | 在基础树行追加标签。`TreeRenderer` 构造器包装渲染器，`render` 传入只读视图，`notify` 发布成功后的内容快照 | `modified-star` 与 `box-type-label` | 无装饰器使用基础渲染，Phase 1 树输出逐字节一致 | 继承、名称或构造失败时拒绝整包。成功通知中的异常转为警告 |
+| [AttributeHandler](../src/backend/receiver/document/shape/AttributeHandler.ts) | 定义特定图形上的属性语义。`AttributeHandlerRegistry.resolve` 找首个命中项，`SetCommand.execute` 经 `Receiver.resolveAttributeHandler` 执行修改与回显 | `box-attributes` 处理 `fill` 与 `label` | 未命中时使用模型属性规则，普通矩形 `fill` 仍可设置，未知属性报错 | 注册契约或名称非法时拒绝整包。处理器执行或回显失败时恢复图形快照，历史保持原状 |
+
+[ShapeFactory](../src/backend/receiver/document/shape/ShapeFactory.ts) · [SvgReader](../src/backend/receiver/svg/SvgReader.ts) · [Client](../src/backend/Client.ts) · [Invoker](../src/backend/invoker/Invoker.ts) · [TreeRenderer](../src/backend/receiver/tree/TreeRenderer.ts) · [AttributeHandlerRegistry](../src/backend/receiver/document/shape/AttributeHandlerRegistry.ts) · [SetCommand](../plugins/core/SetCommand.ts)
+
+### 依赖结构
+
+Phase 1 的入口注册位于内核中的具体命令，工作区内部构造并登记基础图形。以下对应 `final`。
+
+```plantuml
+@startuml
+component "CLI 入口" as Main
+component "App / 控制台" as App
+component "Client / Invoker" as Core
+component "内核具体命令" as Commands
+component "Workspace" as Workspace
+component "具体图形 / 工厂" as Models
+component "SVG 读写" as Svg
+Main --> App
+Main --> Commands
+App --> Core
+Core --> Commands
+Commands --> Workspace
+Commands --> Svg
+Workspace --> Models
+Svg --> Models
+@enduml
+```
+
+Phase 2 的宿主连接公开契约与具体插件。文档维护节点关系，树、统计和标签消费同一套图形视图。
+
+```plantuml
+@startuml
+component "配置入口 / 代码入口" as Main
+component "配置模块加载器" as Loader
+component "宿主 registerPlugin" as Host
+component "CLI App / 控制台" as App
+component "公开扩展契约" as Contracts
+component "Client / Invoker" as Commands
+component "Receiver / Document / SVG / Tree" as Services
+component "具体插件包" as Plugins
+Main --> Loader
+Main --> Host
+Main --> App
+Loader --> Host
+Loader ..> Plugins : 配置解析模块
+Host --> Contracts
+Host --> Commands
+Host --> Services
+Plugins --> Contracts
+App --> Commands
+Commands --> Contracts
+Contracts ..> Services
+@enduml
+```
+
+### 目录访问适配器
+
+`DirCommand` 是适配器的使用方。它依赖目标接口 `DirectoryAccess`，从该接口取得进程工作目录和直接子项，再排序、格式化或报告 `cannot read directory`。`NodeDirectoryAccess` 是适配器，被适配者是 Node 的 `process.cwd()` 和 `fs.readdirSync`。它将 `Dirent` 转成包含名称及目录标志的记录。目录优先，组内采用与区域设置无关的名称升序，隐藏项保留，符号链接与其他特殊项作为 `[FILE]` 显示。两种装配使用同一个 `DirCommand`，测试从其构造函数注入替身。 [目录接口与适配器](../plugins/dir/DirectoryAccess.ts) [命令实现](../plugins/dir/index.ts) [插件测试](../test/plugins/Dir.test.ts)
+
+### 决策记录
+
+- [属性处理器与局部撤销](adr/phase2-01-attributes.md)
+- [复合图形的读回、降级和私有部件](adr/phase2-02-box-readback.md)
+- [树标签的保存基准和传播范围](adr/phase2-03-modified-star.md)
+- [插件注册与配置失败的边界](adr/phase2-04-plugin-assembly.md)
+
+### 验收证据与指标
+
+- `npm run verify:transcripts` 比较代码和配置装配的标准输出及保存的 SVG。基础会话只启用 `core`，另与 `final` 中的实际程序输出逐字节比较。`dir` 在同一临时工作目录和固定目录项上运行，输出样本保存在工作目录之外。 [命令输入、期望输出与 SVG 样例](transcript/)
+- `b8b45dd` 是 `box` 接入前的共同基准。`9e1edd1` 加入插件、测试和配置项。`3124971` 位于本地 `codex/phase-2-cli-code-demo`，加入同一份插件和测试，并修改单个代码装配入口。 [配置装配差异](#box-接入差异复核)
+- 源码指标按内核、装配、插件分类，通过脚本对 Git 提交生成文件清单、职责、行数和圈复杂度增量。 [框架节点报告](../docs/metrics/framework.md) [CLI 候选报告](../docs/metrics/cli-candidate.md)
+
+```bash
+node scripts/phase2-metrics.mjs final b1d929c
+```
+
+完整交付后可将目标提交替换为 `p2`。CLI 交付候选的 Vitest 结果为 61 个测试文件、549 项通过，类型检查通过。
+
+#### box 接入差异复核
+
+```bash
+git diff --name-status b8b45dd 9e1edd1
+git diff --name-status b8b45dd 3124971
+git diff --exit-code b8b45dd 9e1edd1 -- src/backend src/bootstrap.ts src/pluginConfig.ts plugins ':(exclude)plugins/box'
+git diff --exit-code b8b45dd 3124971 -- src/backend src/bootstrap.ts src/pluginConfig.ts plugins ':(exclude)plugins/box'
+git diff --exit-code 9e1edd1 3124971 -- plugins/box
+```
+
+最后三条的差异均为空。
+
+### AI 协作检查
+
+- 初版建议恢复注册上下文。复查原有宿主和直调测试后，确认 `registerPlugin` 已承担代码装配。按反馈保留贡献数组入口，配置加载器只负责解析模块并把激活函数交给宿主。
+- 对照课程会话检查复合图形视图。文档节点只保存可编辑成员，树和统计经不可变视图读取私有部件。两份接入提交的差异验证了新增插件对内核、加载器和既有插件的影响为零。
+- 在临时 `node_modules` 中测试只声明 ESM 导出的包。真实进程暴露了 tsx 解析钩子要求父路径使用 URL 字符串的问题，修正后相对路径、包名和失败恢复一并通过回归。
+- 使用 Git 中的 `final` 运行基础会话，以程序输出核对兼容性。课程示例中的展示格式可作为语义参考，`box` 沿用通用创建与属性命令的回显。
+
 
 ## Phase 1 历史架构方案
 
-以下保留第一阶段的设计与决策过程，其中 Container、ChildList、RelocateCommand 和默认注册方式已由上述批次替换。
+以下保留第一阶段的设计与决策过程。当前架构见上方 Phase 2 CLI。
 
 ### 1. 模块划分
 

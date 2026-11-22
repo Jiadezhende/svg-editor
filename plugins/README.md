@@ -48,7 +48,7 @@ export const mapping: SvgShapeMapping = {
 
 扫描文件缺少有效默认导出、模块或依赖加载失败、声明不一致或名称重复时，宿主报告错误，跳过该包并继续加载。
 
-CLI 通过 `createDiscoveredHost` 发现插件。指定发现目录时，宿主只加载该目录下的包。插件实现通过 `src/backend` 公共入口使用领域和注册契约。
+CLI 通过 `bootstrapEditor` 发现插件。指定发现目录时，宿主只加载该目录下的包。插件实现通过 `src/backend` 公共入口使用领域和注册契约。
 
 仓库测试可以通过 `test/support/Plugins.ts` 中的 `assemblePlugins` 直接传入分类后的类，复用 CLI 扫描后的清单检查和注册逻辑。
 

@@ -118,7 +118,7 @@ Document（画布、节点树、全局约束）
 - 宿主从应用 plugins/ 的直接子包自动发现 Shape、Command、Handler 和 TreeDecorator，按目录名稳定排序并全部装配；新增包不修改内核或发现逻辑。plugins/core 提供六种基础图形和 17 个具体命令形式，plugins/extensions 用于业务扩展。两个包使用同一发现、扫描和校验路径。
 - 本阶段不实现配置注册、白名单、禁用或 options；这些不是当前验收范围。目录缺失或无包时仅保留 help、undo、redo、exit、quit 五个框架入口；不隐式补入图形或用例命令。
 - 包通过 package.json 的 name、contributes 声明贡献。宿主按文件名排序扫描各包根目录的 .ts、.mts、.js、.mjs 文件，将默认导出的类分为图形、命令、Handler 和树装饰器。贡献名称必须与扫描结果一致，跨插件同类重名拒绝；命令包内部仍可注册多个互斥形式。
-- `scanPlugin` 直接返回分类后的类。Shape 可附带同模块具名导出的 `mapping`。宿主核对清单，再构建候选注册表、writer、装饰链和 Client，全部校验成功才接纳。单包失败时报告错误并继续，保留先前有效会话。插件不得依赖任意外部副作用能被回滚。
+- `loadPlugin` 直接返回分类后的类。Shape 可附带同模块具名导出的 `mapping`。宿主核对清单，再构建候选注册表、writer、装饰链和 Client，全部校验成功才接纳。单包失败时报告错误并继续，保留先前有效会话。插件不得依赖任意外部副作用能被回滚。
 - 插件目录名不限定贡献类别，同包可同时注册模型、Handler、命令和装饰器。宿主把 Handler 加入 Workspace 的注册表，由 SetCommand 查询和调用。测试可直接提供分类后的类，与 CLI 共用清单校验及整包装配逻辑。
 
 ## 依赖与装配边界

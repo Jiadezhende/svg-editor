@@ -4,7 +4,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createDiscoveredHost } from '../../src/host/discovery';
+import { bootstrapEditor } from '../../src/bootstrap';
 
 let directory: string;
 beforeEach(() => { directory = mkdtempSync(join(tmpdir(), 'svg-discovery-')); });
@@ -56,12 +56,10 @@ function decoratorSource(name: string, type: string): string {
 
 // 用真实 Node/tsx 加载磁盘包，避免测试转换器替代原生模块解析（尤其 Windows 编码路径）。
 function runHost(body: string): any {
-  const discovery = JSON.stringify(pathToFileURL(resolve('src/host/discovery.ts')).href);
+  const bootstrap = JSON.stringify(pathToFileURL(resolve('src/bootstrap.ts')).href);
   const assembly = JSON.stringify(pathToFileURL(resolve('test/support/Plugins.ts')).href);
-  const scan = JSON.stringify(pathToFileURL(resolve('src/host/scan.ts')).href);
-  const source = `import { createDiscoveredHost } from ${discovery};
+  const source = `import { bootstrapEditor, loadPlugin } from ${bootstrap};
     import { assemblePlugins } from ${assembly};
-    import { scanPlugin } from ${scan};
     import { join } from 'node:path';
     const directory = process.argv[1]; ${body}`;
   const result = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', source, directory], { encoding: 'utf8', cwd: resolve('.') });
@@ -77,10 +75,10 @@ describe('全部插件目录发现', () => {
       for (const name of ['core', 'extensions']) {
         const folder = join(process.cwd(), 'plugins', name);
         const manifest = JSON.parse(readFileSync(join(folder, 'package.json'), 'utf8'));
-        registrations.push({ name: manifest.name, contributes: manifest.contributes, classes: await scanPlugin(folder) });
+        registrations.push({ name: manifest.name, contributes: manifest.contributes, classes: await loadPlugin(folder) });
       }
       const direct = assemblePlugins(registrations);
-      const discovered = await createDiscoveredHost(undefined, () => {});
+      const discovered = await bootstrapEditor(undefined, () => {});
       console.log(JSON.stringify([direct, discovered].map(host => {
         host.client.execute(['init']);
         host.client.execute(['create', 'g', 'g']);
@@ -92,8 +90,8 @@ describe('全部插件目录发现', () => {
   });
 
   it('目录缺失或没有插件时仅保留框架入口', async () => {
-    const empty = await createDiscoveredHost(directory, () => {});
-    const missing = await createDiscoveredHost(join(directory, 'missing'), () => {});
+    const empty = await bootstrapEditor(directory, () => {});
+    const missing = await bootstrapEditor(join(directory, 'missing'), () => {});
     expect(empty.errors).toEqual([]);
     expect(missing.errors).toEqual([]);
     expect(empty.client.execute(['help']).lines()).toEqual(['help', 'undo', 'redo', 'exit', 'quit']);
@@ -104,7 +102,7 @@ describe('全部插件目录发现', () => {
     scannedPackageOf('a-first', 'plugin-first', { commands: ['discovered-a'] }, { 'Command.mjs': scannedCommandSource('discovered-a') });
     mkdirSync(join(directory, 'assets'));
     writeFileSync(join(directory, 'ignored.txt'), 'not a package');
-    const host = runHost(`const host = await createDiscoveredHost(directory, () => {});
+    const host = runHost(`const host = await bootstrapEditor(directory, () => {});
       console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins,
         a: host.client.execute(['discovered-a']).lines(), z: host.client.execute(['discovered-z']).lines(), help: host.client.execute(['help']).lines() }));`);
     expect(host.errors).toEqual([]);
@@ -118,7 +116,7 @@ describe('全部插件目录发现', () => {
   it('清单含 main 时仍扫描根目录的默认导出', () => {
     const target = scannedPackageOf('one', 'one', { commands: ['discovered'] }, { 'Command.mjs': scannedCommandSource('discovered') });
     writeFileSync(join(target, 'package.json'), JSON.stringify({ name: 'one', type: 'module', main: 'missing.mjs', contributes: { commands: ['discovered'] } }));
-    const host = runHost(`const host = await createDiscoveredHost(directory, () => {});
+    const host = runHost(`const host = await bootstrapEditor(directory, () => {});
       console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins, result: host.client.execute(['discovered']).lines() }));`);
     expect(host.errors).toEqual([]);
     expect(host.plugins).toEqual(['one']);
@@ -136,7 +134,7 @@ describe('全部插件目录发现', () => {
       'Tag.mjs': decoratorSource('scan-tag', 'scan-dot'),
     });
     const host = runHost(`const { Document } = await import(${backendApi});
-      const host = await createDiscoveredHost(directory, () => {});
+      const host = await bootstrapEditor(directory, () => {});
       const help = host.client.execute(['help']).lines();
       const shape = host.workspace.shapes().create('scan-dot', 'd');
       const handler = host.workspace.attributeHandlerRegistry().resolve(shape, 'fill');
@@ -167,7 +165,7 @@ describe('全部插件目录发现', () => {
       };`;
     scannedPackageOf('mapped', 'mapped', { shapes: ['scan-mapped'] }, { 'Mapped.mjs': source });
     const host = runHost(`const { Document } = await import(${backendApi});
-      const host = await createDiscoveredHost(directory, () => {});
+      const host = await bootstrapEditor(directory, () => {});
       const shape = host.workspace.shapes().create('scan-mapped', 'm');
       const doc = new Document(100, 100);
       doc.insert(shape);
@@ -185,7 +183,7 @@ describe('全部插件目录发现', () => {
       'Helper.mjs': 'export default {};',
     });
     scannedPackageOf('z-good', 'good', { commands: ['healthy'] }, { 'Command.mjs': scannedCommandSource('healthy') });
-    const host = runHost(`const host = await createDiscoveredHost(directory, () => {});
+    const host = runHost(`const host = await bootstrapEditor(directory, () => {});
       console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins,
         result: host.client.execute(['healthy']).lines(), hasDot: host.workspace.shapes().has('actual-dot') }));`);
     expect(host.plugins).toEqual(['good']);
@@ -202,7 +200,7 @@ describe('全部插件目录发现', () => {
     scannedPackageOf('b-dependency', 'dependency', {}, { 'Helper.mjs': 'import "./missing-dependency.mjs";' });
     scannedPackageOf('c-module', 'module', {}, { 'Helper.mjs': 'throw new Error("module failed");' });
     scannedPackageOf('z-good', 'good', { commands: ['healthy'] }, { 'Command.mjs': scannedCommandSource('healthy') });
-    const host = runHost(`const messages = []; const host = await createDiscoveredHost(directory, message => messages.push(message));
+    const host = runHost(`const messages = []; const host = await bootstrapEditor(directory, message => messages.push(message));
       console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins, messages, result: host.client.execute(['healthy']).lines() }));`);
     const messages = host.messages as string[];
     expect(host.plugins).toEqual(['good']);
@@ -219,7 +217,7 @@ describe('全部插件目录发现', () => {
     const invalidSchema = scannedPackageOf('b-invalid-schema', 'invalid-schema', {}, {});
     writeFileSync(join(invalidSchema, 'package.json'), JSON.stringify({ name: 1, contributes: [] }));
     scannedPackageOf('c-mismatch', 'mismatch', {}, { 'Command.mjs': scannedCommandSource('unexpected') });
-    const host = runHost(`const host = await createDiscoveredHost(directory, () => {});
+    const host = runHost(`const host = await bootstrapEditor(directory, () => {});
       let unknown; try { host.client.execute(['unexpected']); } catch (error) { unknown = error.message; }
       console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins, unknown, hasGroup: host.workspace.shapes().has('g') }));`);
     expect(host.plugins).toEqual([]);

@@ -1,10 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPluginAssembler } from '../../src/host/PluginHost';
-import type { Contributions } from '../../src/host/PluginHost';
-import { scanPlugin } from '../../src/host/scan';
-import type { PluginClasses } from '../../src/host/scan';
+import { createAssembler, loadPlugin } from '../../src/bootstrap';
+import type { Contributions, PluginClasses } from '../../src/bootstrap';
 
 export interface PluginRegistration {
   readonly name: string;
@@ -15,11 +13,11 @@ export interface PluginRegistration {
 /** 测试直接提供分类后的类，复用 CLI 扫描之后的校验和注册。 */
 export function assemblePlugins(plugins: readonly PluginRegistration[], report: (message: string) => void = () => {}) {
   const empty: PluginClasses = { shapes: [], commands: [], attributes: [], decorators: [] };
-  const assembler = createPluginAssembler(report);
+  const assembler = createAssembler(report);
   for (const registration of plugins) {
-    assembler.register(registration, { ...empty, ...registration.classes });
+    assembler.registerPlugin(registration, { ...empty, ...registration.classes });
   }
-  return assembler.result();
+  return assembler.getAssemblyResult();
 }
 
 let core: Promise<PluginRegistration> | null = null;
@@ -29,7 +27,7 @@ export function corePlugin(): Promise<PluginRegistration> {
   if (core !== null) return core;
   const root = fileURLToPath(new URL('../../plugins/core/', import.meta.url));
   const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { name: string; contributes: Contributions };
-  core = scanPlugin(root).then((classes) => ({ ...manifest, classes }));
+  core = loadPlugin(root).then((classes) => ({ ...manifest, classes }));
   return core;
 }
 

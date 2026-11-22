@@ -1,30 +1,26 @@
 import {
   AttributeHandlerRegistry, Client, Command, Shape, ShapeFactory, SvgReader, SvgWriter, TreeRenderer, Workspace,
 } from '../backend';
-import type { AttributeHandler, ExtensionContext, ExtensionPlugin, SvgShapeMapping } from '../backend';
 import SvgFile from '../backend/receiver/svg/SvgFile';
+import { scanPlugin } from './scan';
+import type { PluginClasses } from './scan';
 
-type Category = 'shapes' | 'commands' | 'attributes' | 'decorators';
+type Category = keyof PluginClasses;
 export type Contributions = Partial<Record<Category, readonly string[]>>;
-export interface PluginSource {
+interface PluginManifest {
   readonly name: string;
-  readonly module: string;
   readonly contributes: Contributions;
-  load(): Promise<{ activate?: unknown }>;
 }
-type Staged = {
-  name: string;
-  shapes: { model: Parameters<ExtensionContext['registerShape']>[0]; mapping?: SvgShapeMapping }[];
-  commands: Parameters<ExtensionContext['registerCommand']>[0][];
-  attributes: AttributeHandler[];
-  decorators: Parameters<ExtensionContext['registerTreeDecorator']>[0][];
-};
+export interface PluginSource extends PluginManifest {
+  readonly directory: string;
+}
+type RegisteredPlugin = PluginClasses & { readonly name: string };
 
-function build(plugins: readonly Staged[]) {
+function build(plugins: readonly RegisteredPlugin[]) {
   const factory = new ShapeFactory();
   const writer = new SvgWriter();
   const handlers = new AttributeHandlerRegistry();
-  const decorators: Staged['decorators'] = [];
+  const decorators: PluginClasses['decorators'][number][] = [];
   const attributeNames = new Set<string>();
   const decoratorNames = new Set<string>();
   for (const plugin of plugins) {
@@ -64,7 +60,7 @@ function build(plugins: readonly Staged[]) {
   return { workspace, client };
 }
 
-function names(plugin: Staged): Record<Category, readonly string[]> {
+function names(plugin: PluginClasses): Record<Category, readonly string[]> {
   return {
     shapes: plugin.shapes.map(({ model }) => model.type),
     commands: [...new Set(plugin.commands.map((command) => command.command))],
@@ -73,8 +69,8 @@ function names(plugin: Staged): Record<Category, readonly string[]> {
   };
 }
 
-function validateManifest(source: PluginSource, staged: Staged): void {
-  const actual = names(staged);
+function validateManifest(source: PluginManifest, classes: PluginClasses): void {
+  const actual = names(classes);
   const declared = source.contributes;
   if (typeof declared !== 'object' || declared === null || Array.isArray(declared)) throw new Error('invalid contribution declaration');
   for (const category of Object.keys(declared)) {
@@ -92,65 +88,9 @@ function validateManifest(source: PluginSource, staged: Staged): void {
   }
 }
 
-async function loadPlugin(source: PluginSource): Promise<ExtensionPlugin> {
-  if (typeof source.name !== 'string' || !source.name.trim()) {
-    throw new Error('invalid plugin name');
-  }
-
-  let module: { activate?: unknown };
-  try {
-    module = await source.load();
-  } catch (error) {
-    throw new Error(`plugin failed to load: ${source.name} (${messageOf(error)})`);
-  }
-
-  if (typeof module.activate !== 'function') {
-    throw new Error(`plugin must export activate(context): ${source.module}`);
-  }
-  return module as ExtensionPlugin;
-}
-
-async function collectRegistrations(name: string, plugin: ExtensionPlugin): Promise<Staged> {
-  const staged: Staged = { name, shapes: [], commands: [], attributes: [], decorators: [] };
-  let registrationOpen = true;
-  const checkOpen = () => {
-    if (!registrationOpen) throw new Error('plugin registration is closed');
-  };
-  const context: ExtensionContext = Object.freeze({
-    registerShape(model, mapping) {
-      checkOpen();
-      staged.shapes.push({ model, mapping });
-    },
-    registerCommand(command) {
-      checkOpen();
-      staged.commands.push(command);
-    },
-    registerAttributeHandler(handler) {
-      checkOpen();
-      staged.attributes.push(handler);
-    },
-    registerTreeDecorator(decorator) {
-      checkOpen();
-      staged.decorators.push(decorator);
-    },
-  } satisfies ExtensionContext);
-
-  try {
-    await plugin.activate(context);
-    return staged;
-  } finally {
-    // 插件即使保留了 context，也只能在 activate 执行期间调用注册方法。
-    registrationOpen = false;
-  }
-}
-
-/**
- * 按输入顺序加载插件。先收集当前插件要注册的图形、SVG 映射、命令、属性处理器和树装饰器。
- * 核对注册名称与清单后，把当前插件和之前注册成功的插件一起重新组装成一套宿主。
- * 如果加载、检查或组装失败，记录错误，继续使用原来的宿主并处理下一个插件。
- */
-export async function assembleSources(sources: readonly PluginSource[], report: (message: string) => void) {
-  const accepted: Staged[] = [];
+/** 逐包校验并注册已加载的插件。每次都在新宿主里注册，成功后才换用新宿主。 */
+export function createPluginAssembler(report: (message: string) => void) {
+  const accepted: RegisteredPlugin[] = [];
   const errors: string[] = [];
   // 没有插件注册成功时，返回只提供框架命令的宿主。
   let session = build(accepted);
@@ -159,35 +99,53 @@ export async function assembleSources(sources: readonly PluginSource[], report: 
     report(`error: ${message}`);
   };
 
-  for (const source of sources) {
-    let plugin: ExtensionPlugin;
-    try {
-      plugin = await loadPlugin(source);
-    } catch (error) {
-      fail(messageOf(error));
-      continue;
+  function register(source: PluginManifest, classes: PluginClasses): void {
+    if (typeof source.name !== 'string' || !source.name.trim()) {
+      fail('invalid plugin name');
+      return;
     }
 
     if (accepted.some((registered) => registered.name === source.name)) {
       fail(`duplicate registration: plugins/${source.name}`);
-      continue;
+      return;
     }
 
     try {
-      const staged = await collectRegistrations(source.name, plugin);
-      validateManifest(source, staged);
-      const candidate = build([...accepted, staged]);
+      validateManifest(source, classes);
+      const plugin = { ...classes, name: source.name };
+      const candidate = build([...accepted, plugin]);
       // 新宿主创建成功后，才把当前插件记为注册成功，并换用新宿主。
-      accepted.push(staged);
+      accepted.push(plugin);
       session = candidate;
     } catch (error) {
       const reason = messageOf(error);
       const isRegistrationError = reason.startsWith('duplicate registration:') ||
         reason.startsWith('plugin manifest mismatch:');
-      fail(isRegistrationError ? reason : `plugin failed to activate: ${source.name} (${reason})`);
+      fail(isRegistrationError ? reason : `plugin failed to register: ${source.name} (${reason})`);
     }
   }
-  return { ...session, errors: Object.freeze(errors), plugins: Object.freeze(accepted.map((plugin) => plugin.name)) };
+
+  function result() {
+    return { ...session, errors: Object.freeze([...errors]), plugins: Object.freeze(accepted.map((plugin) => plugin.name)) };
+  }
+
+  return { register, fail, result };
+}
+
+/** 按输入顺序扫描各包目录。某个包扫描失败时，记录错误并继续扫描下一个。 */
+export async function assembleSources(sources: readonly PluginSource[], report: (message: string) => void) {
+  const assembler = createPluginAssembler(report);
+  for (const source of sources) {
+    let classes: PluginClasses;
+    try {
+      classes = await scanPlugin(source.directory);
+    } catch (error) {
+      assembler.fail(`plugin failed to load: ${source.name} (${messageOf(error)})`);
+      continue;
+    }
+    assembler.register(source, classes);
+  }
+  return assembler.result();
 }
 
 function messageOf(error: unknown): string { return error instanceof Error ? error.message : String(error); }

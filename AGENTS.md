@@ -117,18 +117,17 @@ Document（画布、节点树、全局约束）
 
 - 宿主从应用 plugins/ 的直接子包自动发现 Shape、Command、Handler 和 TreeDecorator，按目录名稳定排序并全部装配；新增包不修改内核或发现逻辑。plugins/core 提供六种基础图形和 17 个具体命令形式，plugins/extensions 用于业务扩展。两个包使用同一发现、扫描和校验路径。
 - 本阶段不实现配置注册、白名单、禁用或 options；这些不是当前验收范围。目录缺失或无包时仅保留 help、undo、redo、exit、quit 五个框架入口；不隐式补入图形或用例命令。
-- 包通过 package.json 的 name、contributes 声明贡献，宿主按文件名稳定排序扫描各包根目录的 .ts、.mts、.js、.mjs 文件，通过默认导出识别贡献并生成装配入口。贡献名称必须与实际暂存注册集合一致，跨插件同类重名拒绝；命令包内部仍可注册多个互斥形式。
-- 公共 ExtensionContext 只开放四种注册方法；registerShape 可附带 SVG 映射，扫描模式下由同模块 named export mapping 提供。宿主先暂存，再构建候选注册表、writer、装饰链和 Client，全部校验成功才接纳。单包失败丢弃其全部贡献及映射，报告错误并继续，保留先前有效会话。激活完成后上下文关闭。
-- 插件目录名不限定贡献类别，同包可同时注册模型、Handler、命令和装饰器。Handler 通过 registerAttributeHandler 接入 Workspace 注册表，由 SetCommand 查询和调用；显式代码装配的 activate 和扫描生成的入口只声明贡献，不执行用户用例，也不要求图形先于命令注册。
-- 代码装配 assemblePlugins 接收显式插件模块；扫描入口 scanPlugin 生成同一 ExtensionPlugin 形状，两者共用暂存和校验路径；插件不得依赖任意外部副作用能被回滚。
+- 包通过 package.json 的 name、contributes 声明贡献。宿主按文件名排序扫描各包根目录的 .ts、.mts、.js、.mjs 文件，将默认导出的类分为图形、命令、Handler 和树装饰器。贡献名称必须与扫描结果一致，跨插件同类重名拒绝；命令包内部仍可注册多个互斥形式。
+- `scanPlugin` 直接返回分类后的类。Shape 可附带同模块具名导出的 `mapping`。宿主核对清单，再构建候选注册表、writer、装饰链和 Client，全部校验成功才接纳。单包失败时报告错误并继续，保留先前有效会话。插件不得依赖任意外部副作用能被回滚。
+- 插件目录名不限定贡献类别，同包可同时注册模型、Handler、命令和装饰器。宿主把 Handler 加入 Workspace 的注册表，由 SetCommand 查询和调用。测试可直接提供分类后的类，与 CLI 共用清单校验及整包装配逻辑。
 
 ## 依赖与装配边界
 
 - 内核定义公开领域抽象和扩展契约，通过契约调用扩展，不导入具体插件。
 - 宿主和扩展的公共导入入口为 `src/backend/index.ts`；ShapeNode 只导出类型，节点构造及关系存储不作为扩展接口。
-- ShapeFactory 初始为空；宿主只构造基础服务，main 使用自动发现宿主，自动发现的插件通过扫描生成的入口注册，不保留 defaults 直接注册路径。Client 接收 Workspace，Workspace 接收工厂、文件访问、SvgReader、SvgWriter、AttributeHandlerRegistry 和 TreeRenderer，不在内核创建默认服务。宿主从空 Handler 表和装饰链开始装配贡献，Invoker 不依赖 Workspace。
+- ShapeFactory 初始为空；main 使用自动发现宿主，宿主直接注册扫描得到的类，不保留 defaults 直接注册路径。Client 接收 Workspace，Workspace 接收工厂、文件访问、SvgReader、SvgWriter、AttributeHandlerRegistry 和 TreeRenderer，不在内核创建默认服务。宿主从空 Handler 表和装饰链开始装配贡献，Invoker 不依赖 Workspace。
 - 插件只依赖内核公开契约，不依赖内核内部实现或宿主装配模块。
-- 宿主负责加载和注册全部发现的插件；代码装配、扫描入口与自动发现共用注册、声明校验及失败隔离路径。配置装配留待后续交付范围重新确定。
+- 宿主负责加载和注册全部发现的插件。配置装配留待后续交付范围重新确定。
 - 树标签、CLI 格式化等展示行为留在展示扩展中，不混入领域 Handler 或模型。
 
 

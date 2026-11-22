@@ -3,7 +3,6 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleSources } from './PluginHost';
 import type { Contributions, PluginSource } from './PluginHost';
-import { scanPlugin } from './scan';
 
 /** 按目录名发现应用 plugins/ 的直接子包，并扫描各包根目录的默认导出。 */
 export async function createDiscoveredHost(
@@ -38,9 +37,8 @@ export async function createDiscoveredHost(
       }
       sources.push({
         name: manifest.name,
-        module: pluginDirectory,
+        directory: pluginDirectory,
         contributes: manifest.contributes as Contributions,
-        load: () => scanPlugin(pluginDirectory),
       });
     } catch (error) {
       fail(`invalid plugin manifest: ${manifestPath} (${error instanceof Error ? error.message : String(error)})`);

@@ -77,9 +77,9 @@ describe('全部插件目录发现', () => {
       for (const name of ['core', 'extensions']) {
         const folder = join(process.cwd(), 'plugins', name);
         const manifest = JSON.parse(readFileSync(join(folder, 'package.json'), 'utf8'));
-        registrations.push({ name: manifest.name, contributes: manifest.contributes, plugin: await scanPlugin(folder) });
+        registrations.push({ name: manifest.name, contributes: manifest.contributes, classes: await scanPlugin(folder) });
       }
-      const direct = await assemblePlugins(registrations);
+      const direct = assemblePlugins(registrations);
       const discovered = await createDiscoveredHost(undefined, () => {});
       console.log(JSON.stringify([direct, discovered].map(host => {
         host.client.execute(['init']);

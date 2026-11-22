@@ -25,11 +25,10 @@ class LaterAttributes extends PanelAttributes {
 }
 const panelPlugin: PluginRegistration = {
   name: 'panel', contributes: { shapes: [Panel.type], attributes: [PanelAttributes.handlerName, LaterAttributes.handlerName] },
-  plugin: { activate(context) {
-    context.registerShape(Panel, panelMapping);
-    context.registerAttributeHandler(PanelAttributes);
-    context.registerAttributeHandler(LaterAttributes);
-  } },
+  classes: {
+    shapes: [{ model: Panel, mapping: panelMapping }],
+    attributes: [PanelAttributes, LaterAttributes],
+  },
 };
 
 async function panelSession() {
@@ -40,8 +39,8 @@ async function panelSession() {
 }
 
 describe('统一插件边界', () => {
-  it('空装配只保留五个框架入口，不隐式注册图形或用例命令', async () => {
-    const host = await assemblePlugins([]);
+  it('空装配只保留五个框架入口，不隐式注册图形或用例命令', () => {
+    const host = assemblePlugins([]);
     expect(host.plugins).toEqual([]);
     expect(host.client.execute(['help']).lines()).toEqual(['help', 'undo', 'redo', 'exit', 'quit']);
     expect(host.workspace.shapes().has('rect')).toBe(false);
@@ -50,25 +49,25 @@ describe('统一插件边界', () => {
     expect(() => host.client.execute(['redo'])).toThrow('nothing to redo');
     host.client.execute(['exit']);
     expect(host.client.isExitRequested()).toBe(true);
-    const other = await assemblePlugins([]);
+    const other = assemblePlugins([]);
     other.client.execute(['quit']);
     expect(other.client.isExitRequested()).toBe(true);
   });
 
-  it.each(['help', 'undo', 'redo', 'exit', 'quit'])('插件不能占用框架入口 %s', async (name) => {
+  it.each(['help', 'undo', 'redo', 'exit', 'quit'])('插件不能占用框架入口 %s', (name) => {
     class Reserved extends Command {
       static override readonly command = name;
       static override readonly usage = name;
       execute(): CommandResult { return new CommandResult(); }
     }
-    const host = await assemblePlugins([{ name: 'reserved', contributes: { commands: [name] }, plugin: { activate(context) { context.registerCommand(Reserved); } } }]);
+    const host = assemblePlugins([{ name: 'reserved', contributes: { commands: [name] }, classes: { commands: [Reserved] } }]);
     expect(host.errors).toEqual([`duplicate registration: commands/${name}`]);
     expect(host.plugins).toEqual([]);
   });
 
   it('核心包同时提供图形和命令，重复注册时保留已接纳的核心包', async () => {
     const core = await corePlugin();
-    const host = await assemblePlugins([core, { ...core, name: 'duplicate-core' }]);
+    const host = assemblePlugins([core, { ...core, name: 'duplicate-core' }]);
     expect(host.plugins).toEqual(['core']);
     expect(host.errors).toHaveLength(1);
     expect(host.errors[0]).toContain('duplicate registration: shapes/');

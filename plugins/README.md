@@ -44,13 +44,13 @@ export const mapping: SvgShapeMapping = {
 };
 ```
 
-上下文仅开放 registerShape(model, mapping?)、registerCommand、registerAttributeHandler、registerTreeDecorator。Shape 附属的 SVG 映射与模型一起暂存，不提供当前 Workspace 或可写注册表。自动发现按包目录名和包内文件名确定装饰器包装与 Handler 匹配顺序。
+扫描器直接返回分类后的类，并将 SVG 映射和对应的 Shape 一起交给宿主。自动发现按包目录名和包内文件名确定装饰器包装与 Handler 匹配顺序。
 
-扫描文件缺少有效默认导出、模块或依赖加载失败、声明不一致或名称重复时，宿主报告错误，跳过该包并继续加载。扫描生成的装配入口返回后，注册上下文随即关闭。
+扫描文件缺少有效默认导出、模块或依赖加载失败、声明不一致或名称重复时，宿主报告错误，跳过该包并继续加载。
 
 CLI 通过 `createDiscoveredHost` 发现插件。指定发现目录时，宿主只加载该目录下的包。插件实现通过 `src/backend` 公共入口使用领域和注册契约。
 
-仓库测试可以通过 `test/support/Plugins.ts` 中的 `assemblePlugins` 直接传入插件对象。这个辅助函数调用与 CLI 相同的 `assembleSources`，检查清单并装配插件。
+仓库测试可以通过 `test/support/Plugins.ts` 中的 `assemblePlugins` 直接传入分类后的类，复用 CLI 扫描后的清单检查和注册逻辑。
 
 ## 领域 Handler 的接入位置
 

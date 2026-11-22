@@ -9,9 +9,12 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "coverage": "vitest run --coverage",
-    "cli:code": "tsx src/cli-code.ts"
+    "cli:code": "tsx src/cli-code.ts",
+    "verify:transcripts": "node scripts/verify-transcripts.mjs",
+    "metrics": "node scripts/phase2-metrics.mjs"
   },
   "devDependencies": {
+    "@babel/parser": "7.29.9",
     "@types/node": "^26.6.5",
     "@vitest/coverage-v8": "^5.0.5",
     "tsx": "^4.23.15",

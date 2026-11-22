@@ -68,14 +68,16 @@ describe('统一插件边界', () => {
   });
 
   it('命令包可以先于图形包激活，重复基础包遵循普通插件规则', async () => {
-    const commands = await assemblePlugins([shippedPlugins[0]]);
+    const shipped = await shippedPlugins();
+    const commands = await assemblePlugins([shipped[0]]);
     expect(commands.errors).toEqual([]);
     commands.client.execute(['init']);
     expect(() => commands.client.execute(['create', 'g', 'g'])).toThrow('unknown shape type');
-    const duplicate = { ...shippedPlugins[1], name: 'duplicate-shapes' };
-    const host = await assemblePlugins([...shippedPlugins, duplicate]);
+    const duplicate = { ...shipped[1], name: 'duplicate-shapes' };
+    const host = await assemblePlugins([...shipped, duplicate]);
     expect(host.plugins).toEqual(['commands', 'shapes']);
-    expect(host.errors).toEqual(['duplicate registration: shapes/rect']);
+    expect(host.errors).toHaveLength(1);
+    expect(host.errors[0]).toContain('duplicate registration: shapes/');
   });
 
   it('同包模型与 Handler 接入 set，别名优先且多部件整体撤销重做', async () => {

@@ -1,7 +1,6 @@
 {
   "name": "commands",
   "type": "module",
-  "main": "index.ts",
   "contributes": {
     "commands": [
       "addto",

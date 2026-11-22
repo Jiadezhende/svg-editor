@@ -1,7 +1,6 @@
 {
   "name": "shapes",
   "type": "module",
-  "main": "index.ts",
   "contributes": {
     "shapes": [
       "rect",

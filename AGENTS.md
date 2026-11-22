@@ -72,7 +72,7 @@
 
 - 基础树渲染负责节点基础内容、缩进与连线。TreeDecorator 负责在基础行之后追加标签，通过只读的公开信息决定是否追加。
 - 使用经典 Decorator 结构：装饰器和基础行渲染器遵循同一渲染接口，装饰器持有被包装对象，先委托渲染，再追加自身标签；不适用时返回被包装对象的结果。
-- 当前宿主发现并装配全部插件，按包目录名和包内注册顺序取得装饰器列表，依次包装基础行渲染器；列表从前到后的顺序对应最终标签从左到右的顺序。当前不实现配置注册或白名单。
+- 当前宿主发现并装配全部插件，按包目录名和包内文件名字典序取得装饰器列表，依次包装基础行渲染器；列表从前到后的顺序对应最终标签从左到右的顺序。当前不实现配置注册或白名单。
 - 例如列表为 modified-star、box-type，构造结果为 BoxType(ModifiedStar(Base))，最终行尾为 `* (box)`。外层先进入，内层先返回，标签按配置顺序追加。
 - 装饰器列表为空时直接使用基础行渲染器，输出与原基线一致。
 - 装饰器的状态封装在实例中；新增装饰器不修改内核、基础渲染器或其他装饰器。
@@ -115,20 +115,20 @@ Document（画布、节点树、全局约束）
 
 ## 扩展发现与启用配置
 
-- 宿主从应用 plugins/ 的直接子包自动发现 Shape、Command、Handler 和 TreeDecorator，按目录名稳定排序并全部装配；新增包不修改内核或发现逻辑。六种基础图形由 plugins/shapes 提供，17 个具体命令形式由 plugins/commands 提供；两包随应用分发，与其他插件使用同一发现、激活和校验路径。
+- 宿主从应用 plugins/ 的直接子包自动发现 Shape、Command、Handler 和 TreeDecorator，按目录名稳定排序并全部装配；新增包不修改内核或发现逻辑。六种基础图形由 plugins/shapes 提供，17 个具体命令形式由 plugins/commands 提供；两包随应用分发，与其他插件使用同一发现、扫描和校验路径。
 - 本阶段不实现配置注册、白名单、禁用或 options；这些不是当前验收范围。目录缺失或无包时仅保留 help、undo、redo、exit、quit 五个框架入口；不隐式补入图形或用例命令。
-- 包通过 package.json 的 name、main 和 contributes 声明贡献，入口具名导出 activate(context) 函数，同步或异步均可。贡献名称必须与实际暂存注册集合一致，跨插件同类重名拒绝；命令包内部仍可注册多个互斥形式。
-- 公共 ExtensionContext 只开放四种注册方法；registerShape 可附带 SVG 映射。宿主先暂存，再构建候选注册表、writer、装饰链和 Client，全部校验成功才接纳。单包失败丢弃其全部贡献及映射，报告错误并继续，保留先前有效会话。激活完成后上下文关闭。
-- 插件目录名不限定贡献类别，同包可同时注册模型、Handler、命令和装饰器。Handler 通过 registerAttributeHandler 接入 Workspace 注册表，由 SetCommand 查询和调用；activate 只声明贡献，不执行用户用例，也不要求图形先于命令注册。
-- 代码装配 assemblePlugins 与目录发现共用暂存和校验路径；插件不得依赖任意外部副作用能被回滚。
+- 包通过 package.json 的 name、contributes 声明贡献，宿主按文件名稳定排序扫描各包根目录的 .ts、.mts、.js、.mjs 文件，通过默认导出识别贡献并生成装配入口。贡献名称必须与实际暂存注册集合一致，跨插件同类重名拒绝；命令包内部仍可注册多个互斥形式。
+- 公共 ExtensionContext 只开放四种注册方法；registerShape 可附带 SVG 映射，扫描模式下由同模块 named export mapping 提供。宿主先暂存，再构建候选注册表、writer、装饰链和 Client，全部校验成功才接纳。单包失败丢弃其全部贡献及映射，报告错误并继续，保留先前有效会话。激活完成后上下文关闭。
+- 插件目录名不限定贡献类别，同包可同时注册模型、Handler、命令和装饰器。Handler 通过 registerAttributeHandler 接入 Workspace 注册表，由 SetCommand 查询和调用；显式代码装配的 activate 和扫描生成的入口只声明贡献，不执行用户用例，也不要求图形先于命令注册。
+- 代码装配 assemblePlugins 接收显式插件模块；扫描入口 scanPlugin 生成同一 ExtensionPlugin 形状，两者共用暂存和校验路径；插件不得依赖任意外部副作用能被回滚。
 
 ## 依赖与装配边界
 
 - 内核定义公开领域抽象和扩展契约，通过契约调用扩展，不导入具体插件。
 - 宿主和扩展的公共导入入口为 `src/backend/index.ts`；ShapeNode 只导出类型，节点构造及关系存储不作为扩展接口。
-- ShapeFactory 初始为空；宿主只构造基础服务，main 使用自动发现宿主，具体能力由插件 activate 注册，不保留 defaults 直接注册路径。Client 接收 Workspace，Workspace 接收工厂、文件访问、SvgReader、SvgWriter、AttributeHandlerRegistry 和 TreeRenderer，不在内核创建默认服务。宿主从空 Handler 表和装饰链开始装配贡献，Invoker 不依赖 Workspace。
+- ShapeFactory 初始为空；宿主只构造基础服务，main 使用自动发现宿主，自动发现的插件通过扫描生成的入口注册，不保留 defaults 直接注册路径。Client 接收 Workspace，Workspace 接收工厂、文件访问、SvgReader、SvgWriter、AttributeHandlerRegistry 和 TreeRenderer，不在内核创建默认服务。宿主从空 Handler 表和装饰链开始装配贡献，Invoker 不依赖 Workspace。
 - 插件只依赖内核公开契约，不依赖内核内部实现或宿主装配模块。
-- 宿主负责加载和注册全部发现的插件；代码装配与自动发现共用注册、声明校验及失败隔离路径。配置装配留待后续交付范围重新确定。
+- 宿主负责加载和注册全部发现的插件；代码装配、扫描入口与自动发现共用注册、声明校验及失败隔离路径。配置装配留待后续交付范围重新确定。
 - 树标签、CLI 格式化等展示行为留在展示扩展中，不混入领域 Handler 或模型。
 
 

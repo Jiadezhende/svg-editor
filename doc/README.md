@@ -2,7 +2,7 @@
 
 内核分批重构进度：已完成[第一批：Shape 与 Document 的约束边界](update/20261119_REFACT_DOMAIN_BOUNDARIES.md)，以及[文档节点树与 Shape 职责分离](update/20261119_REFACT_DOCUMENT_SHAPE_NODES.md)。最新设计由 Document 统一维护 ShapeNode 树，Shape 仅维护图形状态和领域行为。下文 Phase 1 的架构及质量数据保留为历史基线；当前接口变化与验证结果见最新重构记录。
 
-已完成[第二批：三类命令与局部撤销](update/20261119_REFACT_UNDO_REDO_SIMPLIFICATION.md)、[第三批：公开契约与依赖注入](update/20261119_REFACT_PUBLIC_CONTRACTS.md)、[第四批：静态 AttributeHandler](update/20261120_REFACT_ATTRIBUTE_HANDLERS.md)、[第五批：SVG 编排与模型构造](update/20261120_REFACT_SVG_PARSE.md)，以及[树装饰、私有 id 与全部插件发现装配](update/20261120_REFACT_EXTENSION_ASSEMBLY.md)。随后完成[内置能力统一插件迁移](update/20261120_REFACT_UNIFIED_PLUGINS.md)。按最新约定，配置注册暂缓；当前架构范围已完成，Phase 2 正式插件、VSCode 和交付材料尚未完成。[后续计划](update/20261119_PLAN_REMAINING_CORE_REFACTOR.md)已同步。
+已完成[第二批：三类命令与局部撤销](update/20261119_REFACT_UNDO_REDO_SIMPLIFICATION.md)、[第三批：公开契约与依赖注入](update/20261119_REFACT_PUBLIC_CONTRACTS.md)、[第四批：静态 AttributeHandler](update/20261120_REFACT_ATTRIBUTE_HANDLERS.md)、[第五批：SVG 编排与模型构造](update/20261120_REFACT_SVG_PARSE.md)、[树装饰、私有 id 与全部插件发现装配](update/20261120_REFACT_EXTENSION_ASSEMBLY.md)、[内置能力统一插件迁移](update/20261120_REFACT_UNIFIED_PLUGINS.md)，以及[插件贡献自动扫描](update/20261120_REFACT_PLUGIN_AUTOSCAN.md)。按最新约定，配置注册暂缓；当前架构范围已完成，Phase 2 正式插件、VSCode 和交付材料尚未完成。[后续计划](update/20261119_PLAN_REMAINING_CORE_REFACTOR.md)已同步。
 
 仓库地址：<https://github.com/Jiadezhende/svg-editor>（最终提交为 tag `final`）
 
@@ -51,17 +51,17 @@ npm run coverage             # 覆盖率报告
 - Shape 封装领域状态和私有部件；Document 维护 ShapeNode 树与全局约束，查询统一返回节点，通过 node.value 取得原模型引用。identifiers() 声明模型及私有部件 id，创建及结构恢复前统一检查。
 - `src/backend/index.ts` 提供模型、只读节点、属性规格、工厂、命令和持久化公共入口。ShapeClass 是工厂内部约束，ShapeNode 仅导出类型。
 - ShapeFactory 初始为空，提供 register、has、definition、create；规格视图不公开构造签名。课程 ShapeProvider 由具体 Shape 类的静态描述与构造能力承担，不增加包装对象。
-- `plugins/shapes` 和 `plugins/commands` 分别提供六种图形、17 个命令形式，经统一发现、activate、暂存与校验装配；宿主只构造基础服务。Client 保留 help、undo、redo、exit、quit 框架入口。main.ts 将装配后的 Client 接到控制台。
+- `plugins/shapes` 和 `plugins/commands` 分别提供六种图形、17 个命令形式，经统一发现、扫描、暂存与校验装配；内置包不再维护 index.ts，宿主扫描包根目录的默认导出。宿主只构造基础服务。Client 保留 help、undo、redo、exit、quit 框架入口。main.ts 将装配后的 Client 接到控制台。
 - Workspace 接收工厂、文件访问、reader、writer、AttributeHandlerRegistry 和 TreeRenderer，保存当前文档和路径；Client 接收 Workspace。read 使用注入 reader，save 复用会话 writer 及其映射。
 - AttributeHandlerRegistry 直接注册静态类，按注册顺序首次匹配。目标类型、属性名和别名由 Handler.matches 判断，SetCommand 调用命中项的 apply/display；零命中回退模型规则。默认注册表为空，不包装普通属性；命中失败恢复模型快照且不继续尝试。详见[属性处理器 ADR](adr/20261120_ATTRIBUTE_HANDLER_CONTRACT.md)。
 - SvgReader 负责 XML、类型选择、按需递归及候选文档组装；经 ShapeFactory.parse 调用可覆写 Shape.parse，由模型解析属性并消费私有部件，返回其余文档成员。已安装 data-kind 优先，未安装按原标签降级，结构无效拒绝。模型不接触 XML 库或 ShapeNode。
 - SvgShapeMapping 保持独立，生成私有组成；Writer 追加文档成员，完整校验映射结果后才写出，涵盖内部部件与节点 id 冲突。读入同样检查全输入 id。详见[SVG 读回 ADR](adr/20261120_SVG_COMPOSITE_PARSE.md)。
 - 命令仅分查询、编辑、文档三类。Invoker 保存 EditCommand，成功后更新历史；具体命令通过局部快照组织撤销及必要的失败恢复，不存在通用会话事务。
 - TreeCommand 只定位根，TreeRenderer 编排节点行，TreeDecorator 经典包装并按列表顺序追加标签；状态属于会话实例。Client 只在成功和历史更新后通知装饰器，失败不通知，观察者异常作为展示警告。
-- main 经宿主自动发现 plugins/ 直接子包，按稳定顺序全部装配。ExtensionContext 只暂存四类贡献及 Shape 附属映射，声明和候选装配成功才接纳；单包失败保留之前会话继续启动。目录为空保持基础 CLI；当前没有配置注册、白名单或禁用。[插件接入说明](../plugins/README.md)，[架构 ADR](adr/20261120_TREE_AND_DISCOVERY.md)。
+- main 经宿主自动发现 plugins/ 直接子包，按稳定顺序全部装配。扫描各包根目录的默认导出并生成装配入口；ExtensionContext 只暂存四类贡献及 Shape 附属映射，声明和候选装配成功才接纳；单包失败保留之前会话继续启动。目录为空保持基础 CLI；当前没有配置注册、白名单或禁用。[插件接入说明](../plugins/README.md)，[架构 ADR](adr/20261120_TREE_AND_DISCOVERY.md)、[自动扫描 ADR](adr/20261120_PLUGIN_AUTOSCAN.md)。
 
 ```text
-宿主发现 plugins → 包 activate → 暂存与声明校验 → 工厂注册表、Client 命令表
+宿主发现 plugins → 扫描包根目录 → 暂存与声明校验 → 工厂注册表、Client 命令表
               → 创建文件服务、reader、writer、Handler 表 → Workspace → Client
 main → 自动发现插件并校验候选装配 → App → Client
 Client → Command → Workspace 提供的文档、工厂和读写能力
@@ -70,7 +70,7 @@ Client → Command → Workspace 提供的文档、工厂和读写能力
                      TreeCommand → TreeRenderer → Decorator 链 → 基础行
 ```
 
-最新验证：55 个测试文件、522 个测试通过，类型检查通过；包含公共扩展、SVG 往返、私有 id 冲突、Decorator 顺序与通知、真实模块发现、全部贡献失败隔离、默认 CLI 回放及历史规则。
+最新验证：56 个测试文件、537 个测试通过，类型检查通过；包含公共扩展、SVG 往返、私有 id 冲突、Decorator 顺序与通知、真实模块发现、自动扫描四类贡献、全部贡献失败隔离、默认 CLI 回放及历史规则。
 
 ## Phase 1 历史架构方案
 

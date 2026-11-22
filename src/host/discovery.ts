@@ -1,10 +1,11 @@
-import { readFile, readdir, stat } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readFile, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { assembleSources } from './PluginHost';
 import type { Contributions, PluginSource } from './PluginHost';
+import { scanPlugin } from './scan';
 
-/** 只发现应用 plugins/ 下的直接子包，按目录名稳定排序；目录不存在表示无插件贡献，仅保留框架入口。 */
+/** 按目录名发现应用 plugins/ 的直接子包，并扫描各包根目录的默认导出。 */
 export async function createDiscoveredHost(
   directory = fileURLToPath(new URL('../../plugins/', import.meta.url)),
   report: (message: string) => void = (message) => { process.stderr.write(`${message}\n`); },
@@ -21,7 +22,8 @@ export async function createDiscoveredHost(
     directories = [];
   }
   for (const entry of directories) {
-    const manifestPath = join(directory, entry, 'package.json');
+    const pluginDirectory = join(directory, entry);
+    const manifestPath = join(pluginDirectory, 'package.json');
     let text: string;
     try { text = await readFile(manifestPath, 'utf8'); }
     catch (error) {
@@ -29,18 +31,16 @@ export async function createDiscoveredHost(
       continue;
     }
     try {
-      const manifest = JSON.parse(text) as { name?: unknown; main?: unknown; contributes?: unknown };
+      const manifest = JSON.parse(text) as { name?: unknown; contributes?: unknown };
       if (typeof manifest.name !== 'string' || !manifest.name.trim() ||
-          (manifest.main !== undefined && typeof manifest.main !== 'string') ||
           typeof manifest.contributes !== 'object' || manifest.contributes === null || Array.isArray(manifest.contributes)) {
-        throw new Error('name, main or contributes is invalid');
+        throw new Error('name or contributes is invalid');
       }
-      const module = resolve(directory, entry, manifest.main ?? 'index.js');
-      try { if (!(await stat(module)).isFile()) throw new Error('not a file'); }
-      catch { fail(`plugin not found: ${module}`); continue; }
       sources.push({
-        name: manifest.name, module, contributes: manifest.contributes as Contributions,
-        load: () => import(/* @vite-ignore */ pathToFileURL(module).href),
+        name: manifest.name,
+        module: pluginDirectory,
+        contributes: manifest.contributes as Contributions,
+        load: () => scanPlugin(pluginDirectory),
       });
     } catch (error) {
       fail(`invalid plugin manifest: ${manifestPath} (${error instanceof Error ? error.message : String(error)})`);

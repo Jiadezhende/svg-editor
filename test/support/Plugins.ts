@@ -1,23 +1,23 @@
 import { readFileSync } from 'node:fs';
-import * as commands from '../../plugins/commands';
-import * as shapes from '../../plugins/shapes';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { assemblePlugins } from '../../src/host/PluginHost';
-import type { ExtensionPlugin } from '../../src/backend';
-import type { Contributions } from '../../src/host/PluginHost';
-import type { PluginRegistration } from '../../src/host/PluginHost';
+import type { Contributions, PluginRegistration } from '../../src/host/PluginHost';
+import { scanPlugin } from '../../src/host/scan';
 
-/** 使用发行包的真实声明和激活入口，每次装配独立会话。 */
-function registration(directory: string, plugin: ExtensionPlugin): PluginRegistration {
-  const manifest = JSON.parse(readFileSync(new URL(`../../plugins/${directory}/package.json`, import.meta.url), 'utf8')) as { name: string; contributes: Contributions };
-  return { name: manifest.name, contributes: manifest.contributes, plugin };
+let shipped: Promise<readonly PluginRegistration[]> | null = null;
+
+/** 使用发行包的真实清单和自动扫描入口，每次装配独立会话。 */
+export function shippedPlugins(): Promise<readonly PluginRegistration[]> {
+  return shipped ??= Promise.all(['commands', 'shapes'].map(async (directory) => {
+    const root = fileURLToPath(new URL(`../../plugins/${directory}/`, import.meta.url));
+    const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { name: string; contributes: Contributions };
+    return { name: manifest.name, contributes: manifest.contributes, plugin: await scanPlugin(root) };
+  }));
 }
 
-export const shippedPlugins: readonly PluginRegistration[] = [
-  registration('commands', commands), registration('shapes', shapes),
-];
-
 export async function createHost(extra: readonly PluginRegistration[] = []) {
-  const host = await assemblePlugins([...shippedPlugins, ...extra]);
+  const host = await assemblePlugins([...(await shippedPlugins()), ...extra]);
   if (host.errors.length) throw new Error(host.errors.join('\n'));
   return host;
 }

@@ -4,9 +4,9 @@
 
 ## 决策
 
-六种具体 Shape 放入 plugins/shapes，17 个具体命令形式放入 plugins/commands。每包以 package.json 声明贡献，具名导出 activate(context) 函数。包只依赖内核公共入口，命令通过工厂访问类型，不直接导入图形包。
+六种具体 Shape 放入 plugins/shapes，17 个具体命令形式放入 plugins/commands。每包以 package.json 声明 name、contributes；内置包不再维护 index.ts，由宿主扫描包根目录的默认导出自动注册。包只依赖内核公共入口，命令通过工厂访问类型，不直接导入图形包。
 
-宿主从空注册表构建会话。基础包和附加包使用同一发现、加载、暂存、声明校验和失败隔离流程。删除 defaults，不保留第二份默认注册表、旧路径转导出或隐藏兜底。代码装配显式提供所需包；指定目录只发现该目录。
+宿主从空注册表构建会话。基础包和附加包使用同一发现、扫描、暂存、声明校验和失败隔离流程。删除 defaults，不保留第二份默认注册表、旧路径转导出或隐藏兜底。代码装配显式提供所需包；指定目录只发现该目录。详见[自动扫描 ADR](20261120_PLUGIN_AUTOSCAN.md)。
 
 Client 保留 help、undo、redo、exit、quit；undo/redo 操作 Invoker，不实现为命令。init/read/save/canvas 属于用例命令，调用内核服务；DocumentCommand 历史规则不变。
 

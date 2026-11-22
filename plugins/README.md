@@ -14,7 +14,7 @@
 }
 ```
 
-扫描模式只读取包根目录的 `.ts`、`.mts`、`.js`、`.mjs` 文件，按文件名升序处理，并跳过 `index.*`、`*.d.ts` 和 `*.test.*`。一个文件贡献一个默认导出类，推荐一类一文件：
+扫描模式只读取包根目录的 `.ts`、`.mts`、`.js`、`.mjs` 文件，按文件名升序处理，并跳过隐藏文件、`index.*`、`*.d.ts`、`*.d.mts` 和 `*.test.*`。一个文件贡献一个默认导出类，推荐一类一文件。
 
 ```ts
 import { Command, CommandResult } from '../../src/backend';
@@ -26,7 +26,7 @@ export default class HelloCommand extends Command {
 }
 ```
 
-`contributes` 可声明 shapes、commands、attributes、decorators，未提供的类别视为空列表。名称分别对应模型 type、命令 command、静态 Handler 的 handlerName、装饰器类的 decoratorName。命令的多个形式可共用一个 command 名称并由 accepts 区分。声明须与实际注册的名称集合一致；不一致会拒绝整个包。
+`contributes` 可声明 `shapes`、`commands`、`attributes`、`decorators`，省略的类别视为空列表。宿主在导入前校验类别，以及每项是否为无重复的非空名称数组。名称分别对应模型 `type`、命令 `command`、静态 Handler 的 `handlerName` 和装饰器类的 `decoratorName`。命令的多个形式可共用一个 `command` 名称并由 `accepts` 区分，清单中只声明一次。导入后，宿主核对清单与实际导出的名称集合，再尝试装配整个包。
 
 扫描模式下，默认导出按类型实现识别：继承 Shape 的是模型，继承 Command 的是命令，继承 TreeDecorator 的是装饰器，带 handlerName、matches、apply、display 静态成员的是 Handler。普通图形不需要任何 SVG 写出代码；业务复合图形如果内部部件不是文档节点，可以在同一模块用 named export `mapping` 提供 `SvgShapeMapping`，扫描器会随默认导出的 Shape 一起注册：
 

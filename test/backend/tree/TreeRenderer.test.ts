@@ -57,8 +57,9 @@ describe('树渲染与经典 Decorator', () => {
     expect(renderer.render(doc)).toEqual(['svg (100x100) *']);
   });
 
-  it('拒绝无名与同名装饰器', () => {
+  it('拒绝装饰器基类、无名与同名装饰器', () => {
     class Unnamed extends TreeDecorator { protected override tag(): null { return null; } }
+    expect(() => new TreeRenderer([TreeDecorator])).toThrow('must extend TreeDecorator');
     expect(() => new TreeRenderer([Unnamed])).toThrow('declare decoratorName');
     expect(() => new TreeRenderer([TestTypeDecorator, TestTypeDecorator])).toThrow('duplicate tree decorator: test-type');
   });

@@ -1,21 +1,29 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createAssembler, loadPlugin } from '../../src/bootstrap';
-import type { Contributions, PluginClasses } from '../../src/bootstrap';
+import { createAssembler, loadPlugin, readPluginManifest } from '../../src/bootstrap';
+import type { ContributionNames, PluginContributions } from '../../src/bootstrap';
 
 export interface PluginRegistration {
   readonly name: string;
-  readonly contributes: Contributions;
-  readonly classes: Partial<PluginClasses>;
+  readonly contributes: ContributionNames;
+  readonly classes: Partial<PluginContributions>;
 }
 
 /** 测试直接提供分类后的类，复用 CLI 扫描之后的校验和注册。 */
 export function assemblePlugins(plugins: readonly PluginRegistration[], report: (message: string) => void = () => {}) {
-  const empty: PluginClasses = { shapes: [], commands: [], attributes: [], decorators: [] };
+  const empty: PluginContributions = { shapes: [], commands: [], attributes: [], decorators: [] };
   const assembler = createAssembler(report);
   for (const registration of plugins) {
-    assembler.registerPlugin(registration, { ...empty, ...registration.classes });
+    let manifest: ReturnType<typeof readPluginManifest>;
+    try {
+      manifest = readPluginManifest(registration);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      assembler.recordPluginError(reason);
+      continue;
+    }
+    assembler.registerPlugin(manifest, { ...empty, ...registration.classes });
   }
   return assembler.getAssemblyResult();
 }
@@ -26,7 +34,7 @@ let core: Promise<PluginRegistration> | null = null;
 export function corePlugin(): Promise<PluginRegistration> {
   if (core !== null) return core;
   const root = fileURLToPath(new URL('../../plugins/core/', import.meta.url));
-  const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { name: string; contributes: Contributions };
+  const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { name: string; contributes: ContributionNames };
   core = loadPlugin(root).then((classes) => ({ ...manifest, classes }));
   return core;
 }

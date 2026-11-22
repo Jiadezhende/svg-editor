@@ -132,6 +132,7 @@ describe('全部插件目录发现', () => {
       'ZCommand.mjs': scannedCommandSource('scan-z'),
       'Handler.mjs': handlerSource('scan-handler', 'scan-dot'),
       'Tag.mjs': decoratorSource('scan-tag', 'scan-dot'),
+      'Types.d.mts': 'export declare const helper: string;',
     });
     const host = runHost(`const { Document } = await import(${backendApi});
       const host = await bootstrapEditor(directory, () => {});
@@ -225,5 +226,29 @@ describe('全部插件目录发现', () => {
     expect(host.errors[2]).toContain('plugin manifest mismatch: mismatch');
     expect(host.unknown).toContain('unknown command');
     expect(host.hasGroup).toBe(false);
+  });
+
+  it('导入前拒绝未知类别、空值和重复的贡献名称', () => {
+    const invalidDeclarations: readonly Record<string, unknown>[] = [
+      { constructor: [] },
+      { commands: null },
+      { commands: ['same', 'same'] },
+    ];
+    for (const [index, contributes] of invalidDeclarations.entries()) {
+      const name = `invalid-${index}`;
+      const target = scannedPackageOf(name, name, {}, {
+        'Module.mjs': 'globalThis.invalidPluginImported = true;',
+      });
+      writeFileSync(join(target, 'package.json'), JSON.stringify({ name, contributes }));
+    }
+    scannedPackageOf('valid', 'valid', { commands: ['healthy'] }, { 'Command.mjs': scannedCommandSource('healthy') });
+    const host = runHost(`const host = await bootstrapEditor(directory, () => {});
+      console.log(JSON.stringify({ errors: host.errors, plugins: host.plugins, imported: globalThis.invalidPluginImported === true }));`);
+    expect(host.plugins).toEqual(['valid']);
+    expect(host.imported).toBe(false);
+    expect(host.errors).toHaveLength(3);
+    expect(host.errors[0]).toContain('unknown contribution category: constructor');
+    expect(host.errors[1]).toContain('invalid contribution declaration: commands');
+    expect(host.errors[2]).toContain('invalid contribution declaration: commands');
   });
 });

@@ -44,6 +44,17 @@ describe('ShapeFactory 图形工厂', () => {
     expect(factory.create('hexagon', 'h')).toBeInstanceOf(Hexagon);
   });
 
+  it('注册时拒绝 Shape 基类和无关类', () => {
+    class Unrelated {
+      static readonly type = 'unrelated';
+    }
+    const factory = new ShapeFactory();
+
+    expect(() => factory.register(Shape)).toThrow('shape must extend Shape');
+    expect(() => factory.register(Unrelated as unknown as typeof Shape)).toThrow('shape must extend Shape');
+    expect(factory.has('unrelated')).toBe(false);
+  });
+
   it('每次创建独立模型，属性值和校验继续由模型负责', async () => {
     const factory = (await createShapeFactory());
     const values = new Map([['x', 1], ['y', 2], ['width', 3], ['height', 4]]);

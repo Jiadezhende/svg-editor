@@ -107,7 +107,7 @@ Document（画布、节点树、全局约束）
 ## 模型扩展与注册
 
 - 新增模型通过具体 Shape 类及按需的 Handler 接入。
-- 具体 Shape 类的静态描述与构造能力承担图形类型注册契约；ShapeClass 仅是 ShapeFactory 文件内的类型约束，不导出。使用侧通过 has/definition/create 获取支持信息、只读规格和实例，不能查询构造函数。
+- 具体 Shape 类的静态描述与构造能力承担图形类型注册契约。ShapeFactory.register 接收 Shape 的类对象，在运行时校验继承关系和解析方法。使用侧通过 has/definition/create 获取支持信息、只读规格和实例，不能查询构造函数。
 - 课程中的 ShapeProvider 对应图形类型注册契约，由具体 Shape 类承担；交付文档须明确对应关系。
 - ShapeFactory 负责注册、查找与创建；具体图形的选择和注册放在宿主装配侧，工厂不自行导入、枚举插件图形。
 - 普通图形无需专门 Handler。特殊领域操作通过 Handler 独立注册；模型不依赖其处理器，处理器可依赖模型公开接口，两者可以同包维护。

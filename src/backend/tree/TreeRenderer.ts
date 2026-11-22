@@ -5,13 +5,11 @@ import TreeDecorator from './TreeDecorator';
 import type TreeLineRenderer from './TreeLineRenderer';
 import type { TreeSuccess } from './TreeLineRenderer';
 
-type DecoratorClass = Pick<typeof TreeDecorator, 'decoratorName'> & (new (wrapped: TreeLineRenderer) => TreeDecorator);
-
 export default class TreeRenderer {
   private readonly line: TreeLineRenderer;
   private readonly decorators: { name: string; instance: TreeDecorator }[] = [];
 
-  constructor(classes: readonly DecoratorClass[] = []) {
+  constructor(classes: readonly (typeof TreeDecorator)[] = []) {
     let line: TreeLineRenderer = new BaseTreeLineRenderer();
     const names = new Set<string>();
     for (const cls of classes) {
@@ -20,7 +18,8 @@ export default class TreeRenderer {
       }
       if (names.has(cls.decoratorName)) throw new Error(`duplicate tree decorator: ${cls.decoratorName}`);
       names.add(cls.decoratorName);
-      const instance = new cls(line);
+      // typeof TreeDecorator 带有抽象构造签名，此处构造的是已校验的子类。
+      const instance = Reflect.construct(cls, [line]) as TreeDecorator;
       this.decorators.push({ name: cls.decoratorName, instance });
       line = instance;
     }

@@ -28,6 +28,7 @@ export { default as TreeDecorator } from './tree/TreeDecorator';
 export { default as TreeRenderer } from './tree/TreeRenderer';
 export { default as Workspace } from './receiver/workspace/Workspace';
 export { default as SvgReader } from './receiver/svg/SvgReader';
+export { default as SvgFile } from './receiver/svg/SvgFile';
 export type { SvgReadResult } from './receiver/svg/SvgReader';
 export { default as SvgWriter } from './receiver/svg/SvgWriter';
 export type { SvgElement, SvgShapeMapping } from './receiver/svg/SvgWriter';

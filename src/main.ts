@@ -1,21 +1,17 @@
-import App from './App';
-import { bootstrapEditor } from './bootstrap';
-import CommandReader from './frontend/CommandReader';
-import ResultPrinter from './frontend/ResultPrinter';
-import ConsoleInputSource from './frontend/io/ConsoleInputSource';
-import ConsoleOutputSink from './frontend/io/ConsoleOutputSink';
+import { createAssembler, readPluginManifest } from './bootstrap';
+import { loadPluginConfig } from './pluginConfig';
+import { runCli } from './runCli';
 
-// 自动发现全部插件，单插件失败只报告错误，保留有效装配继续启动。
-const { client } = await bootstrapEditor();
-
-const input = new ConsoleInputSource();
-const output = new ConsoleOutputSink();
-const reader = new CommandReader(input, output);
-const printer = new ResultPrinter(output);
-const app = new App(reader, printer, client);
-
-try {
-  await app.run();
-} finally {
-  input.close();
+const args = process.argv.slice(2);
+if (args.length !== 2 || args[0] !== '--config' || !args[1].trim() || args[1].startsWith('--')) {
+  process.stderr.write('usage: npm run cli -- --config <path>\n');
+  process.exitCode = 2;
+} else {
+  const assembler = createAssembler((message) => { process.stderr.write(`${message}\n`); });
+  await loadPluginConfig(assembler, args[1], async () => {
+    const { default: core } = await import('../plugins/core/index');
+    const { default: manifest } = await import('../plugins/core/package.json', { with: { type: 'json' } });
+    assembler.registerPlugin(readPluginManifest(manifest), core);
+  });
+  await runCli(assembler.getAssemblyResult().client);
 }

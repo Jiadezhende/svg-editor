@@ -5,10 +5,11 @@
   "description": "命令行 SVG 编辑器",
   "type": "module",
   "scripts": {
-    "cli": "tsx src/main.ts",
+    "cli": "node --experimental-import-meta-resolve --import tsx src/main.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "cli:code": "tsx src/cli-code.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

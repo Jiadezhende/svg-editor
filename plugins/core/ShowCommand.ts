@@ -24,7 +24,7 @@ export default class ShowCommand extends Command {
     const shape = node.value;
     const result = new CommandResult().line(`${shape.label()}  parent=${node.parent()?.value.label() ?? 'svg'}`);
     const details = shape.details();
-    if (shape.acceptsChildren()) details[0] = `children=${node.children().length}`;
+    if (shape.acceptsChildren()) details[0] = `children=${shape.view().children.length + node.children().length}`;
     for (const detail of details) {
       result.line(`  ${detail}`);
     }

@@ -33,7 +33,7 @@ export default class ShapeFactory {
 
   /** 已注册类的只读规格视图，不暴露构造签名或注册校验信息。 */
   definition(type: string): Readonly<Pick<
-    typeof Shape, 'type' | 'params' | 'paint' | 'content' | 'attributes' | 'attribute'
+    typeof Shape, 'type' | 'params' | 'createParams' | 'paint' | 'content' | 'attributes' | 'attribute'
   >> {
     return this.lookup(type);
   }

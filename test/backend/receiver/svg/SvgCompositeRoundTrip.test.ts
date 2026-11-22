@@ -53,7 +53,7 @@ describe('SVG 复合类型完整读写', () => {
     const original = storage.get('scene.svg')!;
     expect(original).toContain('data-kind="test-panel"');
     expect(original).toContain('new &lt;title&gt; &amp; text');
-    expect(client.execute(['read', 'scene.svg']).lines()).toEqual(['read scene.svg (4 elements)']);
+    expect(client.execute(['read', 'scene.svg']).lines()).toEqual(['read scene.svg (8 elements)']);
     const restored = receiver.document();
     const model = restored.requireNode('p').value as Panel;
     expect(model).toBeInstanceOf(Panel);

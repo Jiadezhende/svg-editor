@@ -1,5 +1,6 @@
 import type Document from '../document/Document';
 import type ShapeNode from '../document/ShapeNode';
+import type ShapeView from '../document/shape/ShapeView';
 import BaseTreeLineRenderer from './BaseTreeLineRenderer';
 import TreeDecorator from './TreeDecorator';
 import type TreeLineRenderer from './TreeLineRenderer';
@@ -28,22 +29,28 @@ export default class TreeRenderer {
 
   render(document: Document, root: ShapeNode | null = null): readonly string[] {
     const canvas = Object.freeze({ width: document.width(), height: document.height() });
-    const lines = [this.line.render(root, canvas)];
-    const draw = (children: readonly ShapeNode[], prefix: string): void => {
+    const views = document.shapeViews(root ?? undefined);
+    const rootView = root === null ? null : views[0];
+    const lines = [this.line.render(rootView, canvas)];
+    const draw = (children: readonly ShapeView[], prefix: string): void => {
       children.forEach((child, index) => {
         const last = index === children.length - 1;
         lines.push(`${prefix}${last ? '└── ' : '├── '}${this.line.render(child, canvas)}`);
-        draw(child.children(), `${prefix}${last ? '    ' : '│   '}`);
+        draw(child.children, `${prefix}${last ? '    ' : '│   '}`);
       });
     };
-    draw(root === null ? document.children() : root.children(), '');
+    draw(rootView === null ? views : rootView.children, '');
     return lines;
   }
 
   /** 通知异常作为展示警告，不将已提交的编辑误报为失败。 */
   notify(kind: TreeSuccess['kind'], document: Document): readonly string[] {
+    if (this.decorators.length === 0) return [];
+    let nodes: readonly ShapeView[];
+    try { nodes = document.shapeViews(); }
+    catch (error) { return [`tree snapshot: ${error instanceof Error ? error.message : String(error)}`]; }
     const event: TreeSuccess = Object.freeze({
-      kind, nodes: Object.freeze(document.nodes()),
+      kind, nodes,
       canvas: Object.freeze({ width: document.width(), height: document.height() }),
     });
     const warnings: string[] = [];

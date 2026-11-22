@@ -9,7 +9,10 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 /** 以脚本回放方式运行真实入口（stdin 为管道，即非 TTY）。 */
 function runCli(script: string): string[] {
-  const proc = spawnSync(process.execPath, ['--import', 'tsx', 'src/main.ts'], {
+  const proc = spawnSync(process.execPath, [
+    '--experimental-import-meta-resolve', '--import', 'tsx', 'src/main.ts',
+    '--config', 'doc/transcript/phase1.plugins.json',
+  ], {
     cwd: ROOT,
     input: script,
     encoding: 'utf8',

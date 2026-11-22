@@ -1,6 +1,7 @@
 /** 扩展与宿主的公共入口；不导出具体内置图形、命令或节点关系写入能力。 */
 export { default as Shape } from './receiver/document/shape/Shape';
 export type { ShapeParseResult } from './receiver/document/shape/Shape';
+export type { default as ShapeView } from './receiver/document/shape/ShapeView';
 export { default as ShapeFactory } from './receiver/document/shape/ShapeFactory';
 export { default as ShapeMemento } from './receiver/document/shape/ShapeMemento';
 export { default as Document } from './receiver/document/Document';
@@ -22,6 +23,7 @@ export { default as CommandResult } from './command/CommandResult';
 export { default as UndoRecord } from './command/UndoRecord';
 export { default as Client, frameworkCommandNames } from './Client';
 export type { CommandForm, CommandSession, CommandTable } from './Client';
+export type { ActivatePlugin, PluginOptions, PluginContributions } from './PluginContributions';
 export type { default as AttributeHandler } from './receiver/document/shape/AttributeHandler';
 export { default as AttributeHandlerRegistry } from './receiver/document/shape/AttributeHandlerRegistry';
 export type { default as TreeLineRenderer, CanvasInfo, TreeSuccess } from './receiver/tree/TreeLineRenderer';

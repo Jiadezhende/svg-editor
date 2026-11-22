@@ -1,5 +1,5 @@
 import { TreeDecorator } from '../../src/backend';
-import type { ShapeNode, TreeSuccess } from '../../src/backend';
+import type { ShapeView, TreeSuccess } from '../../src/backend';
 
 /** 用于验证实例状态与成功通知，不是正式 dirty 插件。 */
 export class TestChangedDecorator extends TreeDecorator {
@@ -15,7 +15,7 @@ export class TestChangedDecorator extends TreeDecorator {
 
 export class TestTypeDecorator extends TreeDecorator {
   static override readonly decoratorName = 'test-type';
-  protected override tag(node: ShapeNode | null): string | null {
-    return node?.value.type() === 'g' ? '(group)' : null;
+  protected override tag(node: ShapeView | null): string | null {
+    return node?.type === 'g' ? '(group)' : null;
   }
 }

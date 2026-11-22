@@ -33,7 +33,7 @@ export default class CreateCommand extends EditCommand {
     }
     this.shapeDefinition = receiver.shapeDefinition(args[0]);
 
-    const params = this.shapeDefinition.params;
+    const params = this.shapeDefinition.createParams ?? this.shapeDefinition.params;
     if (args.length < 2 + params.length) {
       throw this.wrongArgCount(this.syntax());
     }
@@ -86,8 +86,8 @@ export default class CreateCommand extends EditCommand {
 
   /** 本类型的完整语法，用于参数个数不符时的提示。 */
   private syntax(): string {
-    const { type, params, paint } = this.shapeDefinition;
-    const required = params.map((spec) => ` <${spec.name()}>`).join('');
+    const { type, params, createParams, paint } = this.shapeDefinition;
+    const required = (createParams ?? params).map((spec) => ` <${spec.name()}>`).join('');
     const optional = paint === null ? '' : ` [${paint}]`;
     return `create ${type} <id>${required}${optional} [in <containerId>]`;
   }

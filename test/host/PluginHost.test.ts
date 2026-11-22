@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Command, CommandResult, Document, Shape, TreeDecorator } from '../../src/backend';
-import type { ShapeNode } from '../../src/backend';
+import type { ShapeView } from '../../src/backend';
 import { assemblePlugins, createHost } from '../support/Plugins';
 import type { PluginRegistration } from '../support/Plugins';
 import { Panel, panelMapping } from '../support/SvgCompositeExtension';
@@ -22,7 +22,7 @@ class LabelHandler {
 }
 class PanelType extends TreeDecorator {
   static override readonly decoratorName = 'test-panel-type';
-  protected override tag(node: ShapeNode | null): string | null { return node?.value instanceof Panel ? '(panel)' : null; }
+  protected override tag(node: ShapeView | null): string | null { return node?.type === Panel.type ? '(panel)' : null; }
 }
 const all: PluginRegistration = {
   name: 'all',

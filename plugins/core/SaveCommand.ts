@@ -22,6 +22,6 @@ export default class SaveCommand extends DocumentCommand {
 
   execute(): CommandResult {
     const { document, path } = this.receiver.saveDocument(this.target);
-    return new CommandResult().line(`saved to ${path} (${document.nodes().length} elements)`);
+    return new CommandResult().line(`saved to ${path} (${document.elementCount()} elements)`);
   }
 }

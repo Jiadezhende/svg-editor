@@ -3,6 +3,7 @@ import Shape from './shape/Shape';
 import ShapeMemento from './shape/ShapeMemento';
 import ShapeNode from './ShapeNode';
 import DocumentStructureMemento from './DocumentStructureMemento';
+import type ShapeView from './shape/ShapeView';
 
 /** viewBox 的四个分量：min-x、min-y、width、height。 */
 export type ViewBox = readonly [number, number, number, number];
@@ -53,6 +54,22 @@ export default class Document {
     if (root !== undefined) this.requireMember(root);
     const visit = (node: ShapeNode): ShapeNode[] => [node, ...node.children().flatMap(visit)];
     return (root === undefined ? this.roots : [root]).flatMap(visit);
+  }
+
+  /** 按文档顺序提供图形快照，私有部件排在文档成员之前。 */
+  shapeViews(root?: ShapeNode): readonly ShapeView[] {
+    if (root !== undefined) this.requireMember(root);
+    const visit = (node: ShapeNode): ShapeView => {
+      const view = node.value.view();
+      const children = node.children();
+      if (children.length === 0) return view;
+      return Object.freeze({ ...view, children: Object.freeze([...view.children, ...children.map(visit)]) });
+    };
+    return Object.freeze((root === undefined ? this.roots : [root]).map(visit));
+  }
+
+  elementCount(): number {
+    return this.nodes().reduce((count, node) => count + node.value.identifiers().length, 0);
   }
 
   findNode(id: string): ShapeNode | null { return this.byId.get(id) ?? null; }

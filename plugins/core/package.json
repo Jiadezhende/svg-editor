@@ -1,6 +1,7 @@
 {
   "name": "core",
   "type": "module",
+  "main": "./index.ts",
   "contributes": {
     "shapes": [
       "rect",

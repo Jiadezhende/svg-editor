@@ -38,7 +38,7 @@ describe('成功后的树展示通知', () => {
     client.execute(['canvas', '200', '300']);
     client.execute(['read', 'other.svg']);
     expect(events.map((event) => event.kind)).toEqual(['replace', 'edit', 'undo', 'redo', 'save', 'edit', 'replace']);
-    expect(events[1].nodes.map((node) => node.value.id())).toEqual(['g']);
+    expect(events[1].nodes.map((node) => node.id)).toEqual(['g']);
     expect(events[5].canvas).toEqual({ width: 200, height: 300 });
   });
 

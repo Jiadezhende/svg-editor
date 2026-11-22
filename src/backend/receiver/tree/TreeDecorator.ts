@@ -1,4 +1,4 @@
-import type ShapeNode from '../document/ShapeNode';
+import type ShapeView from '../document/shape/ShapeView';
 import type TreeLineRenderer from './TreeLineRenderer';
 import type { CanvasInfo, TreeSuccess } from './TreeLineRenderer';
 
@@ -8,13 +8,13 @@ export default abstract class TreeDecorator implements TreeLineRenderer {
 
   constructor(protected readonly wrapped: TreeLineRenderer) {}
 
-  render(node: ShapeNode | null, canvas: CanvasInfo): string {
+  render(node: ShapeView | null, canvas: CanvasInfo): string {
     const line = this.wrapped.render(node, canvas);
     const tag = this.tag(node, canvas);
     return tag === null || tag === '' ? line : `${line} ${tag}`;
   }
 
-  protected abstract tag(node: ShapeNode | null, canvas: CanvasInfo): string | null;
+  protected abstract tag(node: ShapeView | null, canvas: CanvasInfo): string | null;
 
   /** 只读通知；领域和历史已经提交，禁止在这里修改模型。 */
   onSuccess(_event: TreeSuccess): void {}

@@ -96,7 +96,7 @@ describe('SaveCommand 的复合模型映射', () => {
       },
     });
     const path = join(dir, 'composite.svg');
-    expect(new SaveCommand(receiver, [path]).execute().lines()).toEqual([`saved to ${path} (1 elements)`]);
+    expect(new SaveCommand(receiver, [path]).execute().lines()).toEqual([`saved to ${path} (3 elements)`]);
     const svg = readFileSync(path, 'utf8');
     expect(svg).toContain('<rect id="panel-rect"');
     expect(svg).toContain('<text id="panel-label"');

@@ -29,7 +29,7 @@ export default class UngroupCommand extends EditCommand {
     const doc = this.receiver.document();
     return this.undoRecord.execute(doc.captureStructure(), () => {
       const node = doc.requireNode(this.id);
-      if (!node.value.acceptsChildren()) throw new EditorError(`not a container: ${this.id}`);
+      node.value.checkUngroup();
       const parent = node.parent();
       if (parent === null) throw new EditorError(`cannot ungroup top-level container: ${this.id}`);
       doc.checkRemove(node);

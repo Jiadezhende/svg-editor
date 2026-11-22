@@ -4,6 +4,7 @@ import StringSpec from './attribute/StringSpec';
 import StrokeWidthSpec from './attribute/StrokeWidthSpec';
 import EditorError from '../../../error/EditorError';
 import ShapeMemento from './ShapeMemento';
+import type ShapeView from './ShapeView';
 
 /** 解析后的领域模型；children 只列出仍应成为文档子节点的输入 Shape。 */
 export interface ShapeParseResult {
@@ -14,7 +15,7 @@ export interface ShapeParseResult {
 /**
  * 单个图形的领域模型；不保存文档树关系。
  *
- * 静态成员即定义：子类覆盖 `type`（类型名）、`params`（create 必填参数表，顺序即参数顺序）、
+ * 静态成员即定义：子类覆盖 `type`（类型名）、`params`（必填属性，默认也作为创建参数）、
  * `paint`（create 的可选外观参数名）、`anchor`（move 回显的锚点：x 轴与 y 轴坐标属性名，注册时校验）、
  * `content`（在 SVG 中写成子文本而非元素属性的那个属性名）；
  * 外观属性 fill / stroke / stroke-width 由本类统一声明。
@@ -25,6 +26,7 @@ export default abstract class Shape {
 
   static readonly type: string = '';
   static readonly params: readonly AttributeSpec[] = [];
+  static readonly createParams: readonly AttributeSpec[] | null = null;
   static readonly paint: string | null = null;
   static readonly anchor: readonly [string, string] | null = null;
   static readonly content: string | null = null;
@@ -150,6 +152,19 @@ export default abstract class Shape {
     return this.joined(this.definition().params);
   }
 
+  view(): ShapeView {
+    return Object.freeze({
+      id: this.id(),
+      type: this.type(),
+      label: this.treeLabel(),
+      summary: this.summary(),
+      container: this.acceptsChildren(),
+      attributes: Object.freeze(this.entries().map(([name, value]) => Object.freeze([name, value] as const))),
+      content: this.content(),
+      children: Object.freeze([...this.viewParts()]),
+    });
+  }
+
   /** show 的属性行：核心属性行；设置了外观属性时再加一行外观属性。 */
   details(): string[] {
     const appearance = this.joined(Shape.appearance);
@@ -232,6 +247,10 @@ export default abstract class Shape {
     if (!this.acceptsChildren()) throw new EditorError(`cannot remove internal part: ${shape.id()}`);
   }
 
+  checkUngroup(): void {
+    if (!this.acceptsChildren()) throw new EditorError(`not a container: ${this.id()}`);
+  }
+
   private transformAtomically(change: () => void): void {
     const before = this.capture();
     try {
@@ -248,6 +267,10 @@ export default abstract class Shape {
   protected coreDetail(): string {
     return this.summary();
   }
+
+  protected treeLabel(): string { return this.label(); }
+
+  protected viewParts(): readonly ShapeView[] { return []; }
 
   /** 本实例所属图形类的静态定义。 */
   protected definition(): typeof Shape {

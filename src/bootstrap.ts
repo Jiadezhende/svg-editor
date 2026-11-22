@@ -1,33 +1,17 @@
-import { readFile, readdir } from 'node:fs/promises';
-import { extname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
-  AttributeHandlerRegistry, Client, Command, Shape, ShapeFactory, SvgFile, SvgReader, SvgWriter, TreeDecorator, TreeRenderer, Receiver,
+  AttributeHandlerRegistry, Client, Command, ShapeFactory, SvgFile, SvgReader, SvgWriter, TreeRenderer, Receiver,
   frameworkCommandNames,
 } from './backend';
-import type { AttributeHandler, CommandForm, CommandSession, CommandTable, SvgShapeMapping } from './backend';
+import type { ActivatePlugin, CommandForm, CommandTable, PluginContributions, PluginOptions } from './backend';
 
-type CommandContribution = CommandForm['definition'] &
-  (new (receiver: Receiver, args: readonly string[]) => Command);
-type DecoratorContribution = typeof TreeDecorator;
-type ShapeContribution = {
-  readonly model: typeof Shape;
-  readonly mapping?: SvgShapeMapping;
-};
-
-export interface PluginContributions {
-  readonly shapes: readonly ShapeContribution[];
-  readonly commands: readonly CommandContribution[];
-  readonly attributes: readonly AttributeHandler[];
-  readonly decorators: readonly DecoratorContribution[];
-}
+export type { PluginContributions } from './backend';
 
 const contributionCategories = ['shapes', 'commands', 'attributes', 'decorators'] as const;
 type Category = typeof contributionCategories[number];
 
 export type ContributionNames = Partial<Record<Category, readonly string[]>>;
 
-interface PluginManifest {
+export interface PluginManifest {
   readonly name: string;
   readonly contributes: ContributionNames;
 }
@@ -58,119 +42,6 @@ export function readPluginManifest(value: unknown): PluginManifest {
   return { name, contributes: names };
 }
 
-/** 按目录名发现插件，逐包校验清单、扫描贡献并装配会话。 */
-export async function bootstrapEditor(
-  directory = fileURLToPath(new URL('../plugins/', import.meta.url)),
-  report: (message: string) => void = (message) => { process.stderr.write(`${message}\n`); },
-): Promise<{ client: CommandSession; errors: readonly string[]; plugins: readonly string[] }> {
-  const assembler = createAssembler(report);
-  function result() {
-    const { client, errors, plugins } = assembler.getAssemblyResult();
-    return {
-      client: { execute: client.execute.bind(client), isExitRequested: client.isExitRequested.bind(client) },
-      errors,
-      plugins,
-    };
-  }
-  let directories: string[];
-  try {
-    directories = (await readdir(directory, { withFileTypes: true }))
-      .filter((entry) => entry.isDirectory() || entry.isSymbolicLink())
-      .map((entry) => entry.name)
-      .sort();
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      assembler.recordPluginError(`cannot discover plugins: ${directory}`);
-    }
-    return result();
-  }
-
-  for (const entry of directories) {
-    const pluginDirectory = join(directory, entry);
-    const manifestPath = join(pluginDirectory, 'package.json');
-    let text: string;
-    try {
-      text = await readFile(manifestPath, 'utf8');
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        assembler.recordPluginError(`cannot read plugin manifest: ${manifestPath}`);
-      }
-      continue;
-    }
-
-    let manifest: PluginManifest;
-    try {
-      manifest = readPluginManifest(JSON.parse(text));
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      assembler.recordPluginError(`invalid plugin manifest: ${manifestPath} (${reason})`);
-      continue;
-    }
-
-    let contributions: PluginContributions;
-    try {
-      contributions = await loadPlugin(pluginDirectory);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      assembler.recordPluginError(`plugin failed to load: ${manifest.name} (${reason})`);
-      continue;
-    }
-    assembler.registerPlugin(manifest, contributions);
-  }
-
-  return result();
-}
-
-const contributionExtensions = new Set(['.ts', '.mts', '.js', '.mjs']);
-
-/** 按文件名顺序导入包根目录的文件，返回分类后的类和附属 SVG 映射。 */
-export async function loadPlugin(directory: string): Promise<PluginContributions> {
-  // 筛选包根目录的贡献文件，按文件名确定加载顺序。
-  const entries = await readdir(directory, { withFileTypes: true });
-  const files = entries
-    .filter((entry) => {
-      const { name } = entry;
-      return entry.isFile() && !name.startsWith('.') && !name.endsWith('.d.ts') && !name.endsWith('.d.mts') &&
-        !name.includes('.test.') && !name.startsWith('index.') && contributionExtensions.has(extname(name));
-    })
-    .map((entry) => entry.name)
-    .sort();
-
-  // 导入各模块，校验并分类其贡献。
-  const shapes: ShapeContribution[] = [];
-  const commands: CommandContribution[] = [];
-  const attributes: AttributeHandler[] = [];
-  const decorators: DecoratorContribution[] = [];
-  for (const file of files) {
-    const path = join(directory, file);
-    const module = await import(/* @vite-ignore */ pathToFileURL(path).href) as Record<string, unknown>;
-    const exported = module.default;
-    if (typeof exported !== 'function') throw new Error(`plugin contribution must be a class: ${file}`);
-
-    if (exported.prototype instanceof Shape) {
-      const mapping = module.mapping as SvgShapeMapping | undefined;
-      if (mapping !== undefined && (typeof mapping !== 'object' || mapping === null ||
-        typeof mapping.matches !== 'function' || typeof mapping.write !== 'function')) {
-        throw new Error(`invalid SVG mapping: ${file}`);
-      }
-      shapes.push({ model: exported as typeof Shape, mapping });
-    } else if (exported.prototype instanceof Command) {
-      commands.push(exported as CommandContribution);
-    } else if (exported.prototype instanceof TreeDecorator) {
-      decorators.push(exported as DecoratorContribution);
-    } else {
-      const handler = exported as unknown as AttributeHandler;
-      if (typeof handler.handlerName !== 'string' || handler.handlerName.trim() === '' ||
-        typeof handler.matches !== 'function' || typeof handler.apply !== 'function' ||
-        handler.apply === (Function.prototype.apply as unknown) || typeof handler.display !== 'function') {
-        throw new Error(`unsupported plugin contribution: ${file}`);
-      }
-      attributes.push(handler);
-    }
-  }
-  return { shapes, commands, attributes, decorators };
-}
-
 type RegisteredPlugin = PluginContributions & { readonly name: string };
 
 /** 逐包校验并注册已加载的插件。每次都在新宿主里注册，成功后才换用新宿主。 */
@@ -185,15 +56,27 @@ export function createAssembler(report: (message: string) => void) {
   };
 
   /** 清单由磁盘或代码入口通过 readPluginManifest 校验。 */
-  function registerPlugin(manifest: PluginManifest, contributions: PluginContributions): void {
+  function registerPlugin(
+    manifest: PluginManifest,
+    source: PluginContributions | ActivatePlugin,
+    options: PluginOptions = {},
+  ): void {
     const { name, contributes: declared } = manifest;
     if (accepted.some((registered) => registered.name === name)) {
       recordPluginError(`duplicate registration: plugins/${name}`);
       return;
     }
 
+    let contributions: PluginContributions;
     try {
-      // 按类别核对清单声明与实际导出的贡献。
+      contributions = typeof source === 'function' ? source(options) : source;
+    } catch (error) {
+      recordPluginError(`plugin failed to activate: ${name} (${error instanceof Error ? error.message : String(error)})`);
+      return;
+    }
+
+    try {
+      // 按类别核对清单声明与实际提供的贡献。
       const actual: Required<ContributionNames> = {
         shapes: contributions.shapes.map(({ model }) => model.type),
         commands: [...new Set(contributions.commands.map((command) => command.command))],
@@ -257,7 +140,7 @@ function buildSession(plugins: readonly RegisteredPlugin[]) {
   const factory = new ShapeFactory();
   const writer = new SvgWriter();
   const handlers = new AttributeHandlerRegistry();
-  const decorators: DecoratorContribution[] = [];
+  const decorators: PluginContributions['decorators'][number][] = [];
   const attributeNames = new Set<string>();
   const decoratorNames = new Set<string>();
   for (const plugin of plugins) {
@@ -289,7 +172,7 @@ function buildSession(plugins: readonly RegisteredPlugin[]) {
     const local = new Set<string>();
     for (const command of plugin.commands) {
       if (typeof command !== 'function' || !(command.prototype instanceof Command) || typeof command.accepts !== 'function') throw new Error('command must extend Command and provide accepts');
-      if (commandNames.has(command.command)) throw new Error(`duplicate registration: commands/${command.command}`);
+      if (forms.some((form) => form.definition === command) || commandNames.has(command.command)) throw new Error(`duplicate registration: commands/${command.command}`);
       forms.push({ definition: command, create: (args) => new command(receiver, args) });
       local.add(command.command);
     }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Client, Document, Shape } from '../../../../src/backend';
-import CreateCommand from '../../../../plugins/commands/CreateCommand';
+import CreateCommand from '../../../../plugins/core/CreateCommand';
 import { createWorkspace } from '../../../support/Plugins';
 import { Frame, Panel } from '../../../support/SvgCompositeExtension';
 

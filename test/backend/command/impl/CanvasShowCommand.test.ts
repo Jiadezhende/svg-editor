@@ -1,6 +1,6 @@
 import { createWorkspace } from '../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
-import CanvasShowCommand from '../../../../plugins/commands/CanvasShowCommand';
+import CanvasShowCommand from '../../../../plugins/core/CanvasShowCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
 
 describe('CanvasShowCommand', () => {

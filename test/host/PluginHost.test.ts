@@ -50,7 +50,7 @@ describe('插件暂存与原子装配', () => {
     directories.push(dir);
     const host = await createHost([all]);
     expect(host.errors).toEqual([]);
-    expect(host.plugins).toEqual(['commands', 'shapes', 'all']);
+    expect(host.plugins).toEqual(['core', 'all']);
     host.client.execute(['init']);
     host.client.execute(['create', Panel.type, 'p']);
     expect(host.client.execute(['test-hello']).lines()).toEqual(['hello from plugin']);

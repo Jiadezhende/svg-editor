@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import Rect from '../../../../../plugins/shapes/Rect';
-import Group from '../../../../../plugins/shapes/Group';
+import Rect from '../../../../../plugins/core/Rect';
+import Group from '../../../../../plugins/core/Group';
 import Document from '../../../../../src/backend/receiver/document/Document';
 import type { AttributeValue } from '../../../../../src/backend/receiver/document/attribute/AttributeSpec';
 

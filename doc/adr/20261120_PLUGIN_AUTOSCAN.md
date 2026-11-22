@@ -18,7 +18,7 @@
 
 ## 影响
 
-- 内置 `plugins/shapes`、`plugins/commands` 删除手写 `index.ts`，保留 `name`、`type`、`contributes`，不写 `main`。
+- 随应用分发的基础图形和命令在 `plugins/core` 共用一份清单。业务扩展使用独立的 `plugins/extensions` 清单。
 - 此前仅依赖 `main` 入口注册的插件需要把贡献类放到包根目录，并逐文件默认导出。显式代码装配仍可通过 `assemblePlugins` 传入带 `activate` 的对象。
 - 新增内置图形、命令、Handler 或装饰器时只需新增类文件并更新 `contributes`；不再维护包入口注册表。
 - 清单不一致、非法默认导出、加载失败、重名和激活异常仍按原错误前缀报告，并保留已接纳会话。

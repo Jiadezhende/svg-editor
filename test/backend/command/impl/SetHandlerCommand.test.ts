@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { Client, Document, EditorError } from '../../../../src/backend';
 import App from '../../../../src/App';
 import type { Shape } from '../../../../src/backend';
-import SetCommand from '../../../../plugins/commands/SetCommand';
+import SetCommand from '../../../../plugins/core/SetCommand';
 import { createWorkspace } from '../../../support/Plugins';
 import CompositeShape from '../../../support/CompositeShape';
 import MemoryInputSource from '../../../support/MemoryInputSource';

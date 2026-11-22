@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import Rect from '../../../../../plugins/shapes/Rect';
-import Group from '../../../../../plugins/shapes/Group';
+import Rect from '../../../../../plugins/core/Rect';
+import Group from '../../../../../plugins/core/Group';
 import EditorError from '../../../../../src/backend/error/EditorError';
 
 const geometry = new Map<string, number | string>([

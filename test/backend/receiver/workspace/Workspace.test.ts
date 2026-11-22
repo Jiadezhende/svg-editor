@@ -2,7 +2,7 @@ import { createWorkspace } from '../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import Document from '../../../../src/backend/receiver/document/Document';
 import EditorError from '../../../../src/backend/error/EditorError';
-import Rect from '../../../../plugins/shapes/Rect';
+import Rect from '../../../../plugins/core/Rect';
 
 describe('Workspace 当前文档槽位', () => {
   it('无文档时取文档报"无文档"', async () => {

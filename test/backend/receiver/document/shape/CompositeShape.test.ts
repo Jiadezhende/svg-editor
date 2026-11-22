@@ -2,12 +2,12 @@ import { createWorkspace, createShapeFactory } from '../../../../support/Plugins
 import { describe, expect, it } from 'vitest';
 import CompositeShape from '../../../../support/CompositeShape';
 import Shape from '../../../../../src/backend/receiver/document/shape/Shape';
-import Group from '../../../../../plugins/shapes/Group';
+import Group from '../../../../../plugins/core/Group';
 import Document from '../../../../../src/backend/receiver/document/Document';
-import GroupCommand from '../../../../../plugins/commands/GroupCommand';
-import MoveCommand from '../../../../../plugins/commands/MoveCommand';
-import ScaleCommand from '../../../../../plugins/commands/ScaleCommand';
-import TreeCommand from '../../../../../plugins/commands/TreeCommand';
+import GroupCommand from '../../../../../plugins/core/GroupCommand';
+import MoveCommand from '../../../../../plugins/core/MoveCommand';
+import ScaleCommand from '../../../../../plugins/core/ScaleCommand';
+import TreeCommand from '../../../../../plugins/core/TreeCommand';
 import SvgWriter from '../../../../../src/backend/receiver/svg/SvgWriter';
 import SvgReader from '../../../../../src/backend/receiver/svg/SvgReader';
 

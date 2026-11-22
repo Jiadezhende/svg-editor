@@ -74,7 +74,7 @@ describe('全部插件目录发现', () => {
   it('发行包与代码装配输出一致，基础能力确实来自已发现包', () => {
     const result = runHost(`const { readFileSync } = await import('node:fs');
       const registrations = [];
-      for (const name of ['commands', 'shapes']) {
+      for (const name of ['core', 'extensions']) {
         const folder = join(process.cwd(), 'plugins', name);
         const manifest = JSON.parse(readFileSync(join(folder, 'package.json'), 'utf8'));
         registrations.push({ name: manifest.name, contributes: manifest.contributes, plugin: await scanPlugin(folder) });
@@ -86,7 +86,7 @@ describe('全部插件目录发现', () => {
         host.client.execute(['create', 'g', 'g']);
         return { plugins: host.plugins, errors: host.errors, help: host.client.execute(['help']).lines(), tree: host.client.execute(['tree']).lines() };
       })));`);
-    expect(result[0].plugins).toEqual(['commands', 'shapes']);
+    expect(result[0].plugins).toEqual(['core', 'extensions']);
     expect(result[0].errors).toEqual([]);
     expect(result[1]).toEqual(result[0]);
   });

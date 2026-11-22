@@ -115,7 +115,7 @@ Document（画布、节点树、全局约束）
 
 ## 扩展发现与启用配置
 
-- 宿主从应用 plugins/ 的直接子包自动发现 Shape、Command、Handler 和 TreeDecorator，按目录名稳定排序并全部装配；新增包不修改内核或发现逻辑。六种基础图形由 plugins/shapes 提供，17 个具体命令形式由 plugins/commands 提供；两包随应用分发，与其他插件使用同一发现、扫描和校验路径。
+- 宿主从应用 plugins/ 的直接子包自动发现 Shape、Command、Handler 和 TreeDecorator，按目录名稳定排序并全部装配；新增包不修改内核或发现逻辑。plugins/core 提供六种基础图形和 17 个具体命令形式，plugins/extensions 用于业务扩展。两个包使用同一发现、扫描和校验路径。
 - 本阶段不实现配置注册、白名单、禁用或 options；这些不是当前验收范围。目录缺失或无包时仅保留 help、undo、redo、exit、quit 五个框架入口；不隐式补入图形或用例命令。
 - 包通过 package.json 的 name、contributes 声明贡献，宿主按文件名稳定排序扫描各包根目录的 .ts、.mts、.js、.mjs 文件，通过默认导出识别贡献并生成装配入口。贡献名称必须与实际暂存注册集合一致，跨插件同类重名拒绝；命令包内部仍可注册多个互斥形式。
 - 公共 ExtensionContext 只开放四种注册方法；registerShape 可附带 SVG 映射，扫描模式下由同模块 named export mapping 提供。宿主先暂存，再构建候选注册表、writer、装饰链和 Client，全部校验成功才接纳。单包失败丢弃其全部贡献及映射，报告错误并继续，保留先前有效会话。激活完成后上下文关闭。

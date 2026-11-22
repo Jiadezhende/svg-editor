@@ -1,6 +1,6 @@
 import { createWorkspace } from '../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
-import InitCommand from '../../../../plugins/commands/InitCommand';
+import InitCommand from '../../../../plugins/core/InitCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 

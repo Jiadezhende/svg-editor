@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { Command, CommandResult, Shape } from '../../src/backend';
 import { assemblePlugins } from '../../src/host/PluginHost';
 import type { PluginRegistration } from '../../src/host/PluginHost';
-import { createHost, shippedPlugins } from '../support/Plugins';
+import { corePlugin, createHost } from '../support/Plugins';
 import { Panel, panelMapping } from '../support/SvgCompositeExtension';
 
 class PanelAttributes {
@@ -67,17 +67,15 @@ describe('统一插件边界', () => {
     expect(host.plugins).toEqual([]);
   });
 
-  it('命令包可以先于图形包激活，重复基础包遵循普通插件规则', async () => {
-    const shipped = await shippedPlugins();
-    const commands = await assemblePlugins([shipped[0]]);
-    expect(commands.errors).toEqual([]);
-    commands.client.execute(['init']);
-    expect(() => commands.client.execute(['create', 'g', 'g'])).toThrow('unknown shape type');
-    const duplicate = { ...shipped[1], name: 'duplicate-shapes' };
-    const host = await assemblePlugins([...shipped, duplicate]);
-    expect(host.plugins).toEqual(['commands', 'shapes']);
+  it('核心包同时提供图形和命令，重复注册时保留已接纳的核心包', async () => {
+    const core = await corePlugin();
+    const host = await assemblePlugins([core, { ...core, name: 'duplicate-core' }]);
+    expect(host.plugins).toEqual(['core']);
     expect(host.errors).toHaveLength(1);
     expect(host.errors[0]).toContain('duplicate registration: shapes/');
+    host.client.execute(['init']);
+    host.client.execute(['create', 'g', 'g']);
+    expect(host.workspace.document().requireNode('g').value.type()).toBe('g');
   });
 
   it('同包模型与 Handler 接入 set，别名优先且多部件整体撤销重做', async () => {

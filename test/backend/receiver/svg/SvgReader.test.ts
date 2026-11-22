@@ -1,7 +1,7 @@
 import { createWorkspace, createShapeFactory } from '../../../support/Plugins';
 import { describe, expect, it, vi } from 'vitest';
-import TreeCommand from '../../../../plugins/commands/TreeCommand';
-import CreateCommand from '../../../../plugins/commands/CreateCommand';
+import TreeCommand from '../../../../plugins/core/TreeCommand';
+import CreateCommand from '../../../../plugins/core/CreateCommand';
 import EditorError from '../../../../src/backend/error/EditorError';
 import Document from '../../../../src/backend/receiver/document/Document';
 import SvgReader from '../../../../src/backend/receiver/svg/SvgReader';

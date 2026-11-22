@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type Shape from '../../../../../src/backend/receiver/document/shape/Shape';
-import Rect from '../../../../../plugins/shapes/Rect';
-import Circle from '../../../../../plugins/shapes/Circle';
-import Ellipse from '../../../../../plugins/shapes/Ellipse';
-import Line from '../../../../../plugins/shapes/Line';
-import Text from '../../../../../plugins/shapes/Text';
+import Rect from '../../../../../plugins/core/Rect';
+import Circle from '../../../../../plugins/core/Circle';
+import Ellipse from '../../../../../plugins/core/Ellipse';
+import Line from '../../../../../plugins/core/Line';
+import Text from '../../../../../plugins/core/Text';
 
 // 叶子只做声明，逐类验证声明与 prd 的属性表一致。
 describe.each<[typeof Shape, string, string[], string | null, string[]]>([

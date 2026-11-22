@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import Document from '../../../../src/backend/receiver/document/Document';
 import EditorError from '../../../../src/backend/error/EditorError';
-import Group from '../../../../plugins/shapes/Group';
-import Rect from '../../../../plugins/shapes/Rect';
+import Group from '../../../../plugins/core/Group';
+import Rect from '../../../../plugins/core/Rect';
 
 function rect(id: string): Rect {
   return new Rect(id, new Map([['x', 0], ['y', 0], ['width', 1], ['height', 1]]));

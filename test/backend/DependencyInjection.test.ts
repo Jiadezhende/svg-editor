@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AttributeHandlerRegistry, TreeRenderer, Client, CoordinateSpec, Document, Shape, ShapeFactory, SvgReader, SvgWriter, Workspace } from '../../src/backend';
-import CreateCommand from '../../plugins/commands/CreateCommand';
-import ReadCommand from '../../plugins/commands/ReadCommand';
-import SaveCommand from '../../plugins/commands/SaveCommand';
+import CreateCommand from '../../plugins/core/CreateCommand';
+import ReadCommand from '../../plugins/core/ReadCommand';
+import SaveCommand from '../../plugins/core/SaveCommand';
 
 class Marker extends Shape {
   static override readonly type = 'marker';

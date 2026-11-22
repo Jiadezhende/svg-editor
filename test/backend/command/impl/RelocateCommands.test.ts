@@ -1,9 +1,9 @@
 import { createWorkspace } from '../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
-import AddtoCommand from '../../../../plugins/commands/AddtoCommand';
-import BackCommand from '../../../../plugins/commands/BackCommand';
-import CreateCommand from '../../../../plugins/commands/CreateCommand';
-import FrontCommand from '../../../../plugins/commands/FrontCommand';
+import AddtoCommand from '../../../../plugins/core/AddtoCommand';
+import BackCommand from '../../../../plugins/core/BackCommand';
+import CreateCommand from '../../../../plugins/core/CreateCommand';
+import FrontCommand from '../../../../plugins/core/FrontCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';

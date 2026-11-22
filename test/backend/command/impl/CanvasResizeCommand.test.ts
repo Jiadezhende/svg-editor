@@ -1,7 +1,7 @@
 import { createWorkspace } from '../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
-import CanvasResizeCommand from '../../../../plugins/commands/CanvasResizeCommand';
-import CanvasShowCommand from '../../../../plugins/commands/CanvasShowCommand';
+import CanvasResizeCommand from '../../../../plugins/core/CanvasResizeCommand';
+import CanvasShowCommand from '../../../../plugins/core/CanvasShowCommand';
 import DocumentCommand from '../../../../src/backend/command/DocumentCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';

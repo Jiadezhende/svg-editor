@@ -1,7 +1,7 @@
 import { createWorkspace } from '../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
-import CreateCommand from '../../../../plugins/commands/CreateCommand';
-import DeleteCommand from '../../../../plugins/commands/DeleteCommand';
+import CreateCommand from '../../../../plugins/core/CreateCommand';
+import DeleteCommand from '../../../../plugins/core/DeleteCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
 import Workspace from '../../../../src/backend/receiver/workspace/Workspace';
 import EditorError from '../../../../src/backend/error/EditorError';

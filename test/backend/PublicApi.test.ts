@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { AttributeHandlerRegistry, TreeRenderer, Client, ShapeFactory, Document, SvgReader, SvgWriter, Workspace } from '../../src/backend';
 import type { AttributeHandler, ShapeNode } from '../../src/backend';
 import { Marker, MarkerAttributesHandler, NudgeMarkerCommand } from '../support/PublicExtension';
-import SetCommand from '../../plugins/commands/SetCommand';
+import SetCommand from '../../plugins/core/SetCommand';
 // @ts-expect-error 注册用类型是工厂内部实现，不从公共入口导出。
 import type { ShapeClass } from '../../src/backend';
 // @ts-expect-error 也不能从实现模块单独导入内部注册类型。

@@ -51,7 +51,7 @@ npm run coverage             # 覆盖率报告
 - Shape 封装领域状态和私有部件；Document 维护 ShapeNode 树与全局约束，查询统一返回节点，通过 node.value 取得原模型引用。identifiers() 声明模型及私有部件 id，创建及结构恢复前统一检查。
 - `src/backend/index.ts` 提供模型、只读节点、属性规格、工厂、命令和持久化公共入口。ShapeClass 是工厂内部约束，ShapeNode 仅导出类型。
 - ShapeFactory 初始为空，提供 register、has、definition、create；规格视图不公开构造签名。课程 ShapeProvider 由具体 Shape 类的静态描述与构造能力承担，不增加包装对象。
-- `plugins/shapes` 和 `plugins/commands` 分别提供六种图形、17 个命令形式，经统一发现、扫描、暂存与校验装配；内置包不再维护 index.ts，宿主扫描包根目录的默认导出。宿主只构造基础服务。Client 保留 help、undo、redo、exit、quit 框架入口。main.ts 将装配后的 Client 接到控制台。
+- `plugins/core` 提供六种基础图形和 17 个命令形式。`plugins/extensions` 用于业务扩展，当前没有贡献。宿主扫描各包根目录的默认导出，经暂存与校验完成装配。Client 提供 help、undo、redo、exit、quit 框架入口。main.ts 将装配后的 Client 接到控制台。
 - Workspace 接收工厂、文件访问、reader、writer、AttributeHandlerRegistry 和 TreeRenderer，保存当前文档和路径；Client 接收 Workspace。read 使用注入 reader，save 复用会话 writer 及其映射。
 - AttributeHandlerRegistry 直接注册静态类，按注册顺序首次匹配。目标类型、属性名和别名由 Handler.matches 判断，SetCommand 调用命中项的 apply/display；零命中回退模型规则。默认注册表为空，不包装普通属性；命中失败恢复模型快照且不继续尝试。详见[属性处理器 ADR](adr/20261120_ATTRIBUTE_HANDLER_CONTRACT.md)。
 - SvgReader 负责 XML、类型选择、按需递归及候选文档组装；经 ShapeFactory.parse 调用可覆写 Shape.parse，由模型解析属性并消费私有部件，返回其余文档成员。已安装 data-kind 优先，未安装按原标签降级，结构无效拒绝。模型不接触 XML 库或 ShapeNode。

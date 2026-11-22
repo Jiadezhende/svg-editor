@@ -1,6 +1,8 @@
 # 自动发现插件
 
-应用启动时自动发现本目录直接子包，按目录名升序装配全部插件，不使用配置文件、白名单或启用开关。随应用分发的 shapes 包提供六种图形，commands 包提供 17 个命令形式；它们和其他包采用完全相同的发现、暂存和校验路径。空目录只提供 help、undo、redo、exit、quit 框架入口，不提供隐式基础能力。不扫描 node_modules；安装的包可复制或链接到这里。非包目录和普通文件不参与发现。
+应用启动时自动发现本目录的直接子包，按目录名升序装配。`core/` 提供六种基础图形和 17 个命令形式。`extensions/` 用于业务扩展，目前的清单为空。新增业务扩展时，将默认导出贡献类的文件放进 `extensions/` 根目录，并在它的清单中登记相应名称。
+
+宿主按包暂存并校验贡献。没有插件包时，CLI 仅提供 `help`、`undo`、`redo`、`exit`、`quit` 五个框架入口。安装的包可复制或链接到本目录。
 
 每个子包通过 `package.json` 声明 `name` 和 `contributes`。宿主统一扫描包根目录的默认导出，`main` 字段不参与发现。
 
@@ -52,6 +54,6 @@ export const mapping: SvgShapeMapping = {
 
 业务包可以在两个文件中分别默认导出 Shape 和 Handler，并在 `contributes` 中同时声明 `shapes` 和 `attributes`。
 
-SetCommand（commands 包）通过 Workspace.attributeHandlerRegistry().resolve(shape, key) 选择处理器；首个命中调用 apply/display，无命中才调用 Shape 默认属性规则。匹配逻辑及别名只在 Handler 中维护。部分修改或展示失败恢复模型快照，一次 set 仍为一个撤销单元。
+`core` 包的 SetCommand 通过 Workspace.attributeHandlerRegistry().resolve(shape, key) 选择处理器；首个命中调用 apply/display，无命中才调用 Shape 默认属性规则。匹配逻辑及别名只在 Handler 中维护。部分修改或展示失败恢复模型快照，一次 set 仍为一个撤销单元。
 
-commands 先于 shapes 注册是允许的：贡献只注册类型，具体图形在用户执行创建或读入用例时才通过工厂查询。普通插件不得注册 help、undo、redo、exit、quit，它们由 Client 管理。
+命令在用户执行创建或读入用例时通过工厂查询图形类型。`help`、`undo`、`redo`、`exit`、`quit` 由 Client 提供。

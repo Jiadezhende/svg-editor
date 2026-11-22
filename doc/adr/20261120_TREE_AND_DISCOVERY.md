@@ -14,7 +14,7 @@ onSuccess 的异常逐项捕获并作为 CommandResult 的展示警告，后续�
 
 ## 全部发现与加载
 
-默认入口以应用根 plugins/ 为发现目录，扫描直接子包的 package.json，按目录名稳定排序。对具有包清单的目录或链接，统一扫描包根目录的贡献文件。不遍历 node_modules 或包内依赖，不硬编码具体插件名。目录不存在或没有包时，仅提供五个 Client 框架入口。六种图形和 17 个命令形式分别由随应用分发的 shapes、commands 插件提供；没有隐式 defaults 注册。详见[统一插件迁移 ADR](20261120_UNIFIED_PLUGINS.md)与[自动扫描 ADR](20261120_PLUGIN_AUTOSCAN.md)。
+默认入口以应用根 plugins/ 为发现目录，扫描直接子包的 package.json，按目录名稳定排序。对具有包清单的目录或链接，统一扫描包根目录的贡献文件。不遍历 node_modules 或包内依赖，不硬编码具体插件名。目录不存在或没有包时，仅提供五个 Client 框架入口。随应用分发的 core 包提供六种基础图形和 17 个命令形式，extensions 包用于业务扩展。详见[统一插件迁移 ADR](20261120_UNIFIED_PLUGINS.md)与[自动扫描 ADR](20261120_PLUGIN_AUTOSCAN.md)。
 
 每个包声明 name、contributes。宿主按文件名扫描包根目录的 .ts、.mts、.js、.mjs 默认导出，把每个文件识别为一种贡献并生成 activate(context) 装配入口。contributes 分类为 shapes、commands、attributes、decorators，分别使用模型 type、命令 command、Handler.handlerName、Decorator.decoratorName，未声明类别为空。名称非空，声明列表不重复，声明集合须与实际暂存贡献一致。包内部允许现有命令协议的多个互斥形式，共用一个 command 名称；跨包重名仍拒绝。
 

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { Document, TreeDecorator, TreeRenderer } from '../../../src/backend';
-import type { TreeSuccess } from '../../../src/backend';
-import { createShapeFactory } from '../../support/Plugins';
-import { TestChangedDecorator, TestTypeDecorator } from '../../support/PublicTreeExtension';
-import { Panel } from '../../support/SvgCompositeExtension';
+import { Document, TreeDecorator, TreeRenderer } from '../../../../src/backend';
+import type { TreeSuccess } from '../../../../src/backend';
+import { createShapeFactory } from '../../../support/Plugins';
+import { TestChangedDecorator, TestTypeDecorator } from '../../../support/PublicTreeExtension';
+import { Panel } from '../../../support/SvgCompositeExtension';
 
 describe('树渲染与经典 Decorator', () => {
   it('无装饰器保持根、子树及连线输出，只遍历文档节点', async () => {

@@ -1,5 +1,5 @@
-import type Document from '../receiver/document/Document';
-import type ShapeNode from '../receiver/document/ShapeNode';
+import type Document from '../document/Document';
+import type ShapeNode from '../document/ShapeNode';
 import BaseTreeLineRenderer from './BaseTreeLineRenderer';
 import TreeDecorator from './TreeDecorator';
 import type TreeLineRenderer from './TreeLineRenderer';

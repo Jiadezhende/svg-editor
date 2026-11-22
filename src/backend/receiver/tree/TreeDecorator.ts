@@ -1,4 +1,4 @@
-import type ShapeNode from '../receiver/document/ShapeNode';
+import type ShapeNode from '../document/ShapeNode';
 import type TreeLineRenderer from './TreeLineRenderer';
 import type { CanvasInfo, TreeSuccess } from './TreeLineRenderer';
 

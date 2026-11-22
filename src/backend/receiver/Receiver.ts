@@ -1,6 +1,4 @@
 import EditorError from '../error/EditorError';
-import type TreeRenderer from '../tree/TreeRenderer';
-import type { TreeSuccess } from '../tree/TreeLineRenderer';
 import type Document from './document/Document';
 import type ShapeNode from './document/ShapeNode';
 import type { AttributeValue } from './document/shape/attribute/AttributeSpec';
@@ -10,6 +8,8 @@ import type ShapeFactory from './document/shape/ShapeFactory';
 import type SvgFile from './svg/SvgFile';
 import type SvgReader from './svg/SvgReader';
 import type SvgWriter from './svg/SvgWriter';
+import type TreeRenderer from './tree/TreeRenderer';
+import type { TreeSuccess } from './tree/TreeLineRenderer';
 
 /**
  * 编辑命令的接收者，持有当前文档和文件路径，通过装配好的服务提供编辑器操作。

@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AttributeHandlerRegistry, SvgReader, SvgWriter, TreeDecorator, TreeRenderer, Receiver } from '../../../src/backend';
-import type { TreeSuccess } from '../../../src/backend';
-import { createClientWithCommands, createShapeFactory } from '../../support/Plugins';
-import InitCommand from '../../../plugins/core/InitCommand';
-import CreateCommand from '../../../plugins/core/CreateCommand';
-import ReadCommand from '../../../plugins/core/ReadCommand';
-import SaveCommand from '../../../plugins/core/SaveCommand';
-import TreeCommand from '../../../plugins/core/TreeCommand';
-import CanvasResizeCommand from '../../../plugins/core/CanvasResizeCommand';
+import { AttributeHandlerRegistry, SvgReader, SvgWriter, TreeDecorator, TreeRenderer, Receiver } from '../../../../src/backend';
+import type { TreeSuccess } from '../../../../src/backend';
+import { createClientWithCommands, createShapeFactory } from '../../../support/Plugins';
+import InitCommand from '../../../../plugins/core/InitCommand';
+import CreateCommand from '../../../../plugins/core/CreateCommand';
+import ReadCommand from '../../../../plugins/core/ReadCommand';
+import SaveCommand from '../../../../plugins/core/SaveCommand';
+import TreeCommand from '../../../../plugins/core/TreeCommand';
+import CanvasResizeCommand from '../../../../plugins/core/CanvasResizeCommand';
 
 async function session(broken = false) {
   const events: TreeSuccess[] = [];

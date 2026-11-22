@@ -4,7 +4,7 @@ import type Command from './command/Command';
 import Invoker from './invoker/Invoker';
 import EditCommand from './command/EditCommand';
 import DocumentCommand from './command/DocumentCommand';
-import type { TreeSuccess } from './tree/TreeLineRenderer';
+import type { TreeSuccess } from './receiver/tree/TreeLineRenderer';
 
 type CommandDefinition = Pick<typeof Command, 'command' | 'usage' | 'accepts'> & { readonly name: string };
 type CommandFactory = (args: readonly string[]) => Command;

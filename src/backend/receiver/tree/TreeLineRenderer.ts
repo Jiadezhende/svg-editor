@@ -1,4 +1,4 @@
-import type ShapeNode from '../receiver/document/ShapeNode';
+import type ShapeNode from '../document/ShapeNode';
 
 export interface CanvasInfo {
   readonly width: number;

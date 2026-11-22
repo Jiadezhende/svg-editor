@@ -57,7 +57,7 @@ function decoratorSource(name: string, type: string): string {
 // 用真实 Node/tsx 加载磁盘包，避免测试转换器替代原生模块解析（尤其 Windows 编码路径）。
 function runHost(body: string): any {
   const discovery = JSON.stringify(pathToFileURL(resolve('src/host/discovery.ts')).href);
-  const assembly = JSON.stringify(pathToFileURL(resolve('src/host/PluginHost.ts')).href);
+  const assembly = JSON.stringify(pathToFileURL(resolve('test/support/Plugins.ts')).href);
   const scan = JSON.stringify(pathToFileURL(resolve('src/host/scan.ts')).href);
   const source = `import { createDiscoveredHost } from ${discovery};
     import { assemblePlugins } from ${assembly};

@@ -48,7 +48,9 @@ export const mapping: SvgShapeMapping = {
 
 扫描文件缺少有效默认导出、模块或依赖加载失败、声明不一致或名称重复时，宿主报告错误，跳过该包并继续加载。扫描生成的装配入口返回后，注册上下文随即关闭。
 
-代码装配可使用宿主的 `assemblePlugins` 直接提交激活入口，或先用 `scanPlugin` 扫描包目录再提交；两者同样经过暂存、校验和装配路径，空列表表示没有贡献。指定发现目录只加载该目录，没有 defaults 兜底。它属于宿主 API，插件实现本身只依赖 src/backend 公共入口。正式业务插件及双配置装配交付不在本次架构调整中。
+CLI 通过 `createDiscoveredHost` 发现插件。指定发现目录时，宿主只加载该目录下的包。插件实现通过 `src/backend` 公共入口使用领域和注册契约。
+
+仓库测试可以通过 `test/support/Plugins.ts` 中的 `assemblePlugins` 直接传入插件对象。这个辅助函数调用与 CLI 相同的 `assembleSources`，检查清单并装配插件。
 
 ## 领域 Handler 的接入位置
 

@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Command, CommandResult, Shape } from '../../src/backend';
-import { assemblePlugins } from '../../src/host/PluginHost';
-import type { PluginRegistration } from '../../src/host/PluginHost';
-import { corePlugin, createHost } from '../support/Plugins';
+import { assemblePlugins, corePlugin, createHost } from '../support/Plugins';
+import type { PluginRegistration } from '../support/Plugins';
 import { Panel, panelMapping } from '../support/SvgCompositeExtension';
 
 class PanelAttributes {

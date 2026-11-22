@@ -4,9 +4,9 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Command, CommandResult, Document, Shape, TreeDecorator } from '../../src/backend';
 import type { ExtensionContext, ShapeNode } from '../../src/backend';
-import { assemblePlugins, assembleSources } from '../../src/host/PluginHost';
-import type { PluginRegistration } from '../../src/host/PluginHost';
-import { createHost } from '../support/Plugins';
+import { assembleSources } from '../../src/host/PluginHost';
+import { assemblePlugins, createHost } from '../support/Plugins';
+import type { PluginRegistration } from '../support/Plugins';
 import { Panel, panelMapping } from '../support/SvgCompositeExtension';
 import { TestChangedDecorator } from '../support/PublicTreeExtension';
 

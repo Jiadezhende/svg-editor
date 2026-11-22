@@ -1,0 +1,10 @@
+{
+  "name": "modified-star",
+  "type": "module",
+  "main": "./index.ts",
+  "contributes": {
+    "decorators": [
+      "modified-star"
+    ]
+  }
+}

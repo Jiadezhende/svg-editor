@@ -1,0 +1,10 @@
+{
+  "name": "dir",
+  "type": "module",
+  "main": "./index.ts",
+  "contributes": {
+    "commands": [
+      "dir"
+    ]
+  }
+}

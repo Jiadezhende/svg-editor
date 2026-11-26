@@ -12,4 +12,16 @@ export default class Ellipse extends Shape {
   ];
   static override readonly paint = 'fill';
   static override readonly anchor = ['cx', 'cy'] as const;
+
+  override move(dx: number, dy: number): void {
+    this.assign('cx', this.number('cx') + dx);
+    this.assign('cy', this.number('cy') + dy);
+  }
+
+  override scale(factor: number): void {
+    this.assign('cx', this.number('cx') * factor);
+    this.assign('cy', this.number('cy') * factor);
+    this.assign('rx', this.number('rx') * factor);
+    this.assign('ry', this.number('ry') * factor);
+  }
 }

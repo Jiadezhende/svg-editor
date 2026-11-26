@@ -5,8 +5,11 @@ import Circle from '../../../../../plugins/core/Circle';
 import Ellipse from '../../../../../plugins/core/Ellipse';
 import Line from '../../../../../plugins/core/Line';
 import Text from '../../../../../plugins/core/Text';
+import Group from '../../../../../plugins/core/Group';
 
-// 叶子只做声明，逐类验证声明与 prd 的属性表一致。
+type ModelClass = new (id: string, values?: ReadonlyMap<string, number | string>) => Shape;
+
+// 逐类验证声明与 prd 的属性表一致。
 describe.each<[typeof Shape, string, string[], string | null, string[]]>([
   [Rect, 'rect', ['x', 'y', 'width', 'height'], 'fill', ['width', 'height']],
   [Circle, 'circle', ['cx', 'cy', 'r'], 'fill', ['r']],
@@ -61,5 +64,37 @@ describe('Text 的子文本', () => {
       ['y', 2],
     ]);
     expect(text.content()).toBe('a < b');
+  });
+});
+
+describe.each<[
+  ModelClass,
+  ReadonlyMap<string, number | string>,
+  ReadonlyArray<readonly [string, number | string]>,
+  ReadonlyArray<readonly [string, number | string]>,
+]>([
+  [Rect, new Map<string, number | string>([['x', 1], ['y', 2], ['width', 3], ['height', 4]]),
+    [['x', 11], ['y', 22], ['width', 3], ['height', 4]],
+    [['x', 22], ['y', 44], ['width', 6], ['height', 8]]],
+  [Circle, new Map<string, number | string>([['cx', 1], ['cy', 2], ['r', 3]]),
+    [['cx', 11], ['cy', 22], ['r', 3]],
+    [['cx', 22], ['cy', 44], ['r', 6]]],
+  [Ellipse, new Map<string, number | string>([['cx', 1], ['cy', 2], ['rx', 3], ['ry', 4]]),
+    [['cx', 11], ['cy', 22], ['rx', 3], ['ry', 4]],
+    [['cx', 22], ['cy', 44], ['rx', 6], ['ry', 8]]],
+  [Line, new Map<string, number | string>([['x1', 1], ['y1', 2], ['x2', 3], ['y2', 4]]),
+    [['x1', 11], ['y1', 22], ['x2', 13], ['y2', 24]],
+    [['x1', 22], ['y1', 44], ['x2', 26], ['y2', 48]]],
+  [Text, new Map<string, number | string>([['x', 1], ['y', 2], ['text', 'hi']]),
+    [['x', 11], ['y', 22]],
+    [['x', 22], ['y', 44]]],
+  [Group, new Map<string, number | string>(), [], []],
+])('%o 的变换范围', (Model, values, moved, scaled) => {
+  it('move 只平移坐标，scale 同乘坐标与尺寸', () => {
+    const shape = new Model('s', values);
+    shape.move(10, 20);
+    expect(shape.entries()).toEqual(moved);
+    shape.scale(2);
+    expect(shape.entries()).toEqual(scaled);
   });
 });

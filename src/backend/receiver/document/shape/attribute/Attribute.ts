@@ -36,16 +36,6 @@ export default abstract class Attribute<T extends number | string = number | str
     return this.value === null ? null : this.format(this.value);
   }
 
-  /** 平移后的属性；默认不变。 */
-  translate(_dx: number, _dy: number): Attribute<T> {
-    return this;
-  }
-
-  /** 以坐标原点为中心缩放后的属性；默认不变。 */
-  scale(_factor: number): Attribute<T> {
-    return this;
-  }
-
   /** 坐标所在的轴；不是坐标时为 null。 */
   axis(): Axis | null {
     return null;

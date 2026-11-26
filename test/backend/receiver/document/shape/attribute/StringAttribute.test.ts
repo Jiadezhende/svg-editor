@@ -16,10 +16,4 @@ describe('StringAttribute 字符串属性', () => {
   it('默认值为空串', () => {
     expect(attribute.defaultValue()).toBe('');
   });
-
-  it('不参与平移与缩放', () => {
-    const painted = attribute.withToken('red');
-    expect(painted.translate(10, 10).value).toBe('red');
-    expect(painted.scale(2).value).toBe('red');
-  });
 });

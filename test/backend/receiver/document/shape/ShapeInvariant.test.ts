@@ -21,11 +21,9 @@ describe('Shape 自身不变量', () => {
     expect(() => new Rect('r', new Map(geometry).set('fill', 123))).toThrow('fill must be a string');
   });
 
-  it('变换后溢出，前面已计算的属性也不修改', () => {
+  it('变换溢出由属性规则在写入时拒绝，模型不再自行回滚', () => {
     const shape = new Rect('r', new Map(geometry).set('height', Number.MAX_VALUE));
-    const before = shape.entries();
     expect(() => shape.scale(2)).toThrow('height must be a finite number');
-    expect(shape.entries()).toEqual(before);
   });
 
   it('容器后一个子节点变换失败，前面的子节点及容器状态恢复', () => {
@@ -44,18 +42,20 @@ describe('Shape 自身不变量', () => {
     expect(bNode.parent()).toBe(innerNode);
   });
 
-  it.each([0, -1, NaN, Infinity])('直接缩放拒绝非法系数 %s', (factor) => {
-    const shape = new Rect('r', geometry);
-    expect(() => shape.scale(factor)).toThrow('scale factor must be positive');
-    expect(shape.entries()).toEqual(new Rect('r', geometry).entries());
+  it('缩放系数不做模型级校验：0 得到 0 尺寸，负值与非法值由属性规则拒绝', () => {
+    const zero = new Rect('r', geometry);
+    zero.scale(0);
+    expect(zero.value('width')).toBe(0);
+    expect(zero.value('height')).toBe(0);
+    expect(() => new Rect('r', geometry).scale(-1)).toThrow('width must be non-negative');
+    expect(() => new Rect('r', geometry).scale(NaN)).toThrow('x must be a finite number');
+    expect(() => new Rect('r', geometry).scale(Infinity)).toThrow('x must be a finite number');
   });
 
-  it('直接平移拒绝非有限偏移及运算溢出，保持原值', () => {
+  it('平移的非法偏移由坐标规则在写入时拒绝，模型不再自行回滚', () => {
     const shape = new Rect('r', new Map(geometry).set('y', Number.MAX_VALUE));
-    const before = shape.entries();
-    expect(() => shape.move(1, NaN)).toThrow('move offsets must be finite');
+    expect(() => shape.move(1, NaN)).toThrow('y must be a finite number');
     expect(() => shape.move(1, Number.MAX_VALUE)).toThrow('y must be a finite number');
-    expect(shape.entries()).toEqual(before);
   });
 
   it('画布和 viewBox 必须有限且尺寸有效，输入数组不保留可变引用', () => {

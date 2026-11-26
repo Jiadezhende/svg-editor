@@ -20,6 +20,10 @@ describe('Document 私有部件 id', () => {
     for (const ids of [['p', 'p'], ['p', '1bad'], ['part']]) {
       class Invalid extends Shape {
         static override readonly type = 'invalid';
+
+        override move(): void {}
+        override scale(): void {}
+
         override identifiers(): readonly string[] { return ids; }
       }
       const doc = new Document(100, 100);
@@ -33,6 +37,10 @@ describe('Document 私有部件 id', () => {
     let conflict = false;
     class MutableDeclaration extends Shape {
       static override readonly type = 'test';
+
+      override move(): void {}
+      override scale(): void {}
+
       override identifiers(): readonly string[] { return conflict ? [this.id(), 'shared'] : [this.id()]; }
     }
     const first = doc.insert(new MutableDeclaration('a'));

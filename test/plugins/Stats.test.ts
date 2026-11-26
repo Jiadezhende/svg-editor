@@ -3,12 +3,22 @@ import { Document, Shape } from '../../src/backend';
 import type { ShapeView } from '../../src/backend';
 import activate, { StatsCommand } from '../../plugins/stats/index';
 
-class Rect extends Shape { static override readonly type = 'rect'; }
-class Text extends Shape { static override readonly type = 'text'; }
+class Rect extends Shape {
+  static override readonly type = 'rect';
+  override move(): void {}
+  override scale(): void {}
+}
+class Text extends Shape {
+  static override readonly type = 'text';
+  override move(): void {}
+  override scale(): void {}
+}
 
 class Container extends Shape {
   static override readonly type = 'container';
   override acceptsChildren(): boolean { return true; }
+  override move(): void {}
+  override scale(): void {}
   override identifiers(): readonly string[] { return [this.id(), `${this.id()}-text`]; }
   protected override viewParts(): readonly ShapeView[] { return [new Text(`${this.id()}-text`).view()]; }
 }

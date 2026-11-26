@@ -6,6 +6,9 @@ class Marker extends Shape {
   static override readonly type = 'marker';
   static override readonly params = [new CoordinateAttribute('x', 'x'), new TextAttribute('text')];
   static override readonly content = 'text';
+
+  override move(): void {}
+  override scale(): void {}
 }
 
 describe('Shape 数据解析契约', () => {
@@ -28,6 +31,8 @@ describe('Shape 数据解析契约', () => {
     class Group extends Shape {
       static override readonly type = 'g';
       override acceptsChildren(): boolean { return true; }
+      override move(): void {}
+      override scale(): void {}
     }
     const child = Marker.parse('m', new Map()).shape;
     const result = Group.parse('g', new Map(), () => [child]);
@@ -38,6 +43,8 @@ describe('Shape 数据解析契约', () => {
   it('特殊类覆写解析并消费输入部件，工厂不公开构造函数', () => {
     class Composite extends Shape {
       static override readonly type = 'composite';
+      override move(): void {}
+      override scale(): void {}
       static override parse(id: string, attributes: ReadonlyMap<string, string>, readChildren: () => readonly Shape[]): ShapeParseResult {
         const parts = readChildren();
         if (parts.length !== 1 || !(parts[0] instanceof Marker)) throw new Error('invalid parts');

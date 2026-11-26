@@ -8,6 +8,9 @@ import EditorError from '../../../../../src/backend/error/EditorError';
 
 class Hexagon extends Shape {
   static override readonly type = 'hexagon';
+
+  override move(): void {}
+  override scale(): void {}
 }
 
 describe('ShapeFactory 图形工厂', () => {
@@ -74,7 +77,10 @@ describe('ShapeFactory 图形工厂', () => {
   });
 
   it('类型名缺失或重名属于程序缺陷', async () => {
-    class Unnamed extends Shape {}
+    class Unnamed extends Shape {
+      override move(): void {}
+      override scale(): void {}
+    }
     const factory = (await createShapeFactory());
     expect(() => factory.register(Unnamed)).toThrow('must declare static type');
     expect(() => factory.register(Rect)).toThrow('duplicate shape type: rect');
@@ -87,16 +93,25 @@ describe('ShapeFactory 锚点校验', () => {
       static override readonly type = 'missing';
       static override readonly params = Rect.params;
       static override readonly anchor: readonly [string, string] = ['cx', 'cy'];
+
+      override move(): void {}
+      override scale(): void {}
     }
     class Swapped extends Shape {
       static override readonly type = 'swapped';
       static override readonly params = Rect.params;
       static override readonly anchor: readonly [string, string] = ['y', 'x'];
+
+      override move(): void {}
+      override scale(): void {}
     }
     class NotCoordinate extends Shape {
       static override readonly type = 'length';
       static override readonly params = Rect.params;
       static override readonly anchor: readonly [string, string] = ['width', 'y'];
+
+      override move(): void {}
+      override scale(): void {}
     }
     const factory = (await createShapeFactory());
     expect(() => factory.register(Missing)).toThrow('missing anchor cx must be a x coordinate');

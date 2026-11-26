@@ -5,12 +5,34 @@ import type { ShapeMemento, ShapeParseResult, SvgShapeMapping } from '../../src/
 export class Frame extends Shape {
   static override readonly type = 'rect';
   static override readonly params = [new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new LengthAttribute('width'), new LengthAttribute('height')];
+
+  override move(dx: number, dy: number): void {
+    this.assign('x', this.number('x') + dx);
+    this.assign('y', this.number('y') + dy);
+  }
+
+  override scale(factor: number): void {
+    this.assign('x', this.number('x') * factor);
+    this.assign('y', this.number('y') * factor);
+    this.assign('width', this.number('width') * factor);
+    this.assign('height', this.number('height') * factor);
+  }
 }
 
 export class Caption extends Shape {
   static override readonly type = 'text';
   static override readonly params = [new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new TextAttribute('text')];
   static override readonly content = 'text';
+
+  override move(dx: number, dy: number): void {
+    this.assign('x', this.number('x') + dx);
+    this.assign('y', this.number('y') + dy);
+  }
+
+  override scale(factor: number): void {
+    this.assign('x', this.number('x') * factor);
+    this.assign('y', this.number('y') * factor);
+  }
 }
 
 export class Panel extends Shape {
@@ -50,15 +72,13 @@ export class Panel extends Shape {
   }
 
   override move(dx: number, dy: number): void {
-    const before = this.capture();
-    try { super.move(dx, dy); this.frame.move(dx, dy); this.caption.move(dx, dy); }
-    catch (error) { before.restore(); throw error; }
+    this.frame.move(dx, dy);
+    this.caption.move(dx, dy);
   }
 
   override scale(factor: number): void {
-    const before = this.capture();
-    try { super.scale(factor); this.frame.scale(factor); this.caption.scale(factor); }
-    catch (error) { before.restore(); throw error; }
+    this.frame.scale(factor);
+    this.caption.scale(factor);
   }
 }
 

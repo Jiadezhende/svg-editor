@@ -29,16 +29,13 @@ export default class CompositeShape extends Shape {
   }
 
   override move(dx: number, dy: number): void {
-    this.changeParts(() => { super.move(dx, dy); this.frame.move(dx, dy); this.caption.move(dx, dy); });
+    this.frame.move(dx, dy);
+    this.caption.move(dx, dy);
   }
 
   override scale(factor: number): void {
-    this.changeParts(() => { super.scale(factor); this.frame.scale(factor); this.caption.scale(factor); });
-  }
-
-  private changeParts(change: () => void): void {
-    const before = this.capture();
-    try { change(); } catch (error) { before.restore(); throw error; }
+    this.frame.scale(factor);
+    this.caption.scale(factor);
   }
 
   setLabel(value: string): void {

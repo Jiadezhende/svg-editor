@@ -23,12 +23,6 @@ describe('Attribute 通用语义', () => {
     expect(new CoordinateAttribute('x', 'x').defaultValue()).toBe(0);
   });
 
-  it('未设置的属性在平移和缩放后仍为未设置', () => {
-    const attribute = new CoordinateAttribute('x', 'x');
-    expect(attribute.translate(10, 0).value).toBeNull();
-    expect(attribute.scale(2).value).toBeNull();
-  });
-
   it('非坐标属性的 axis() 为 null', () => {
     expect(new StringAttribute('fill').axis()).toBeNull();
   });

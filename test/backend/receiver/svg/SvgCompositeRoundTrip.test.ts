@@ -11,6 +11,8 @@ import { Caption, Frame, Panel, panelMapping } from '../../../support/SvgComposi
 class Group extends Shape {
   static override readonly type = 'g';
   override acceptsChildren(): boolean { return true; }
+  override move(): void {}
+  override scale(): void {}
 }
 
 function factory(installed = true): ShapeFactory {

@@ -8,6 +8,16 @@ export class Marker extends Shape {
   static override readonly type = 'test-marker';
   static override readonly params = [new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y')];
 
+  override move(dx: number, dy: number): void {
+    this.assign('x', this.number('x') + dx);
+    this.assign('y', this.number('y') + dy);
+  }
+
+  override scale(factor: number): void {
+    this.assign('x', this.number('x') * factor);
+    this.assign('y', this.number('y') * factor);
+  }
+
   nudge(dx: number): void {
     this.move(dx, 0);
   }

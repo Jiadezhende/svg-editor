@@ -8,6 +8,9 @@ import SaveCommand from '../../plugins/core/SaveCommand';
 class Marker extends Shape {
   static override readonly type = 'marker';
   static override readonly params = [new CoordinateAttribute('x', 'x')];
+
+  override move(): void {}
+  override scale(): void {}
 }
 
 describe('会话依赖注入', () => {

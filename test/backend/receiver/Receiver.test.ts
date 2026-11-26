@@ -63,6 +63,10 @@ describe('Receiver 当前文档槽位', () => {
     class Guarded extends Shape {
       static override readonly type = 'guarded';
       static override readonly params = [new CoordinateAttribute('x', 'x')];
+
+      override move(): void {}
+      override scale(): void {}
+
       override validate(): void {
         super.validate();
         if (this.value('x') === 9) throw new Error('guard failed');

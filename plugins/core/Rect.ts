@@ -12,4 +12,16 @@ export default class Rect extends Shape {
   ];
   static override readonly paint = 'fill';
   static override readonly anchor = ['x', 'y'] as const;
+
+  override move(dx: number, dy: number): void {
+    this.assign('x', this.number('x') + dx);
+    this.assign('y', this.number('y') + dy);
+  }
+
+  override scale(factor: number): void {
+    this.assign('x', this.number('x') * factor);
+    this.assign('y', this.number('y') * factor);
+    this.assign('width', this.number('width') * factor);
+    this.assign('height', this.number('height') * factor);
+  }
 }

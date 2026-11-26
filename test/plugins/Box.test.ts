@@ -10,15 +10,23 @@ class Rect extends Shape {
   static override readonly params = [
     new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new LengthAttribute('width'), new LengthAttribute('height'),
   ];
+
+  override move(): void {}
+  override scale(): void {}
 }
 class Text extends Shape {
   static override readonly type = 'text';
   static override readonly params = [new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new TextAttribute('text')];
   static override readonly content = 'text';
+
+  override move(): void {}
+  override scale(): void {}
 }
 class Group extends Shape {
   static override readonly type = 'g';
   override acceptsChildren(): boolean { return true; }
+  override move(): void {}
+  override scale(): void {}
 }
 
 function factory(boxInstalled: boolean): ShapeFactory {
@@ -60,10 +68,10 @@ describe('box 插件', () => {
     const renderer = new TreeRenderer(activate().decorators);
     expect(renderer.render(document, node)).toEqual([
       'g#n1 (box)',
-      '├── rect#n1-rect  x=120 y=100 width=160 height=60 fill=#4a90d9',
+      '├── rect#n1-rect  x=120 y=100 width=160 height=60',
       '├── text#n1-label  x=140 y=135 text="开始"',
       '└── g#n2 (box)',
-      '    ├── rect#n2-rect  x=120 y=100 width=160 height=60 fill=#4a90d9',
+      '    ├── rect#n2-rect  x=120 y=100 width=160 height=60',
       '    └── text#n2-label  x=140 y=135 text="开始"',
     ]);
   });

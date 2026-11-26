@@ -15,11 +15,6 @@ describe('StrokeWidthAttribute 线宽', () => {
     expect(attribute.display()).toBe('2');
   });
 
-  it('平移与缩放都保持原值', () => {
-    expect(attribute.translate(10, 10).value).toBe(2);
-    expect(attribute.scale(2).value).toBe(2);
-  });
-
   it('不是坐标', () => {
     expect(attribute.axis()).toBeNull();
   });

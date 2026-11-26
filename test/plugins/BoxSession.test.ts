@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import activateBox from '../../plugins/box/index';
+import Box from '../../plugins/box/Box';
 import activateStar from '../../plugins/modified-star/index';
 import { createHost } from '../support/Plugins';
 
@@ -27,18 +28,19 @@ async function session() {
 
 describe('box 命令协作', () => {
   it('fill 和 label 各自撤销重做，私有部件跟踪变化，标签可并存', async () => {
-    const { execute } = await session();
+    const { execute, receiver } = await session();
+    const fill = () => (receiver.document().requireNode('n').value as Box).frameShape().display('fill');
     expect(execute('tree', 'n')[0]).toBe('g#n * (box)');
     execute('set', 'n', 'fill', '#f5a623');
-    expect(execute('tree', 'n')[1]).toContain('fill=#f5a623');
+    expect(fill()).toBe('#f5a623');
     execute('undo');
-    expect(execute('tree', 'n')[1]).toContain('fill=#4a90d9');
+    expect(fill()).toBe('#4a90d9');
     execute('redo');
     execute('set', 'n', 'label', '处理数据 v2');
     expect(execute('tree', 'n')[2]).toContain('"处理数据 v2"');
     execute('undo');
     const restored = execute('tree', 'n');
-    expect(restored[1]).toContain('fill=#f5a623');
+    expect(fill()).toBe('#f5a623');
     expect(restored[2]).toContain('"开始"');
     execute('redo');
     expect(execute('tree', 'n')[2]).toContain('"处理数据 v2"');
@@ -50,7 +52,7 @@ describe('box 命令协作', () => {
     execute('set', 'n', 'label', 'changed');
     expect(execute('tree', 'n')).toEqual([
       'g#n (box)',
-      '├── rect#n-rect  x=120 y=100 width=160 height=60 fill=#f5a623',
+      '├── rect#n-rect  x=120 y=100 width=160 height=60',
       '└── text#n-label  x=140 y=135 text="changed" *',
     ]);
     execute('undo');

@@ -2,10 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { Document, Shape, TreeRenderer } from '../../src/backend';
 import activate, { ModifiedStar } from '../../plugins/modified-star/index';
 
-class Leaf extends Shape { static override readonly type = 'leaf'; }
+class Leaf extends Shape {
+  static override readonly type = 'leaf';
+  override move(): void {}
+  override scale(): void {}
+}
 class Group extends Shape {
   static override readonly type = 'g';
   override acceptsChildren(): boolean { return true; }
+  override move(): void {}
+  override scale(): void {}
 }
 
 describe('modified-star 插件', () => {

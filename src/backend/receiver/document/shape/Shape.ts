@@ -99,7 +99,7 @@ export default abstract class Shape {
     this.shapeId = id;
     this.attributesByName = Shape.buildAttributes(this.definition());
     for (const [name, value] of values) {
-      this.assignValue(name, value);
+      this.assign(name, value);
     }
   }
 
@@ -126,6 +126,15 @@ export default abstract class Shape {
   /** 属性的原值；未设置（或不在属性表中）时为 null。 */
   value(name: string): number | string | null {
     return this.attributesByName.get(name)?.value ?? null;
+  }
+
+  /** 数值属性的原值；未设置或不是数值时报错。供模型自身计算使用。 */
+  protected number(name: string): number {
+    const value = this.value(name);
+    if (typeof value !== 'number') {
+      throw new EditorError(`${name} must be a number`);
+    }
+    return value;
   }
 
   /** 已设置属性的原值，按属性表顺序，`content` 属性除外（供写出元素属性）。 */
@@ -206,25 +215,11 @@ export default abstract class Shape {
     }
   }
 
-  /** 平移自身属性；具体复合模型自行组织内部部件。 */
-  move(dx: number, dy: number): void {
-    if (!Number.isFinite(dx) || !Number.isFinite(dy)) {
-      throw new EditorError('move offsets must be finite');
-    }
-    this.transformAtomically(() => {
-      this.transform((attribute) => attribute.translate(dx, dy));
-    });
-  }
+  /** 平移自身；具体模型实现参与平移的属性。违规值由属性规则拒绝。 */
+  abstract move(dx: number, dy: number): void;
 
-  /** 以坐标原点为中心缩放自身属性。 */
-  scale(factor: number): void {
-    if (!Number.isFinite(factor) || factor <= 0) {
-      throw new EditorError('scale factor must be positive');
-    }
-    this.transformAtomically(() => {
-      this.transform((attribute) => attribute.scale(factor));
-    });
-  }
+  /** 以坐标原点为中心缩放自身；具体模型实现参与缩放的属性。 */
+  abstract scale(factor: number): void;
 
   /** 自身属性快照；复合模型可扩展其内部部件快照。 */
   capture(): ShapeMemento {
@@ -256,20 +251,10 @@ export default abstract class Shape {
     if (!this.acceptsChildren()) throw new EditorError(`not a container: ${this.id()}`);
   }
 
-  private transformAtomically(change: () => void): void {
-    const before = this.capture();
-    try {
-      change();
-    } catch (error) {
-      before.restore();
-      throw error;
-    }
-  }
-
   // ── 子类扩展与内部辅助 ──
 
-  /** 写入已校验的原值；供构造、恢复与复合部件初始化使用，不作为用户编辑入口。 */
-  protected assignValue(name: string, value: number | string): void {
+  /** 写入已解析的值：按属性规则校验后替换，不经过文本解析。供模型计算与恢复使用。 */
+  assign(name: string, value: number | string): void {
     const attribute = this.attributesByName.get(name);
     if (attribute === undefined) {
       throw new Error(`${this.type()} has no attribute ${name}`);
@@ -301,20 +286,6 @@ export default abstract class Shape {
       attributes.set(attribute.name(), attribute);
     }
     return attributes;
-  }
-
-  private transform(change: (attribute: Attribute) => Attribute): void {
-    const next = new Map<string, Attribute>();
-    for (const attribute of this.definition().attributes()) {
-      const current = this.attributesByName.get(attribute.name());
-      if (current === undefined || current.value === null) {
-        continue;
-      }
-      next.set(attribute.name(), change(current));
-    }
-    for (const [name, value] of next) {
-      this.attributesByName.set(name, value);
-    }
   }
 
   /** attributes 中已设置的值，以 `名=展示值` 用空格连接。 */

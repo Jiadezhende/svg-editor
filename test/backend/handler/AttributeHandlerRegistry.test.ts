@@ -4,6 +4,9 @@ import type { AttributeHandler } from '../../../src/backend';
 
 class Marker extends Shape {
   static override readonly type = 'marker';
+
+  override move(): void {}
+  override scale(): void {}
 }
 
 function handler(name: string, matches: boolean) {

@@ -11,6 +11,8 @@ function factory(installed = true) {
   class Group extends Shape {
     static override readonly type = 'g';
     override acceptsChildren(): boolean { return true; }
+    override move(): void {}
+    override scale(): void {}
   }
   registry.register(Group);
   if (installed) registry.register(Panel);
@@ -91,6 +93,8 @@ describe('SvgReader 复合数据构造', () => {
   it.each(['duplicate', 'foreign', 'wrong-id'])('拒绝解析契约无效的结果：%s', (mode) => {
     class Invalid extends Shape {
       static override readonly type = 'invalid';
+      override move(): void {}
+      override scale(): void {}
       static override parse(id: string, _attributes: ReadonlyMap<string, string>, readChildren: () => readonly Shape[]): ShapeParseResult {
         const children = readChildren();
         return { shape: new Invalid(mode === 'wrong-id' ? 'different' : id), children: mode === 'duplicate' ? [children[0], children[0]] : [new Invalid('foreign')] };
@@ -104,6 +108,8 @@ describe('SvgReader 复合数据构造', () => {
   it('不能消费仍带有文档关系的普通容器而静默丢弃其后代', () => {
     class Drop extends Shape {
       static override readonly type = 'drop';
+      override move(): void {}
+      override scale(): void {}
       static override parse(id: string, _attributes: ReadonlyMap<string, string>, readChildren: () => readonly Shape[]): ShapeParseResult {
         readChildren();
         return { shape: new Drop(id), children: [] };

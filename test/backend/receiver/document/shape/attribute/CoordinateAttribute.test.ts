@@ -23,17 +23,6 @@ describe('CoordinateAttribute 坐标', () => {
     expect(attribute.withValue(0.1 + 0.2).display()).toBe('0.3');
   });
 
-  it('平移按轴加上偏移：x 轴加 dx，y 轴加 dy', () => {
-    expect(attribute.translate(30, -5).value).toBe(35);
-    expect(new CoordinateAttribute('cy', 'y', 100).translate(30, -5).value).toBe(95);
-  });
-
-  it('缩放时乘以系数，并保留轴配置', () => {
-    const scaled = attribute.scale(2);
-    expect(scaled.value).toBe(10);
-    expect(scaled.axis()).toBe('x');
-  });
-
   it('默认值为 0', () => {
     expect(attribute.defaultValue()).toBe(0);
   });

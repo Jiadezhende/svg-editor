@@ -52,8 +52,14 @@ export default class Receiver {
     else handler.apply(shape, key, token);
   }
 
-  resolveAttributeHandler(shape: Shape, key: string): ReturnType<AttributeHandlerRegistry['resolve']> {
-    return this.handlerRegistry.resolve(shape, key);
+  /** 编辑入口：同一次匹配内读取旧值、写入、整图校验，再读取新值。 */
+  set(shape: Shape, key: string, token: string): { previous: string | null; current: string | null } {
+    const handler = this.handlerRegistry.resolve(shape, key);
+    const read = (): string | null => (handler === null ? shape.display(key) : handler.display(shape, key));
+    const previous = read();
+    this.write(shape, key, token, handler);
+    shape.validate();
+    return { previous, current: read() };
   }
 
   renderTree(root: ShapeNode | null): readonly string[] {

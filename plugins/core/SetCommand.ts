@@ -5,7 +5,7 @@ import type { ShapeMemento } from '../../src/backend';
 import type { Receiver } from '../../src/backend';
 
 /**
- * `set <id> <attr> <value>`：优先调用首个匹配的静态 Handler，零命中时使用模型属性规则。
+ * `set <id> <attr> <value>`：由 Receiver 用同一次匹配完成写入、整图校验和前后回显。
  * 模型快照覆盖本次编辑及回显计算；失败不替换已有撤销记录。
  */
 export default class SetCommand extends EditCommand {
@@ -29,18 +29,11 @@ export default class SetCommand extends EditCommand {
 
   execute(): CommandResult {
     const shape = this.receiver.document().requireNode(this.id).value;
-    const handler = this.receiver.resolveAttributeHandler(shape, this.attribute);
     const memento = shape.capture();
-    const display = () => handler === null
-      ? shape.display(this.attribute)
-      : handler.display(shape, this.attribute);
     try {
-      const previous = display();
-      if (handler === null) shape.set(this.attribute, this.token);
-      else handler.apply(shape, this.attribute, this.token);
-      const result = new CommandResult().line(`${shape.label()} updated: ${this.attribute}=${display()}`);
+      const { previous, current } = this.receiver.set(shape, this.attribute, this.token);
       this.updated = { shape, memento, previous };
-      return result;
+      return new CommandResult().line(`${shape.label()} updated: ${this.attribute}=${current}`);
     } catch (error) {
       memento.restore();
       throw error;

@@ -1,9 +1,9 @@
-import { createReceiver } from '../../support/Plugins';
+import { createHost, createReceiver } from '../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import Document from '../../../src/backend/receiver/document/Document';
 import EditorError from '../../../src/backend/error/EditorError';
 import Rect from '../../../plugins/core/Rect';
-import { AttributeHandlerRegistry, Receiver, ShapeFactory, SvgReader, SvgWriter, TreeRenderer } from '../../../src/backend';
+import { AttributeHandlerRegistry, CoordinateAttribute, Receiver, Shape, ShapeFactory, SvgReader, SvgWriter, TreeRenderer } from '../../../src/backend';
 
 describe('Receiver 当前文档槽位', () => {
   it('无文档时取文档报"无文档"', async () => {
@@ -38,6 +38,41 @@ describe('Receiver 当前文档槽位', () => {
     expect(shape.value('x')).toBe(1);
     expect(shape.value('width')).toBe(3);
     expect(() => receiver.createShape('rect', 'r2')).toThrow('missing attribute: x');
+  });
+
+  it('设置入口用同一次匹配读取前后回显', async () => {
+    const { receiver, handlers } = await createHost();
+    receiver.replace(new Document(100, 100));
+    const shape = receiver.createShape('rect', 'r1', [
+      ['x', '1'], ['y', '2'], ['width', '3'], ['height', '4'],
+    ]);
+    receiver.document().insert(shape);
+    class PaintAlias {
+      static readonly handlerName = 'paint-alias';
+      static matches(target: Shape, key: string): boolean { return target.type() === 'rect' && key === 'paint'; }
+      static apply(target: Shape, _key: string, token: string): void { target.set('fill', token); }
+      static display(target: Shape, _key: string): string | null { return target.display('fill'); }
+    }
+    handlers.register(PaintAlias);
+    expect(receiver.set(shape, 'paint', 'red')).toEqual({ previous: null, current: 'red' });
+    expect(receiver.set(shape, 'paint', 'blue')).toEqual({ previous: 'red', current: 'blue' });
+  });
+
+  it('设置入口在写入后校验，校验失败直接传播', async () => {
+    const { factory, receiver } = await createHost();
+    class Guarded extends Shape {
+      static override readonly type = 'guarded';
+      static override readonly params = [new CoordinateAttribute('x', 'x')];
+      override validate(): void {
+        super.validate();
+        if (this.value('x') === 9) throw new Error('guard failed');
+      }
+    }
+    factory.register(Guarded);
+    receiver.replace(new Document(100, 100));
+    const shape = receiver.createShape('guarded', 'g1', [['x', '1']]);
+    receiver.document().insert(shape);
+    expect(() => receiver.set(shape, 'x', '9')).toThrow('guard failed');
   });
 
   it('文件路径：init 新建（不带路径）时没有路径，取路径报错', async () => {

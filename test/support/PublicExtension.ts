@@ -1,12 +1,12 @@
 import {
-  CommandResult, CoordinateAttribute, EditCommand, EditorError, Shape,
+  CommandResult, EditCommand, EditorError, NumericAttribute, Shape,
 } from '../../src/backend';
 import type { EditSnapshot, Receiver } from '../../src/backend';
 
 /** 仅依赖公共入口的测试扩展，不参与默认宿主装配。 */
 export class Marker extends Shape {
   static override readonly type = 'test-marker';
-  static override readonly params = [new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y')];
+  static override readonly params = [new NumericAttribute('x'), new NumericAttribute('y')];
 
   override move(dx: number, dy: number): void {
     this.assign('x', this.number('x') + dx);

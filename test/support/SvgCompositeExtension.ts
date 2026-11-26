@@ -1,10 +1,10 @@
-import { CoordinateAttribute, EditorError, LengthAttribute, Shape, SvgWriter, TextAttribute } from '../../src/backend';
+import { EditorError, LengthAttribute, NumericAttribute, Shape, SvgWriter, TextAttribute } from '../../src/backend';
 import type { ShapeMemento, ShapeParseResult, SvgShapeMapping } from '../../src/backend';
 
 /** 仅依赖公共入口的持久化测试模型，不参与默认装配。 */
 export class Frame extends Shape {
   static override readonly type = 'rect';
-  static override readonly params = [new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new LengthAttribute('width'), new LengthAttribute('height')];
+  static override readonly params = [new NumericAttribute('x'), new NumericAttribute('y'), new LengthAttribute('width'), new LengthAttribute('height')];
 
   override move(dx: number, dy: number): void {
     this.assign('x', this.number('x') + dx);
@@ -21,7 +21,7 @@ export class Frame extends Shape {
 
 export class Caption extends Shape {
   static override readonly type = 'text';
-  static override readonly params = [new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new TextAttribute('text')];
+  static override readonly params = [new NumericAttribute('x'), new NumericAttribute('y'), new TextAttribute('text')];
   static override readonly content = 'text';
 
   override move(dx: number, dy: number): void {

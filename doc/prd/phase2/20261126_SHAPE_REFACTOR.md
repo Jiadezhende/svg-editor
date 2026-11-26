@@ -25,13 +25,13 @@
 
 `Attribute<T extends number | string>` 持有当前值 `T | null`。例如矩形未设置 `fill` 时，`attributes.get('fill')` 返回值为 `null` 的属性对象。Map 中缺少某个键表示该名称未声明。具体属性子类直接实现或继承各自的 `validate`、解析、默认值、展示及变换规则。
 
-图形类的类级模板显式写出有序的 `[属性名, Attribute 模板]`。以圆为例，`['cx', new CoordinateAttribute('x')]` 中的 `cx` 是 Map 的键，`x` 是坐标轴。`Shape` 按这些键和顺序建立实例 Map，替换属性值时使用原键。合并基础外观和图形自身属性时，在建立 Map 前检查显式键重名；覆写属性表而不合并外观的复合模型不参与该检查。 [现有 Shape 实现](../../../src/backend/receiver/document/shape/Shape.ts)
+图形类的类级模板显式写出有序的 `[属性名, Attribute 模板]`。以圆为例，`new NumericAttribute('cx')` 中的 `cx` 既是 Map 的键，也是 SVG 属性名。`Shape` 按这些键和顺序建立实例 Map，替换属性值时使用原键。合并基础外观和图形自身属性时，在建立 Map 前检查显式键重名；覆写属性表而不合并外观的复合模型不参与该检查。 [现有 Shape 实现](../../../src/backend/receiver/document/shape/Shape.ts)
 
 `Shape` 负责检查属性集合、必填约束及整体更新。`Attribute` 负责单项值是否合法。数字属性继续使用统一的 `DecimalFormat`。变换由各模型在 `move` / `scale` 中直接按值计算：坐标与尺寸乘系数，`stroke-width` 与文字内容不参与缩放，未赋值的可选属性不受影响。 [十进制规则](../../../src/backend/utils/DecimalFormat.ts)
 
 ### Attribute 字段和方法（契约）
 
-- `readonly value: T | null` 是当前值。`CoordinateAttribute` 另外保存只读的坐标轴配置。
+- `readonly value: T | null` 是当前值。
 
 | 方法 | 职责 |
 | --- | --- |
@@ -39,7 +39,6 @@
 | `withValue(value)` | 校验已有的数字或字符串，返回新属性。供模型从原值构造或恢复时使用。 |
 | `defaultValue()` | 返回该类属性的默认值，供模型恢复数据时按需使用。 |
 | `display()` | 返回当前值的展示文本。值为 `null` 时返回 `null`。 |
-| `axis()` | 返回坐标轴 `x` 或 `y`，其他属性返回 `null`。用于校验锚点所引用属性的轴。 |
 
 `parse(token)` 和 `validate(value)` 是子类实现的受保护方法。返回新属性的操作保留具体子类及其构造配置。`Shape` 使用原 Map 键写回新对象，也可用该键提供校验错误的属性名。必填约束由 `Shape.validate()` 检查。
 
@@ -78,7 +77,7 @@
 | 属性未设置 | 初始化时省略可选 `fill`，设置后恢复模型快照 | 初始化与恢复后的 Map 均包含 `fill`，其值为 `null`，`entries()` 省略 `fill`。 |
 | 实例隔离 | 初始化两个矩形并修改其中一个的 `fill` | 另一个矩形和类级模板的值均保持原状。 |
 | 未声明属性 | 尝试设置矩形的 `unknown` | Map 中无该键，沿用未知属性错误。 |
-| 声明冲突 | 自定义属性与基础外观重名，或锚点引用错误坐标轴 | 模型声明校验报告错误，重复属性在建立 Map 前发现。 |
+| 声明冲突 | 自定义属性与基础外观重名 | 模型声明校验报告错误，重复属性在建立 Map 前发现。 |
 | 模型变换失败 | 数值溢出或一个复合部件变换失败 | 属性规则拒绝该次写入；模型不自行回滚，恢复由编辑命令负责。 |
 | 构造与校验分离 | 只构造、未写入必填属性 | 构造成功，`validate()` 报告未满足的模型约束。 |
 | 整图校验失败 | 初始化结束后仍缺少必填项或必要部件 | Receiver 的创建入口在写入完成后报告，候选不入树。 |

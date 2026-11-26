@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import CoordinateAttribute from '../../../../../../src/backend/receiver/document/shape/attribute/CoordinateAttribute';
+import NumericAttribute from '../../../../../../src/backend/receiver/document/shape/attribute/NumericAttribute';
 import StringAttribute from '../../../../../../src/backend/receiver/document/shape/attribute/StringAttribute';
 
 describe('Attribute 通用语义', () => {
@@ -20,10 +20,6 @@ describe('Attribute 通用语义', () => {
 
   it('默认值由具体子类提供', () => {
     expect(new StringAttribute('fill').defaultValue()).toBe('');
-    expect(new CoordinateAttribute('x', 'x').defaultValue()).toBe(0);
-  });
-
-  it('非坐标属性的 axis() 为 null', () => {
-    expect(new StringAttribute('fill').axis()).toBeNull();
+    expect(new NumericAttribute('x').defaultValue()).toBe(0);
   });
 });

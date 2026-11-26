@@ -27,7 +27,6 @@ export default class ShapeFactory {
     if (this.classes.has(cls.type)) {
       throw new Error(`duplicate shape type: ${cls.type}`);
     }
-    ShapeFactory.checkAnchor(cls);
     this.classes.set(cls.type, cls);
   }
 
@@ -57,18 +56,6 @@ export default class ShapeFactory {
     readChildren: () => readonly Shape[] = () => [],
   ): ShapeParseResult {
     return this.lookup(type).parse(id, attributes, readChildren);
-  }
-
-  private static checkAnchor(cls: ShapeModel): void {
-    const anchor = cls.anchor;
-    if (anchor === null) {
-      return;
-    }
-    (['x', 'y'] as const).forEach((axis, i) => {
-      if (cls.attribute(anchor[i])?.axis() !== axis) {
-        throw new Error(`${cls.type} anchor ${anchor[i]} must be a ${axis} coordinate`);
-      }
-    });
   }
 
   /** 构造函数只在注册表内部查找，未知类型保持原错误语义。 */

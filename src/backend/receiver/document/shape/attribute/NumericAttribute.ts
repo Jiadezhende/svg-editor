@@ -3,7 +3,7 @@ import EditorError from '../../../../error/EditorError';
 import Attribute from './Attribute';
 
 /** 数值属性：按十进制数字解析，按数值格式展示，值必须有限。 */
-export default abstract class NumericAttribute extends Attribute<number> {
+export default class NumericAttribute extends Attribute<number> {
   private static readonly decimal = new DecimalFormat();
 
   override defaultValue(): number {
@@ -22,6 +22,10 @@ export default abstract class NumericAttribute extends Attribute<number> {
     if (typeof value !== 'number' || !Number.isFinite(value)) {
       throw new EditorError(`${this.name()} must be a finite number`);
     }
+  }
+
+  protected override recreate(value: number): Attribute<number> {
+    return new NumericAttribute(this.name(), value);
   }
 
   /** 供不得为负的子类使用。 */

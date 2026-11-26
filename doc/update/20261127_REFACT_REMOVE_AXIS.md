@@ -1,7 +1,7 @@
 # REFACT：删除坐标轴与锚点注册校验，合并 CoordinateAttribute
 
 - 提案时间：2026-11-27
-- 完成时间：
+- 完成时间：2026-11-27
 - 类型：REFACT
 - 关联 prd：doc/prd/phase2/20261126_SHAPE_REFACTOR.md
 
@@ -57,10 +57,10 @@ move → MoveCommand.describe → shape.position() → display(anchor[0]), displ
 
 | 用例 | 验证方式 | 结果 |
 | --- | --- | --- |
-| 坐标可为负，长度与线宽不可为负 | 单元测试 | 待定 |
-| 注册任意 `anchor` 不再报错（反转原校验用例） | 单元测试 | 待定 |
-| `move` 回显仍按 `anchor` 顺序输出坐标 | 单元测试 | 待定 |
-| `NumericAttribute` 可实例化并保留解析、校验、展示规则 | 单元测试 | 待定 |
+| 坐标可为负，长度与线宽不可为负 | 单元测试 | 通过（`NumericAttribute`、`LengthAttribute`、`StrokeWidthAttribute`、`Leaves`） |
+| 注册任意 `anchor` 不再报错（反转原校验用例） | 单元测试 | 通过（`ShapeFactory` 改为断言注册成功） |
+| `move` 回显仍按 `anchor` 顺序输出坐标 | 单元测试 | 通过（`MoveCommand` 各类型用例） |
+| `NumericAttribute` 可实例化并保留解析、校验、展示规则 | 单元测试 | 通过（新增 `NumericAttribute.test`） |
 
 ## 遗留问题
 

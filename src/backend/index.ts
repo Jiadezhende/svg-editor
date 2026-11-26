@@ -9,9 +9,7 @@ export { default as DocumentStructureMemento } from './receiver/document/Documen
 export type { ViewBox } from './receiver/document/Document';
 export type { default as ShapeNode } from './receiver/document/ShapeNode';
 export { default as Attribute } from './receiver/document/shape/attribute/Attribute';
-export type { Axis } from './receiver/document/shape/attribute/Attribute';
 export { default as NumericAttribute } from './receiver/document/shape/attribute/NumericAttribute';
-export { default as CoordinateAttribute } from './receiver/document/shape/attribute/CoordinateAttribute';
 export { default as LengthAttribute } from './receiver/document/shape/attribute/LengthAttribute';
 export { default as StringAttribute } from './receiver/document/shape/attribute/StringAttribute';
 export { default as TextAttribute } from './receiver/document/shape/attribute/TextAttribute';

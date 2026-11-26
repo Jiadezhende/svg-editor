@@ -1,11 +1,7 @@
-/** 坐标所在的轴，平移按轴进行。 */
-export type Axis = 'x' | 'y';
-
 /**
- * 一个属性：持有当前值，并封装该值的解析、校验、展示与变换规则。
+ * 一个属性：持有当前值，并封装该值的解析、校验与展示规则。
  *
- * 实例不可变：`withToken`、`withValue`、`translate`、`scale` 都返回同配置的新对象，
- * 未赋值（`null`）的属性在变换后仍为 `null`。
+ * 实例不可变：`withToken`、`withValue` 都返回同配置的新对象，未赋值（`null`）保持未赋值。
  */
 export default abstract class Attribute<T extends number | string = number | string> {
   constructor(
@@ -34,11 +30,6 @@ export default abstract class Attribute<T extends number | string = number | str
   /** 展示文本；未设置时为 null。 */
   display(): string | null {
     return this.value === null ? null : this.format(this.value);
-  }
-
-  /** 坐标所在的轴；不是坐标时为 null。 */
-  axis(): Axis | null {
-    return null;
   }
 
   /** 解析输入文本为原值，不检查业务约束。 */

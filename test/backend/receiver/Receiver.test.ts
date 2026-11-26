@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import Document from '../../../src/backend/receiver/document/Document';
 import EditorError from '../../../src/backend/error/EditorError';
 import Rect from '../../../plugins/core/Rect';
-import { AttributeHandlerRegistry, CoordinateAttribute, Receiver, Shape, ShapeFactory, SvgReader, SvgWriter, TreeRenderer } from '../../../src/backend';
+import { AttributeHandlerRegistry, NumericAttribute, Receiver, Shape, ShapeFactory, SvgReader, SvgWriter, TreeRenderer } from '../../../src/backend';
 
 describe('Receiver 当前文档槽位', () => {
   it('无文档时取文档报"无文档"', async () => {
@@ -62,7 +62,7 @@ describe('Receiver 当前文档槽位', () => {
     const { factory, receiver } = await createHost();
     class Guarded extends Shape {
       static override readonly type = 'guarded';
-      static override readonly params = [new CoordinateAttribute('x', 'x')];
+      static override readonly params = [new NumericAttribute('x')];
 
       override move(): void {}
       override scale(): void {}

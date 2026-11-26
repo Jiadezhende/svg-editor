@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AttributeHandlerRegistry, CoordinateAttribute, Document, LengthAttribute, Receiver, Shape, ShapeFactory, SvgReader, SvgWriter, TextAttribute, TreeRenderer,
+  AttributeHandlerRegistry, Document, LengthAttribute, NumericAttribute, Receiver, Shape, ShapeFactory, SvgReader, SvgWriter, TextAttribute, TreeRenderer,
 } from '../../src/backend';
 import Box from '../../plugins/box/Box';
 import activate from '../../plugins/box/index';
@@ -9,7 +9,7 @@ import MoveCommand from '../../plugins/core/MoveCommand';
 class Rect extends Shape {
   static override readonly type = 'rect';
   static override readonly params = [
-    new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new LengthAttribute('width'), new LengthAttribute('height'),
+    new NumericAttribute('x'), new NumericAttribute('y'), new LengthAttribute('width'), new LengthAttribute('height'),
   ];
 
   override move(): void {}
@@ -17,7 +17,7 @@ class Rect extends Shape {
 }
 class Text extends Shape {
   static override readonly type = 'text';
-  static override readonly params = [new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new TextAttribute('text')];
+  static override readonly params = [new NumericAttribute('x'), new NumericAttribute('y'), new TextAttribute('text')];
   static override readonly content = 'text';
 
   override move(): void {}

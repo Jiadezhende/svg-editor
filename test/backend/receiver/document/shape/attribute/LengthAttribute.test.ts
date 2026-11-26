@@ -19,10 +19,6 @@ describe('LengthAttribute 尺寸', () => {
     expect(attribute.display()).toBe('10');
   });
 
-  it('不是坐标', () => {
-    expect(attribute.axis()).toBeNull();
-  });
-
   it('重新构造后仍保留非负规则', () => {
     expect(() => attribute.withValue(5).withToken('-1')).toThrow('must be non-negative');
   });

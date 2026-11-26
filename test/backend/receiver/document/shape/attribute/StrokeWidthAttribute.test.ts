@@ -14,8 +14,4 @@ describe('StrokeWidthAttribute 线宽', () => {
   it('按数值格式展示', () => {
     expect(attribute.display()).toBe('2');
   });
-
-  it('不是坐标', () => {
-    expect(attribute.axis()).toBeNull();
-  });
 });

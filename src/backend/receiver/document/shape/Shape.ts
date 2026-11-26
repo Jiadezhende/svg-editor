@@ -15,7 +15,7 @@ export interface ShapeParseResult {
  * 单个图形的领域模型；不保存文档树关系。
  *
  * 静态成员即定义：子类覆盖 `type`（类型名）、`params`（必填属性模板，默认也作为创建参数）、
- * `paint`（create 的可选外观参数名）、`anchor`（move 回显的锚点：x 轴与 y 轴坐标属性名，注册时校验）、
+ * `paint`（create 的可选外观参数名）、`anchor`（move 回显使用的 x、y 属性名）、
  * `content`（在 SVG 中写成子文本而非元素属性的那个属性名）；
  * 外观属性 fill / stroke / stroke-width 由本类统一声明，复合模型可以覆写属性表选择不合并。
  *

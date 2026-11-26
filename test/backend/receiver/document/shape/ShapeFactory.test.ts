@@ -87,36 +87,19 @@ describe('ShapeFactory 图形工厂', () => {
   });
 });
 
-describe('ShapeFactory 锚点校验', () => {
-  it('锚点不是本类的 x / y 坐标属性时启动即失败', async () => {
-    class Missing extends Shape {
-      static override readonly type = 'missing';
-      static override readonly params = Rect.params;
-      static override readonly anchor: readonly [string, string] = ['cx', 'cy'];
-
-      override move(): void {}
-      override scale(): void {}
-    }
-    class Swapped extends Shape {
-      static override readonly type = 'swapped';
+describe('ShapeFactory 锚点声明', () => {
+  it('锚点不参与注册校验，只作为移动回显的属性名', async () => {
+    class Declared extends Shape {
+      static override readonly type = 'declared';
       static override readonly params = Rect.params;
       static override readonly anchor: readonly [string, string] = ['y', 'x'];
 
       override move(): void {}
       override scale(): void {}
     }
-    class NotCoordinate extends Shape {
-      static override readonly type = 'length';
-      static override readonly params = Rect.params;
-      static override readonly anchor: readonly [string, string] = ['width', 'y'];
-
-      override move(): void {}
-      override scale(): void {}
-    }
     const factory = (await createShapeFactory());
-    expect(() => factory.register(Missing)).toThrow('missing anchor cx must be a x coordinate');
-    expect(() => factory.register(Swapped)).toThrow('swapped anchor y must be a x coordinate');
-    expect(() => factory.register(NotCoordinate)).toThrow('length anchor width must be a x coordinate');
+    factory.register(Declared);
+    expect(factory.has('declared')).toBe(true);
   });
 
   it('没有锚点的类型可正常注册', async () => {
@@ -142,7 +125,7 @@ describe('ShapeFactory 查询', () => {
       new definition('r1');
       // @ts-expect-error 类型定义视图不可赋值。
       definition.type = 'changed';
-      // @ts-expect-error 锚点属于注册校验信息，不是使用侧规格。
+      // @ts-expect-error 锚点不是使用侧规格。
       definition.anchor;
       // @ts-expect-error 构造函数查找是工厂私有实现。
       factory.lookup('rect');

@@ -26,6 +26,8 @@ SVG 是用 XML 文本描述矢量图形的格式：纯文本、树形结构（`<
 
 ## Phase 2 CLI
 
+本阶段的工作包、进度和验收清单见 [Phase 2 需求总纲](prd/phase2/20261125_PHASE2_DELIVERY.md)。
+
 ### 运行与配置
 
 使用 Node.js 22.14 或更新的兼容版本。本轮使用 Node.js 22.23.2 验收。
@@ -62,10 +64,10 @@ npm run verify:transcripts
 
 | 内核契约 | 职责与调用位置 | 发行实现 | 禁用可选扩展时 | 违反契约时 |
 | --- | --- | --- | --- | --- |
-| [Shape](../src/backend/receiver/document/shape/Shape.ts) 的静态类契约，即课程 `ShapeProvider` | 提供类型、创建参数和 SVG 模型构造。内核 `ShapeFactory.create` / `ShapeFactory.parse` 分别调用构造函数和静态 `parse`，持久化由 `SvgReader.children` 编排 | `core` 的 rect、circle、ellipse、line、text、g，另有 `box` | `create box` 报未知类型，带 `data-kind="box"` 的 SVG 按标签读为普通 `g` | 类、解析方法、锚点或注册名非法时拒绝整包。已声明类型的无效模型或重复 id 拒绝创建或读入 |
+| [Shape](../src/backend/receiver/document/shape/Shape.ts) 的静态类契约，即课程 `ShapeProvider` | 提供类型、创建参数和 SVG 模型构造。内核 `ShapeFactory.create` / `ShapeFactory.parse` 分别调用构造函数和静态 `parse`，持久化由 `SvgReader.children` 编排 | `core` 的 rect、circle、ellipse、line、text、g，另有 `box` | `create box` 报未知类型，带 `data-kind="box"` 的 SVG 按标签读为普通 `g` | 类、解析方法或注册名非法时拒绝整包。已声明类型的无效模型或重复 id 拒绝创建或读入 |
 | [Command](../src/backend/command/Command.ts) | 定义命令、参数形式和执行能力。`Client.execute` 选定已绑定的命令表条目，`Invoker.execute` 调用并按命令种类管理历史 | `core` 的 17 种形式，独立的 `stats` 和 `dir` | 未装入的命令从 `help` 消失，执行时报 `unknown command` | 与框架或其他包命令重名、命令定义非法时拒绝整包。用户参数不符时返回用法 |
 | [TreeDecorator](../src/backend/receiver/tree/TreeDecorator.ts) | 在基础树行追加标签。`TreeRenderer` 构造器包装渲染器，`render` 传入只读视图，`notify` 发布成功后的内容快照 | `modified-star` 与 `box-type-label` | 无装饰器使用基础渲染，Phase 1 树输出逐字节一致 | 继承、名称或构造失败时拒绝整包。成功通知中的异常转为警告 |
-| [AttributeHandler](../src/backend/receiver/document/shape/AttributeHandler.ts) | 定义特定图形上的属性语义。`AttributeHandlerRegistry.resolve` 找首个命中项，`Receiver.set` 在同一次匹配内完成修改、校验与前后回显；`Receiver.createShape` 复用同一写入 | `box-attributes` 处理 `fill`、`stroke`、`stroke-width`、`label` 与几何 | 未命中时使用模型属性规则，普通矩形 `fill` 仍可设置，未知属性报错 | 注册契约或名称非法时拒绝整包。处理器执行或回显失败时恢复图形快照，历史保持原状 |
+| [AttributeHandler](../src/backend/receiver/document/shape/AttributeHandler.ts) | 定义特定图形上的属性语义。`AttributeHandlerRegistry.resolve` 找首个命中项，`Receiver.set` 在同一次匹配内完成修改、校验与前后回显；`Receiver.createShape` 复用同一写入 | `box-attributes` 处理 `fill`、`stroke`、`stroke-width`、`label` 与几何 | 未命中时使用模型属性规则，普通矩形 `fill` 仍可设置，未知属性报错 | 注册契约或名称非法时拒绝整包。处理器执行或回显失败时由命令的快照恢复，历史保持原状 |
 
 [ShapeFactory](../src/backend/receiver/document/shape/ShapeFactory.ts) · [SvgReader](../src/backend/receiver/svg/SvgReader.ts) · [Client](../src/backend/Client.ts) · [Invoker](../src/backend/invoker/Invoker.ts) · [TreeRenderer](../src/backend/receiver/tree/TreeRenderer.ts) · [AttributeHandlerRegistry](../src/backend/receiver/document/shape/AttributeHandlerRegistry.ts) · [SetCommand](../plugins/core/SetCommand.ts)
 
@@ -173,19 +175,20 @@ git diff --exit-code 9e1edd1 3124971 -- plugins/box
 
 | 模块（目录） | 职责 |
 | --- | --- |
-| `src/main.ts` | 入口：扫描 `backend/command/impl/` 注册全部命令，组装控制台 IO、Client、App 后启动 |
+| `src/main.ts` | 入口：读取配置、装配插件贡献与命令表，构建 Client 后启动 CLI |
 | `src/App.ts` | 主循环：从前端读一条命令 → 交给后端执行 → 把结果交给前端展示；前后端之间唯一的转换点（参数数组交给后端，`CommandResult` 拆成字符串交给前端，两侧的错误统一输出） |
 | `frontend/` | 读入与展示：读行、跳过注释与空行、分词（`Tokenizer`）、提示符与脚本回显（`CommandReader`）、`warning:` / `error:` 前缀与输出顺序（`ResultPrinter`）；只认字符串，不认识任何命令 |
 | `frontend/io/` | 设备适配：`InputSource` / `OutputSink` 接口及控制台实现 |
 | `backend/Client.ts` | 后端唯一入口（命令模式的 Client）：内置命令（help、undo、redo、exit、quit）与命令分发 |
 | `backend/invoker/` | Invoker：执行命令，维护撤销 / 重做历史与"文档类命令后禁止撤销"的规则 |
-| `backend/command/` | Command 基类、类别基类（`EditCommand` 可撤销、`DocumentCommand` 文档类、`RelocateCommand` 移动位置）与 `CommandResult` |
-| `backend/command/impl/` | ConcreteCommand：一个命令形式一个类（共 17 个），启动时自动注册 |
-| `backend/receiver/workspace/` | 编辑会话的接收者上下文：当前文档槽位及其文件路径（"无文档"只在这里判定）、图形工厂、文件读写 |
-| `backend/receiver/document/` | 图形树：画布根 `Document`、`Container` 接口、子节点序列 `ChildList` |
-| `backend/receiver/document/shape/` | Shape 类层次（Composite）、图形工厂 `ShapeFactory`、属性快照 `ShapeMemento` |
-| `backend/receiver/document/attribute/` | 属性种类（解析、约束、展示、平移、缩放、默认值）与数值文本规则 `DecimalFormat` |
+| `backend/command/` | Command 基类、`EditCommand`（模板方法：快照、失败恢复、撤销回显）、`DocumentCommand` 与 `CommandResult` |
+| `plugins/core` | 内置图形（6 种）与命令形式（17 个）；插件按配置装配 |
+| `backend/receiver/` | 编辑会话的接收者 `Receiver`：当前文档与路径、图形工厂、文件读写、Handler 注册表、树渲染器 |
+| `backend/receiver/document/` | 图形树：画布根 `Document`、`ShapeNode`、结构快照 |
+| `backend/receiver/document/shape/` | Shape 类层次、图形工厂 `ShapeFactory`、快照与视图、属性 Handler |
+| `backend/receiver/document/shape/attribute/` | 属性种类（解析、约束、展示、默认值）与数值文本规则 `DecimalFormat` |
 | `backend/receiver/svg/` | SVG 序列化 `SvgWriter`、解析 `SvgReader`、文件读写 `SvgFile` |
+| `backend/receiver/tree/` | 树渲染与装饰链 |
 | `backend/error/` | 后端异常 `EditorError`，位于依赖最底层 |
 
 ```plantuml
@@ -197,32 +200,34 @@ package "frontend" as frontend {
 package "backend" as backend {
   component Client
   package invoker
-  package command {
-    package impl
-  }
+  package command
   package receiver {
-    package workspace
     package document {
-      package shape
-      package attribute
+      package shape {
+        package attribute
+      }
     }
     package svg
+    package tree
   }
   package error
 }
+package "plugins" as plugins
 
 app --> frontend
 app --> backend
 Client --> invoker
 Client --> command
-Client --> workspace
+Client --> receiver
 invoker --> command
 command --> receiver
-workspace --> document
-workspace --> svg
+receiver --> document
+receiver --> svg
+receiver --> tree
 svg --> document
 shape --> attribute
 backend ..> error : 各模块均可依赖
+plugins ..> backend : 只依赖公共契约
 @enduml
 ```
 
@@ -230,24 +235,24 @@ backend ..> error : 各模块均可依赖
 
 | 模式 | 解决的问题 | 落地 |
 | --- | --- | --- |
-| **Command**（课程要求） | 编辑操作要可撤销、可重做，且所有操作统一执行 | Client = `Client`（按名创建命令）；Invoker = `Invoker`（执行，维护撤销栈与重做栈）；Command = `Command`；ConcreteCommand = `command/impl/` 下的 17 个类；Receiver = `Workspace`、`Document`、Shape 树、`SvgFile`。命令在构造时校验参数形式，在 `execute` 中取文档并执行，属性值在写入阶段解析，撤销所需的信息记在命令自己身上，所以撤销栈里存的就是命令对象；redo 即再次 `execute()` |
-| **Composite**（课程要求） | 容器与叶子统一操作 | `Shape` 为 Component，`Group` 为 Composite，`Rect` 等 5 个类为叶子；`Document` 作为画布根同样实现 `Container`。`find`、`move`、`scale`、`capture`、`relocate` 对容器与叶子一视同仁，Group 覆盖为"自身 + 递归子节点"；命令只调用 `shape.move()` 等，不判断类型 |
-| **Strategy**（属性种类） | 不同属性的取值规则不同，但 set / show / save / move / scale 要对属性统一处理 | `Attribute` 及其子类（坐标、尺寸、线宽、字符串、文本内容）持有当前值并封装解析、约束、展示、平移、缩放、默认值；各图形类以类级属性模板声明自己有哪些属性、各属哪一种类。叶子类因此只有声明，没有按属性名的分支 |
-| **Factory（注册表）** | 按类型名创建图形，插件类型可加入 | `ShapeFactory`：类型名 → 图形类；create 用 `lookup`，read 用 `find`；按名分派标注为待重构（见一致性自查） |
+| **Command**（课程要求） | 编辑操作要可撤销、可重做，且所有操作统一执行 | Client = `Client`（按名创建命令）；Invoker = `Invoker`（执行，维护撤销栈与重做栈）；Command = `Command`；ConcreteCommand = `plugins/core` 下的 17 个命令形式；Receiver = `Receiver`（文档、图形工厂、文件与树服务）。命令在构造时校验参数，`EditCommand` 的模板方法统一快照、失败恢复与撤销回显，撤销栈里存的就是命令对象；redo 即再次 `execute()` |
+| **Composite**（课程要求） | 容器与叶子统一操作 | `Shape` 为 Component，`Group` 为 Composite，`Rect` 等 5 个类为叶子；`Document` 用 `ShapeNode` 组织整棵树。`move` / `scale` 由 `Document` 递归遍历、每个模型只处理自身；`capture`、`insert` / `remove` / `relocate` 对容器与叶子一视同仁；命令只调用 `doc.move()` / `shape.move()`，不判断类型 |
+| **Strategy**（属性种类） | 不同属性的取值规则不同，但 set / show / save 要对属性统一处理 | `Attribute` 及其子类（数值、尺寸、线宽、字符串、文本内容）持有当前值并封装解析、约束、展示、默认值；各图形类以类级属性模板声明自己有哪些属性、各属哪一种类。模型因此不按属性名分支；变换由各模型自己实现 |
+| **Factory（注册表）** | 按类型名创建图形，插件类型可加入 | `ShapeFactory`：类型名 → 图形类；create / parse 用 `lookup`，使用侧用 `has` / `definition` 查询。注册由宿主按插件装配，工厂不导入具体图形；按名分派属于课程允许的两处之一 |
 | **Memento** | move / scale / set 的撤销要精确还原，浮点反向运算做不到 | `Shape.capture()` 生成 `ShapeMemento`（容器连同子树），恢复动作以闭包保存私有属性，属性值不对外暴露 |
-| **Template Method** | front、back、addto 的流程相同，只是目标不同 | `RelocateCommand`：记下原位置 → relocate 到目标 → 撤销时 relocate 回去；子类只给出目标与回显 |
+| **Template Method** | 所有编辑命令都要“取快照 → 修改 → 失败恢复 / 成功记录撤销” | `EditCommand.execute`：基类取快照并调用 `apply`，失败恢复，成功后保存快照与撤销回显；子类只实现 `snapshot` 与 `apply` |
 
-"静态成员即定义、构造函数即工厂"是贯穿全项目的写法：命令类以静态 `command` / `usage` / `accepts` 自描述，图形类以静态 `type` / `params` / `paint` / `anchor` / `content` 自描述。注册时统一校验，漏写或写错在启动时就会失败。
+"静态成员即定义、构造函数即工厂"是贯穿全项目的写法：命令类以静态 `command` / `usage` / `accepts` 自描述，图形类以静态 `type` / `params` / `paint` / `anchor` / `content` 自描述。类声明、解析方法与注册名在装配时校验，写错会在启动时报错；锚点只作为移动回显的属性名，不参与校验。
 
 ### 3. 依赖方向规则
 
 | # | 规则 | 理由 |
 | --- | --- | --- |
 | 1 | `App` 可依赖 frontend 与 backend；**frontend 与 backend 互不依赖**，也没有共享模块 | 前后端只经由 App 通信，更换输入通道（agent、脚本）或展示方式时另一侧不受影响；共享模块会掩盖反向依赖（见过程记录第 1 条） |
-| 2 | backend 只有 `Client` 对外；Client 可依赖 invoker、command、receiver/workspace | Client 是后端唯一入口，负责分发命令，并把 Receiver 交给命令 |
+| 2 | backend 只有 `Client` 对外；Client 可依赖 invoker、command、receiver | Client 是后端唯一入口，负责分发命令，并把 Receiver 交给命令 |
 | 3 | invoker 只依赖 command（含 EditCommand、DocumentCommand 两个类别基类） | Invoker 只管执行与历史，不认识任何 Receiver |
 | 4 | command 可依赖 receiver；**receiver 不得依赖 command、invoker、Client** | 领域模型不知道自己被谁操作，可以脱离命令单独测试与复用 |
-| 5 | receiver 内部：workspace → document、svg；svg → document；**document 不依赖 svg、workspace**；shape → attribute | 图形树是最核心的领域，文件格式与会话状态都建立在它之上 |
+| 5 | receiver 内部：Receiver → document、svg、tree；svg → document；**document 不依赖 svg、tree**；shape → attribute | 图形树是最核心的领域，文件格式与会话状态都建立在它之上 |
 | 6 | `backend/error` 可被所有后端模块依赖，自身不依赖任何模块 | 各层都会做业务校验，错误类型必须位于最底层 |
 | 7 | 第三方与系统依赖收口：`@xmldom/xmldom` 只在 `SvgReader` 中使用，`node:fs` 只在 `SvgFile` 与 `main.ts` 中使用 | 更换解析库或文件访问方式时只改一个类 |
 
@@ -255,9 +260,9 @@ backend ..> error : 各模块均可依赖
 
 | 变化点 | 预留 / 不预留的理由 |
 | --- | --- |
-| 新图形类型（后续阶段的插件 `box`） | **已预留**：图形类只需声明 `type`、`params`、`paint`、`anchor`、`content`，create、显示、平移缩放、set、读写全部按声明通用处理；`ShapeFactory.register` 已开放，注册时校验声明。待做：ShapeProvider 插件的注册入口，以及 box 的 set 传播、不可 ungroup 等插件语义 |
-| 新命令 | **已预留**：在 `command/impl/` 加一个文件即被自动注册；同一命令名的多种形式由各形式的 `accepts` 按参数结构唯一命中（如 `canvas` 与 `canvas <w> <h>`），不依赖注册顺序。待做：内核之外的插件命令注册入口 |
-| 新属性种类（如带单位的长度） | **已预留**：新增 `Attribute` 子类，实现解析、约束、展示、平移、缩放、默认值即可，其余代码不改 |
+| 新图形类型（后续阶段的插件 `box`） | **已预留**：图形类声明 `type`、`params`、`paint`、`anchor`、`content`，并实现 `move` / `scale`；create、显示、set、读写按声明通用处理。`ShapeFactory.register` 由宿主装配调用，注册时校验类、类型名与解析方法 |
+| 新命令 | **已预留**：在插件包里新增一个 `EditCommand` / `DocumentCommand` 类并在 `activate` 中贡献即可被装配；同一命令名的多种形式由各形式的 `accepts` 按参数结构唯一命中（如 `canvas` 与 `canvas <w> <h>`），不依赖注册顺序 |
+| 新属性种类（如带单位的长度） | **已预留**：新增 `Attribute` 子类，实现解析、约束、展示、默认值即可，其余代码不改 |
 | 新输入输出通道（agent、文件脚本、GUI） | **已预留**：`InputSource` / `OutputSink` 接口；前后端以"参数数组 + 结果字符串"为边界，命令文本是唯一协议 |
 | XML 解析实现 | **已预留**：依赖只出现在 `SvgReader` 一个类中 |
 | 新的命令类别（撤销规则） | **不预留**：Invoker 按类型分两支（编辑类、文档类），行为只有这两种，集中在一处最直观；新增类别时在 Invoker 加分支（开发者决策） |
@@ -296,7 +301,7 @@ backend ..> error : 各模块均可依赖
 
 ### 依赖方向
 
-全部需求完成后（2026-10-24），针对第 3 节的每条规则检索 `src/` 中的 import，结果如下：
+全部需求完成后首次检查（2026-10-24），本次重构后再次复查（2026-11-27），针对第 3 节的每条规则检索 `src/` 中的 import，结果如下：
 
 | 规则 | 检查方式 | 结果 |
 | --- | --- | --- |
@@ -304,23 +309,23 @@ backend ..> error : 各模块均可依赖
 | receiver 不依赖 command、invoker、Client | receiver 中 import `/command/`、`/invoker/`、`Client` | 0 处 |
 | invoker 只依赖 command | invoker 中 import receiver、Client | 0 处 |
 | command 不依赖 invoker、Client | command 中 import invoker、Client | 0 处 |
-| document 不依赖 svg、workspace | document 中 import `/svg/`、`/workspace/` | 0 处 |
+| document 不依赖 svg、tree | document 中 import `/svg/`、`/tree/` | 0 处 |
 | 第三方与系统依赖收口 | 检索 `xmldom`、`node:fs` | `xmldom` 只在 SvgReader 中；`node:fs` 只在 SvgFile 与 main.ts 中 |
 
-command → receiver 属于允许的方向：Command 基类使用 `DecimalFormat`（命令参数与数值属性共用同一份数值规则），RelocateCommand 使用图形树的类型。
+command → receiver 属于允许的方向：Command 基类使用 `DecimalFormat`（命令参数与数值属性共用同一份数值规则），`EditCommand` 使用图形树与快照类型。
 
 ### 按名分派
 
-编码约束要求：按名字分派只允许出现在命令分发和图形工厂两处，并须标注为待重构。
+编码约束要求：按名字分派只允许出现在命令分发和图形工厂两处。Phase 2 已把条目登记交给插件装配，内核不再写死具体类型。
 
 项目中按名字选择行为的地方只有下面两处。两处都位于"文本 → 对象"的边界：用户输入的是文本，总要有一处把名字翻译成对象；翻译完成后，所有行为都由多态完成，不再查看名字。
 
-"待重构"的含义：查表本身不改，要改的是表里的条目由谁登记。现在所有条目都写在内核代码里，新增一个类型就得改内核；以后应当由新类型自己登记进来，内核不用动。例如后续阶段新增 `box` 时，由 box 插件自己调用 `factory.register(Box)`，而不是去改 ShapeFactory。这对应课程中 phase1 允许暂缺的"插槽"。
+"待重构"的含义：查表本身不改，要改的是表里的条目由谁登记。Phase 2 已由插件在 `activate` 中贡献图形与命令，宿主装配时登记，新增类型不改内核；这对应课程中 phase1 允许暂缺的"插槽"。
 
-| 位置 | 名字 → 对象 | 翻译之后 | 待重构：条目由谁登记 |
+| 位置 | 名字 → 对象 | 翻译之后 | 条目由谁登记 |
 | --- | --- | --- | --- |
-| `Client.execute`（[Client.ts](../src/backend/Client.ts)） | 命令名 → 内置命令 / ConcreteCommand 类；同名多形式（如 `canvas` 与 `canvas <w> <h>`）由各形式的 `accepts` 按参数结构唯一命中 | 命令对象自己解析参数、执行、撤销；Invoker 只认抽象 `Command` | 现状：`main.ts` 扫描 `command/impl/` 自动注册，新增内核命令不改 Client。待重构：内核之外的插件命令目前无法注册，需开放注册插槽 |
-| `ShapeFactory.lookup`（[ShapeFactory.ts](../src/backend/receiver/document/shape/ShapeFactory.ts)） | 图形类型名 → 图形类（create 按类型参数、read 按元素名使用；read 用 `find` 查询，未注册时跳过） | 查找、删除、撤销，以及平移、缩放、显示、序列化，都由 Shape / Group 的覆盖和属性种类的多态完成 | 现状：内置 6 类写死在工厂的构造函数中。待重构：插件阶段改为由 ShapeProvider 各自注册，工厂只负责查表 |
+| `Client.execute`（[Client.ts](../src/backend/Client.ts)） | 命令名 → 内置命令 / ConcreteCommand 类；同名多形式（如 `canvas` 与 `canvas <w> <h>`）由各形式的 `accepts` 按参数结构唯一命中 | 命令对象自己解析参数、执行、撤销；Invoker 只认抽象 `Command` | 现状：命令类由插件贡献，宿主装配时登记，新增命令不改 Client |
+| `ShapeFactory.lookup`（[ShapeFactory.ts](../src/backend/receiver/document/shape/ShapeFactory.ts)） | 图形类型名 → 图形类（create 按类型参数、read 按元素名使用；read 用 `has` / `definition` 查询，未注册时跳过） | 查找、删除、撤销，以及平移、缩放、显示、序列化，都由各模型的覆盖完成 | 现状：工厂初始为空，由宿主按插件装配注册；工厂不导入、枚举具体图形 |
 
 以下几处也比较了名字或字符，但都不是按名分派：
 
@@ -332,7 +337,7 @@ command → receiver 属于允许的方向：Command 基类使用 `DecimalFormat
 | `UngroupCommand` | `shape.parent() === doc` 判断根级容器 | 对象同一性比较，不判断类型、不比较名字 |
 | `SvgReader` | 根元素须为 `svg`；跳过非元素节点（文本、注释） | 文件格式校验与 DOM 节点分类，不选择图形行为 |
 | `SvgWriter` | `typeof value === 'number'` 决定属性原值的文本形式 | 属性值类型（number \| string）的收窄，不是按图形类型分派 |
-| `CoordinateSpec.translate` | 按自身的轴取 dx 或 dy | 二选一取数据，平移行为本身不变；坐标与其他属性的行为差异由属性种类的多态承担 |
+| `Shape.set` / `assign` | 按属性名写回属性对象 | 查的是数据（属性表条目），不依据图形类型选择行为；解析与校验由属性对象多态完成 |
 | `App` | 用 `instanceof` 区分可报告的错误与程序缺陷 | 错误分类，不选择业务行为 |
 
 以下一处按类型（而非名字）选择行为，属于开发者决策（见 [UNDO_REDO](update/20261020_FEAT_UNDO_REDO.md)）：

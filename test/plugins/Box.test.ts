@@ -98,7 +98,7 @@ describe('box 插件', () => {
     expect(registry.resolve(shape, 'stroke')).not.toBeNull();
   });
 
-  it('移动和缩放复合模型及其文档成员，数值错误恢复已经修改的私有部件', () => {
+  it('移动和缩放复合模型及其文档成员，命令在数值错误时恢复私有部件', () => {
     const document = new Document(10, 10);
     const node = document.insert(box('n'));
     document.insert(box('child'), node);

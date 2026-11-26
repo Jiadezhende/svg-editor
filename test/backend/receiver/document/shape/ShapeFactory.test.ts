@@ -22,9 +22,9 @@ describe('ShapeFactory 图形工厂', () => {
     expect((await createShapeFactory()).definition(type).type).toBe(type);
   });
 
-  it('按类型名和属性值创建对应的图形实例', async () => {
+  it('按类型名和 id 构造候选实例', async () => {
     const factory = (await createShapeFactory());
-    expect(factory.create('rect', 'r', new Map([['x', 1], ['y', 2], ['width', 3], ['height', 4]]))).toBeInstanceOf(Rect);
+    expect(factory.create('rect', 'r')).toBeInstanceOf(Rect);
     expect(factory.create('g', 'g')).toBeInstanceOf(Group);
   });
 
@@ -55,20 +55,22 @@ describe('ShapeFactory 图形工厂', () => {
     expect(factory.has('unrelated')).toBe(false);
   });
 
-  it('每次创建独立模型，属性值和校验继续由模型负责', async () => {
+  it('每次创建独立候选，属性值与校验继续由模型负责', async () => {
     const factory = (await createShapeFactory());
-    const values = new Map([['x', 1], ['y', 2], ['width', 3], ['height', 4]]);
-    const first = factory.create('rect', 'r1', values);
-    const second = factory.create('rect', 'r2', values);
+    const first = factory.create('rect', 'r1');
+    const second = factory.create('rect', 'r2');
+    for (const [key, token] of [['x', '1'], ['y', '2'], ['width', '3'], ['height', '4']] as const) {
+      first.set(key, token);
+      second.set(key, token);
+    }
     expect(first).not.toBe(second);
     first.set('width', '10');
-    values.set('height', 99);
     expect(second.value('width')).toBe(3);
-    expect(first.value('height')).toBe(4);
-    expect(() => factory.create('rect', '1bad', values)).toThrow('invalid id: 1bad');
-    expect(() => factory.create('rect', 'bad', new Map(values).set('width', -1)))
-      .toThrow('width must be non-negative');
-    expect(() => factory.create('rect', 'missing')).toThrow('missing attribute: x');
+    expect(first.value('width')).toBe(10);
+    expect(() => factory.create('rect', '1bad')).toThrow('invalid id: 1bad');
+    const bad = factory.create('rect', 'bad');
+    expect(() => bad.set('width', '-1')).toThrow('width must be non-negative');
+    expect(() => factory.create('rect', 'missing').validate()).toThrow('missing attribute: x');
   });
 
   it('类型名缺失或重名属于程序缺陷', async () => {

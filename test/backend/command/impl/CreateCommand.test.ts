@@ -1,9 +1,11 @@
-import { createReceiver } from '../../../support/Plugins';
+import { createHost, createReceiver } from '../../../support/Plugins';
 import { describe, expect, it, vi } from 'vitest';
 import CreateCommand from '../../../../plugins/core/CreateCommand';
 import Document from '../../../../src/backend/receiver/document/Document';
 import Receiver from '../../../../src/backend/receiver/Receiver';
 import EditorError from '../../../../src/backend/error/EditorError';
+import Rect from '../../../../plugins/core/Rect';
+import type { Shape } from '../../../../src/backend';
 
 async function receiverWithDoc(): Promise<Receiver> {
   const receiver = (await createReceiver());
@@ -21,11 +23,14 @@ function detailsOf(receiver: Receiver, id: string): string[] {
 }
 
 describe('CreateCommand 创建', () => {
-  it('把工厂返回的模型加入文档，不在命令内自行构造', async () => {
+  it('把 Receiver 返回的模型加入文档，不在命令内自行构造', async () => {
     const receiver = (await receiverWithDoc());
-    const supplied = receiver.createShape('rect', 'r1', new Map([['x', 10], ['y', 20], ['width', 30], ['height', 40]]));
-    vi.spyOn(receiver, 'createShape').mockReturnValue(supplied);
+    const supplied = new Rect('r1', new Map([['x', 10], ['y', 20], ['width', 30], ['height', 40]]));
+    const createShape = vi.spyOn(receiver, 'createShape').mockReturnValue(supplied);
     create(receiver, 'rect r1 1 2 3 4');
+    expect(createShape).toHaveBeenCalledWith('rect', 'r1', [
+      ['x', '1'], ['y', '2'], ['width', '3'], ['height', '4'],
+    ]);
     expect(receiver.document().requireNode('r1').value).toBe(supplied);
   });
 
@@ -127,22 +132,32 @@ describe('CreateCommand 参数格式（构造时）', async () => {
     expect(() => new CreateCommand(receiver, 'rect r1 0 0 10 10 in'.split(' '))).toThrow('wrong number of arguments');
   });
 
-  it('几何参数不是数字时报错', () => {
-    expect(() => new CreateCommand(receiver, 'rect r1 a 0 1 1'.split(' '))).toThrow(new EditorError('not a number: a'));
-  });
-
   it('参数个数先于数字校验', () => {
     expect(() => new CreateCommand(receiver, 'rect r1 a 0 1'.split(' '))).toThrow('wrong number of arguments');
   });
+});
 
-  it('颜色值不校验，原样接受', () => {
-    expect(() => new CreateCommand(receiver, 'rect r1 0 0 1 1 not-a-color'.split(' '))).not.toThrow();
+describe('CreateCommand 写入（执行时）', () => {
+  it('几何参数在写入时解析，非法值使整条命令失败且文档不变', async () => {
+    const receiver = (await receiverWithDoc());
+    expect(() => create(receiver, 'rect r1 a 0 1 1')).toThrow(new EditorError('not a number: a'));
+    expect(receiver.document().children()).toEqual([]);
+  });
+
+  it('颜色值不校验，原样接受', async () => {
+    const receiver = (await receiverWithDoc());
+    expect(create(receiver, 'rect r1 0 0 1 1 not-a-color')).toEqual(['rect#r1 created']);
+  });
+
+  it('容器不存在先于参数值错误', async () => {
+    const receiver = (await receiverWithDoc());
+    expect(() => create(receiver, 'rect r1 a 0 1 1 in node9')).toThrow(new EditorError('no such container: node9'));
   });
 });
 
 describe('CreateCommand 业务校验（执行时）', () => {
   it('无文档时报无文档，先于其他业务校验', async () => {
-    const command = new CreateCommand((await createReceiver()), 'rect 1abc 0 0 1 1 in node9'.split(' '));
+    const command = new CreateCommand((await createReceiver()), 'rect 1abc 0 0 -1 1 in node9'.split(' '));
     expect(() => command.execute()).toThrow(new EditorError("no document. use 'init' or 'read' first"));
   });
 
@@ -168,6 +183,21 @@ describe('CreateCommand 业务校验（执行时）', () => {
     create(receiver, 'rect start 0 0 1 1');
     expect(() => create(receiver, 'rect r1 0 0 1 1 in node9')).toThrow(new EditorError('no such container: node9'));
     expect(() => create(receiver, 'rect r1 0 0 1 1 in start')).toThrow(new EditorError('not a container: start'));
+  });
+
+  it('Handler 写入后抛错时整条创建失败，文档和历史不变', async () => {
+    const { receiver, handlers, client } = await createHost();
+    receiver.replace(new Document(800, 600));
+    class Broken {
+      static readonly handlerName = 'broken-rect';
+      static matches(shape: Shape, key: string): boolean { return shape.type() === 'rect' && key === 'x'; }
+      static apply(_shape: Shape, _key: string, _token: string): void { throw new Error('write failed'); }
+      static display(_shape: Shape, _key: string): string | null { return null; }
+    }
+    handlers.register(Broken);
+    expect(() => client.execute(['create', 'rect', 'r1', '0', '0', '1', '1'])).toThrow('write failed');
+    expect(receiver.document().children()).toEqual([]);
+    expect(() => client.execute(['undo'])).toThrow('nothing to undo');
   });
 });
 

@@ -30,6 +30,16 @@ describe('Receiver 当前文档槽位', () => {
     expect(receiver.shapeDefinition('rect').params).toEqual(Rect.params);
   });
 
+  it('创建入口按 id 构造候选，逐项写入后校验', async () => {
+    const receiver = (await createReceiver());
+    const shape = receiver.createShape('rect', 'r1', [
+      ['x', '1'], ['y', '2'], ['width', '3'], ['height', '4'],
+    ]);
+    expect(shape.value('x')).toBe(1);
+    expect(shape.value('width')).toBe(3);
+    expect(() => receiver.createShape('rect', 'r2')).toThrow('missing attribute: x');
+  });
+
   it('文件路径：init 新建（不带路径）时没有路径，取路径报错', async () => {
     const receiver = (await createReceiver());
     receiver.replace(new Document(800, 600));

@@ -28,10 +28,16 @@ function factory(boxInstalled: boolean): ShapeFactory {
   return result;
 }
 
+/** 用插件的 Handler 写入几何与标题，等价于 create box 的写入序列。 */
 function box(id: string): Box {
-  return new Box(id, new Map<string, number | string>([
-    ['x', 120], ['y', 100], ['width', 160], ['height', 60], ['label', '开始'],
-  ]));
+  const shape = new Box(id);
+  const handler = activate().attributes[0];
+  const values: ReadonlyArray<readonly [string, string]> = [
+    ['x', '120'], ['y', '100'], ['width', '160'], ['height', '60'], ['label', '开始'],
+  ];
+  for (const [key, token] of values) handler.apply(shape, key, token);
+  shape.validate();
+  return shape;
 }
 
 describe('box 插件', () => {
@@ -41,6 +47,8 @@ describe('box 插件', () => {
     const node = document.insert(shape);
     document.insert(box('n2'), node);
     expect(shape.identifiers()).toEqual(['n1', 'n1-rect', 'n1-label']);
+    expect(shape.value('fill')).toBeNull();
+    expect(shape.frameShape().value('fill')).toBe('#4a90d9');
     expect(shape.view().children).toMatchObject([{ id: 'n1-rect' }, { id: 'n1-label', content: '开始' }]);
     expect(Object.isFrozen(shape.view().children[0].attributes[0])).toBe(true);
     expect(document.elementCount()).toBe(6);
@@ -72,12 +80,13 @@ describe('box 插件', () => {
     label.apply(shape, 'label', '处理数据 v2');
     expect(fill.display(shape, 'fill')).toBe('#f5a623');
     expect(label.display(shape, 'label')).toBe('"处理数据 v2"');
+    expect(shape.value('fill')).toBeNull();
     painted.restore();
-    expect(shape.displayLabel()).toBe('"开始"');
-    expect(shape.displayFill()).toBe('#f5a623');
+    expect(shape.captionShape().display('text')).toBe('"开始"');
+    expect(shape.frameShape().display('fill')).toBe('#f5a623');
     initial.restore();
-    expect(shape.displayFill()).toBe('#4a90d9');
-    expect(registry.resolve(shape, 'stroke')).toBeNull();
+    expect(shape.frameShape().display('fill')).toBe('#4a90d9');
+    expect(registry.resolve(shape, 'stroke')).not.toBeNull();
   });
 
   it('移动和缩放复合模型及其文档成员，数值错误恢复已经修改的私有部件', () => {
@@ -105,7 +114,7 @@ describe('box 插件', () => {
     const document = new Document(800, 600);
     const shape = box('n');
     const parent = document.insert(shape);
-    shape.setLabel('a & b');
+    shape.captionShape().set('text', 'a & b');
     document.insert(box('child'), parent);
     const writer = new SvgWriter([activate().shapes[0].mapping!]);
     const svg = writer.write(document);

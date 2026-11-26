@@ -1,6 +1,7 @@
 import EditorError from '../error/EditorError';
 import type Document from './document/Document';
 import type ShapeNode from './document/ShapeNode';
+import type AttributeHandler from './document/shape/AttributeHandler';
 import type AttributeHandlerRegistry from './document/shape/AttributeHandlerRegistry';
 import type Shape from './document/shape/Shape';
 import type ShapeFactory from './document/shape/ShapeFactory';
@@ -30,8 +31,25 @@ export default class Receiver {
     return this.factory.definition(type);
   }
 
-  createShape(type: string, id: string, values?: ReadonlyMap<string, number | string>): Shape {
-    return this.factory.create(type, id, values);
+  /** 按 id 构造候选，逐项写入后做一次整图校验；创建阶段不调用公开 set。 */
+  createShape(type: string, id: string, inputs: readonly (readonly [string, string])[] = []): Shape {
+    const shape = this.factory.create(type, id);
+    for (const [name, token] of inputs) {
+      this.write(shape, name, token);
+    }
+    shape.validate();
+    return shape;
+  }
+
+  /** 唯一写入动作：一次匹配后交给 Handler 或模型默认规则，不校验、不回显。 */
+  private write(
+    shape: Shape,
+    key: string,
+    token: string,
+    handler: AttributeHandler | null = this.handlerRegistry.resolve(shape, key),
+  ): void {
+    if (handler === null) shape.set(key, token);
+    else handler.apply(shape, key, token);
   }
 
   resolveAttributeHandler(shape: Shape, key: string): ReturnType<AttributeHandlerRegistry['resolve']> {

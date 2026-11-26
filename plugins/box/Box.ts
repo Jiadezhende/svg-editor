@@ -1,7 +1,9 @@
 import { CoordinateAttribute, EditorError, LengthAttribute, Shape, TextAttribute } from '../../src/backend';
-import type { ShapeMemento, ShapeParseResult, ShapeView } from '../../src/backend';
+import type { Attribute, ShapeMemento, ShapeParseResult, ShapeView } from '../../src/backend';
 
-type Values = ReadonlyMap<string, number | string>;
+const DEFAULT_FILL = '#4a90d9';
+const LABEL_OFFSET_X = 20;
+const LABEL_OFFSET_Y = 5;
 
 class Frame extends Shape {
   static override readonly type = 'rect';
@@ -20,6 +22,18 @@ class Caption extends Shape {
   static override readonly type = 'text';
   static override readonly params = [new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new TextAttribute('text')];
   static override readonly content = 'text';
+
+  /** 写入文字坐标；任一次写入失败时恢复原值。 */
+  place(x: number, y: number): void {
+    const before = this.capture();
+    try {
+      this.assignValue('x', x);
+      this.assignValue('y', y);
+    } catch (error) {
+      before.restore();
+      throw error;
+    }
+  }
 }
 
 interface Parts {
@@ -27,6 +41,10 @@ interface Parts {
   readonly caption: Shape;
 }
 
+/**
+ * 带标题的矩形框：内部 `Frame` 与 `Caption` 由模型持有，普通成员关系仍由文档维护。
+ * 外观、标题与几何都不进入自身属性表，统一经 box-attributes 路由到部件。
+ */
 export default class Box extends Shape {
   static override readonly type = 'box';
   static override readonly createParams = [...Frame.params, new TextAttribute('label')];
@@ -34,19 +52,11 @@ export default class Box extends Shape {
   private readonly frame: Frame;
   private readonly caption: Caption;
 
-  constructor(id: string, values: Values = new Map(), restored?: Parts) {
-    const appearance = new Map(values);
-    for (const spec of Box.createParams) appearance.delete(spec.name());
-    super(id, appearance);
+  constructor(id: string, restored?: Parts) {
+    super(id);
     if (restored === undefined) {
-      const frameValues = new Map<string, number | string>([['fill', '#4a90d9']]);
-      for (const spec of Frame.params) frameValues.set(spec.name(), Box.required(values, spec.name()));
-      this.frame = new Frame(`${id}-rect`, frameValues);
-      this.caption = new Caption(`${id}-label`, new Map<string, number | string>([
-        ['x', Number(this.frame.value('x')) + 20],
-        ['y', Number(this.frame.value('y')) + Number(this.frame.value('height')) / 2 + 5],
-        ['text', Box.required(values, 'label')],
-      ]));
+      this.frame = new Frame(`${id}-rect`, new Map([['fill', DEFAULT_FILL]]));
+      this.caption = new Caption(`${id}-label`);
     } else {
       const { frame, caption } = restored;
       if (frame.type() !== Frame.type || frame.id() !== `${id}-rect` || frame.acceptsChildren() ||
@@ -54,7 +64,7 @@ export default class Box extends Shape {
         throw new EditorError(`invalid box parts: ${id}`);
       }
       try {
-        const captionValues = new Map(caption.entries());
+        const captionValues = new Map<string, number | string>(caption.entries());
         const text = caption.content();
         if (text !== null) captionValues.set('text', text);
         this.frame = new Frame(frame.id(), new Map(frame.entries()));
@@ -65,15 +75,44 @@ export default class Box extends Shape {
     }
   }
 
-  static override parse(id: string, attributes: ReadonlyMap<string, string>, readChildren: () => readonly Shape[]): ShapeParseResult {
+  static override parse(
+    id: string,
+    _attributes: ReadonlyMap<string, string>,
+    readChildren: () => readonly Shape[],
+  ): ShapeParseResult {
     const children = readChildren();
     const frame = children.find((child) => child.id() === `${id}-rect`);
     const caption = children.find((child) => child.id() === `${id}-label`);
     if (frame === undefined || caption === undefined) throw new EditorError(`invalid box parts: ${id}`);
-    return {
-      shape: new Box(id, this.parseValues(attributes), { frame, caption }),
-      children: children.filter((child) => child !== frame && child !== caption),
-    };
+    const shape = new Box(id, { frame, caption });
+    shape.validate();
+    return { shape, children: children.filter((child) => child !== frame && child !== caption) };
+  }
+
+  /** 外观、标题和几何都由部件承载，自身不声明属性。 */
+  static override attributes(): readonly Attribute[] {
+    return [];
+  }
+
+  /** 框体部件；Handler 通过它读写几何与外观。 */
+  frameShape(): Shape { return this.frame; }
+
+  /** 标题部件；Handler 通过它读写文字。 */
+  captionShape(): Shape { return this.caption; }
+
+  /** 按框体位置和尺寸重算文字位置；几何未齐时（创建写入过程中）不处理。 */
+  layoutLabel(): void {
+    const x = this.frame.value('x');
+    const y = this.frame.value('y');
+    const height = this.frame.value('height');
+    if (typeof x !== 'number' || typeof y !== 'number' || typeof height !== 'number') return;
+    this.caption.place(x + LABEL_OFFSET_X, y + height / 2 + LABEL_OFFSET_Y);
+  }
+
+  override validate(): void {
+    super.validate();
+    this.frame.validate();
+    this.caption.validate();
   }
 
   override acceptsChildren(): boolean { return true; }
@@ -104,23 +143,13 @@ export default class Box extends Shape {
     });
   }
 
-  setFill(value: string): void { this.frame.set('fill', value); }
-  setLabel(value: string): void { this.caption.set('text', value); }
-  displayFill(): string | null { return this.frame.display('fill'); }
-  displayLabel(): string | null { return this.caption.display('text'); }
-
   protected override treeLabel(): string { return `g#${this.id()}`; }
+
   protected override viewParts(): readonly ShapeView[] { return [this.frame.view(), this.caption.view()]; }
 
   private changeParts(change: () => void): void {
     const before = this.capture();
     try { change(); }
     catch (error) { before.restore(); throw error; }
-  }
-
-  private static required(values: Values, key: string): number | string {
-    const value = values.get(key);
-    if (value === undefined) throw new EditorError(`missing attribute: ${key}`);
-    return value;
   }
 }

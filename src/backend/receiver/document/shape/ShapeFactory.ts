@@ -2,16 +2,22 @@ import EditorError from '../../../error/EditorError';
 import Shape from './Shape';
 import type { ShapeParseResult } from './Shape';
 
+/** 图形类型注册契约：静态声明、解析能力与“只接收 id”的候选构造。 */
+export type ShapeModel = Pick<
+  typeof Shape,
+  'prototype' | 'type' | 'params' | 'createParams' | 'paint' | 'anchor' | 'content' | 'attributes' | 'attribute' | 'parse' | 'checkId'
+> & (abstract new (id: string) => Shape);
+
 /**
  * 图形工厂：内部保存类型名 → 图形类，使用侧查询规格并由工厂创建实例。
  * 初始注册表为空，具体类型由宿主选择并注册。
  * 使用侧只查询规格与创建实例，具体类的选择和注册留在宿主。
  */
 export default class ShapeFactory {
-  private readonly classes = new Map<string, typeof Shape>();
+  private readonly classes = new Map<string, ShapeModel>();
 
   /** 注册 Shape 子类，并校验其解析方法、类型名和锚点。 */
-  register(cls: typeof Shape): void {
+  register(cls: ShapeModel): void {
     if (typeof cls !== 'function' || !(cls.prototype instanceof Shape) || typeof cls.parse !== 'function') {
       throw new Error('shape must extend Shape and provide parse');
     }
@@ -37,12 +43,10 @@ export default class ShapeFactory {
     return this.lookup(type);
   }
 
-  /** 统一创建入口；构造后校验整图约束。创建流程仍会在写入全部属性后再次校验。 */
-  create(type: string, id: string, values: ReadonlyMap<string, number | string> = new Map()): Shape {
+  /** 按类型和 id 构造候选；完整性由创建流程在写入全部属性后校验。 */
+  create(type: string, id: string): Shape {
     // typeof Shape 带有抽象构造签名，注册表保存的是已校验的子类。
-    const shape = Reflect.construct(this.lookup(type), [id, values]) as Shape;
-    shape.validate();
-    return shape;
+    return Reflect.construct(this.lookup(type), [id]) as Shape;
   }
 
   /** 调用已注册类的数据构造能力；递归函数由读入编排者提供。 */
@@ -55,7 +59,7 @@ export default class ShapeFactory {
     return this.lookup(type).parse(id, attributes, readChildren);
   }
 
-  private static checkAnchor(cls: typeof Shape): void {
+  private static checkAnchor(cls: ShapeModel): void {
     const anchor = cls.anchor;
     if (anchor === null) {
       return;
@@ -68,7 +72,7 @@ export default class ShapeFactory {
   }
 
   /** 构造函数只在注册表内部查找，未知类型保持原错误语义。 */
-  private lookup(type: string): typeof Shape {
+  private lookup(type: string): ShapeModel {
     const cls = this.classes.get(type);
     if (cls === undefined) {
       throw new EditorError(`unknown shape type: ${type} (is the plugin loaded?)`);

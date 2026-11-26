@@ -2,8 +2,8 @@ import type { CommandForm } from './Client';
 import type Command from './command/Command';
 import type Receiver from './receiver/Receiver';
 import type AttributeHandler from './receiver/document/shape/AttributeHandler';
-import type Shape from './receiver/document/shape/Shape';
 import type { SvgShapeMapping } from './receiver/svg/SvgWriter';
+import type { ShapeModel } from './receiver/document/shape/ShapeFactory';
 import type TreeDecorator from './receiver/tree/TreeDecorator';
 
 export type CommandContribution = CommandForm['definition'] &
@@ -11,7 +11,7 @@ export type CommandContribution = CommandForm['definition'] &
 
 export interface PluginContributions {
   readonly shapes: readonly {
-    readonly model: typeof Shape;
+    readonly model: ShapeModel;
     readonly mapping?: SvgShapeMapping;
   }[];
   readonly commands: readonly CommandContribution[];

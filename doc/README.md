@@ -65,7 +65,7 @@ npm run verify:transcripts
 | [Shape](../src/backend/receiver/document/shape/Shape.ts) 的静态类契约，即课程 `ShapeProvider` | 提供类型、创建参数和 SVG 模型构造。内核 `ShapeFactory.create` / `ShapeFactory.parse` 分别调用构造函数和静态 `parse`，持久化由 `SvgReader.children` 编排 | `core` 的 rect、circle、ellipse、line、text、g，另有 `box` | `create box` 报未知类型，带 `data-kind="box"` 的 SVG 按标签读为普通 `g` | 类、解析方法、锚点或注册名非法时拒绝整包。已声明类型的无效模型或重复 id 拒绝创建或读入 |
 | [Command](../src/backend/command/Command.ts) | 定义命令、参数形式和执行能力。`Client.execute` 选定已绑定的命令表条目，`Invoker.execute` 调用并按命令种类管理历史 | `core` 的 17 种形式，独立的 `stats` 和 `dir` | 未装入的命令从 `help` 消失，执行时报 `unknown command` | 与框架或其他包命令重名、命令定义非法时拒绝整包。用户参数不符时返回用法 |
 | [TreeDecorator](../src/backend/receiver/tree/TreeDecorator.ts) | 在基础树行追加标签。`TreeRenderer` 构造器包装渲染器，`render` 传入只读视图，`notify` 发布成功后的内容快照 | `modified-star` 与 `box-type-label` | 无装饰器使用基础渲染，Phase 1 树输出逐字节一致 | 继承、名称或构造失败时拒绝整包。成功通知中的异常转为警告 |
-| [AttributeHandler](../src/backend/receiver/document/shape/AttributeHandler.ts) | 定义特定图形上的属性语义。`AttributeHandlerRegistry.resolve` 找首个命中项，`SetCommand.execute` 经 `Receiver.resolveAttributeHandler` 执行修改与回显 | `box-attributes` 处理 `fill` 与 `label` | 未命中时使用模型属性规则，普通矩形 `fill` 仍可设置，未知属性报错 | 注册契约或名称非法时拒绝整包。处理器执行或回显失败时恢复图形快照，历史保持原状 |
+| [AttributeHandler](../src/backend/receiver/document/shape/AttributeHandler.ts) | 定义特定图形上的属性语义。`AttributeHandlerRegistry.resolve` 找首个命中项，`Receiver.set` 在同一次匹配内完成修改、校验与前后回显；`Receiver.createShape` 复用同一写入 | `box-attributes` 处理 `fill`、`stroke`、`stroke-width`、`label` 与几何 | 未命中时使用模型属性规则，普通矩形 `fill` 仍可设置，未知属性报错 | 注册契约或名称非法时拒绝整包。处理器执行或回显失败时恢复图形快照，历史保持原状 |
 
 [ShapeFactory](../src/backend/receiver/document/shape/ShapeFactory.ts) · [SvgReader](../src/backend/receiver/svg/SvgReader.ts) · [Client](../src/backend/Client.ts) · [Invoker](../src/backend/invoker/Invoker.ts) · [TreeRenderer](../src/backend/receiver/tree/TreeRenderer.ts) · [AttributeHandlerRegistry](../src/backend/receiver/document/shape/AttributeHandlerRegistry.ts) · [SetCommand](../plugins/core/SetCommand.ts)
 
@@ -230,9 +230,9 @@ backend ..> error : 各模块均可依赖
 
 | 模式 | 解决的问题 | 落地 |
 | --- | --- | --- |
-| **Command**（课程要求） | 编辑操作要可撤销、可重做，且所有操作统一执行 | Client = `Client`（按名创建命令）；Invoker = `Invoker`（执行，维护撤销栈与重做栈）；Command = `Command`；ConcreteCommand = `command/impl/` 下的 17 个类；Receiver = `Workspace`、`Document`、Shape 树、`SvgFile`。命令在构造时解析参数，在 `execute` 中取文档并执行，撤销所需的信息记在命令自己身上，所以撤销栈里存的就是命令对象；redo 即再次 `execute()` |
+| **Command**（课程要求） | 编辑操作要可撤销、可重做，且所有操作统一执行 | Client = `Client`（按名创建命令）；Invoker = `Invoker`（执行，维护撤销栈与重做栈）；Command = `Command`；ConcreteCommand = `command/impl/` 下的 17 个类；Receiver = `Workspace`、`Document`、Shape 树、`SvgFile`。命令在构造时校验参数形式，在 `execute` 中取文档并执行，属性值在写入阶段解析，撤销所需的信息记在命令自己身上，所以撤销栈里存的就是命令对象；redo 即再次 `execute()` |
 | **Composite**（课程要求） | 容器与叶子统一操作 | `Shape` 为 Component，`Group` 为 Composite，`Rect` 等 5 个类为叶子；`Document` 作为画布根同样实现 `Container`。`find`、`move`、`scale`、`capture`、`relocate` 对容器与叶子一视同仁，Group 覆盖为"自身 + 递归子节点"；命令只调用 `shape.move()` 等，不判断类型 |
-| **Strategy**（属性种类） | 不同属性的取值规则不同，但 set / show / save / move / scale 要对属性统一处理 | `AttributeSpec` 及其子类（坐标、尺寸、线宽、字符串、文本内容）封装解析、约束、展示、平移、缩放、默认值；各图形类以静态属性表声明自己有哪些属性、各属哪一种类。叶子类因此只有声明，没有按属性名的分支 |
+| **Strategy**（属性种类） | 不同属性的取值规则不同，但 set / show / save / move / scale 要对属性统一处理 | `Attribute` 及其子类（坐标、尺寸、线宽、字符串、文本内容）持有当前值并封装解析、约束、展示、平移、缩放、默认值；各图形类以类级属性模板声明自己有哪些属性、各属哪一种类。叶子类因此只有声明，没有按属性名的分支 |
 | **Factory（注册表）** | 按类型名创建图形，插件类型可加入 | `ShapeFactory`：类型名 → 图形类；create 用 `lookup`，read 用 `find`；按名分派标注为待重构（见一致性自查） |
 | **Memento** | move / scale / set 的撤销要精确还原，浮点反向运算做不到 | `Shape.capture()` 生成 `ShapeMemento`（容器连同子树），恢复动作以闭包保存私有属性，属性值不对外暴露 |
 | **Template Method** | front、back、addto 的流程相同，只是目标不同 | `RelocateCommand`：记下原位置 → relocate 到目标 → 撤销时 relocate 回去；子类只给出目标与回显 |
@@ -257,7 +257,7 @@ backend ..> error : 各模块均可依赖
 | --- | --- |
 | 新图形类型（后续阶段的插件 `box`） | **已预留**：图形类只需声明 `type`、`params`、`paint`、`anchor`、`content`，create、显示、平移缩放、set、读写全部按声明通用处理；`ShapeFactory.register` 已开放，注册时校验声明。待做：ShapeProvider 插件的注册入口，以及 box 的 set 传播、不可 ungroup 等插件语义 |
 | 新命令 | **已预留**：在 `command/impl/` 加一个文件即被自动注册；同一命令名的多种形式由各形式的 `accepts` 按参数结构唯一命中（如 `canvas` 与 `canvas <w> <h>`），不依赖注册顺序。待做：内核之外的插件命令注册入口 |
-| 新属性种类（如带单位的长度） | **已预留**：新增 `AttributeSpec` 子类，实现解析、约束、展示、平移、缩放、默认值即可，其余代码不改 |
+| 新属性种类（如带单位的长度） | **已预留**：新增 `Attribute` 子类，实现解析、约束、展示、平移、缩放、默认值即可，其余代码不改 |
 | 新输入输出通道（agent、文件脚本、GUI） | **已预留**：`InputSource` / `OutputSink` 接口；前后端以"参数数组 + 结果字符串"为边界，命令文本是唯一协议 |
 | XML 解析实现 | **已预留**：依赖只出现在 `SvgReader` 一个类中 |
 | 新的命令类别（撤销规则） | **不预留**：Invoker 按类型分两支（编辑类、文档类），行为只有这两种，集中在一处最直观；新增类别时在 Invoker 加分支（开发者决策） |

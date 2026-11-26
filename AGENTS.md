@@ -11,14 +11,14 @@
 ## Shape：领域模型
 
 - 持有单个图形的状态，封装内部部件，通过公开方法修改自身；业务复合 Shape 按实际需要声明内部 Shape 成员；普通 SVG 容器的成员关系保存在文档节点树中。
-- 保证自身不变量，例如 Box 必须具有有效的矩形和文字；不承担整份文档的全局 id 检查。
+- 保证自身不变量，例如 Box 必须具有有效的矩形和文字；由 `validate()` 检查必填属性、跨属性约束与部件结构；不承担整份文档的全局 id 检查。
 - Shape 维护 SVG id，不维护 index、文档归属、文档父节点或通用 children 字段，不提供文档树 insert/remove/relocate。业务复合模型的内部成员默认不成为独立文档节点。
 - Shape.identifiers() 声明自身及私有部件占用的全部 id；默认仅自身，复合模型覆写，必须包含根 id、不得重复或非法。声明只读且随模型身份保持稳定，不暴露内部对象或文档关系。
 - Handler、Command 和 Document 都不能绕过图形公开方法直接修改其内部状态。Shape 不依赖 Handler 注册表、Command、CLI 或 SVG 解析器。
-- 属性规格或模型负责共享的值解析、校验与基础修改规则，避免创建、属性设置和读回各写一套。
-- 图形属性规格位于 `shape/attribute/`。命令、属性规格、SVG 读写和树渲染共用 `backend/utils/DecimalFormat.ts` 的十进制文本规则。
-- 静态 Shape.parse(id, attributes, readChildren) 提供可覆写的数据构造能力，默认通过属性规格解析文本及默认值。结果 ShapeParseResult 包含构造出的 shape 和仍应作为文档成员的 children；Shape 本身不保存这份文档关系。
-- 复合图形通过构造函数或公开工厂生成有效结构。内部部件的访问与修改封装在模型公开方法中，例如 Box.setLabel(value)。
+- 属性对象或模型负责共享的值解析、校验与基础修改规则，避免创建、属性设置和读回各写一套。
+- 图形属性的值与规则位于 `shape/attribute/`。命令、属性对象、SVG 读写和树渲染共用 `backend/utils/DecimalFormat.ts` 的十进制文本规则。
+- 静态 Shape.parse(id, attributes, readChildren) 提供可覆写的数据构造能力，默认通过属性对象解析文本及默认值。结果 ShapeParseResult 包含构造出的 shape 和仍应作为文档成员的 children；Shape 本身不保存这份文档关系。
+- 复合图形在构造时建立内部部件，完整性由 `validate()` 检查。内部部件通过模型公开入口访问，属性修改由 Handler 组合模型的公开操作完成；跨部件约束（例如标题位置）仍由模型保证。
 
 ## Document：上层内存文档结构
 
@@ -42,7 +42,8 @@
 - 在命令调用边界通过所需模型快照参与局部失败恢复，不要求通用会话事务。处理器部分修改后失败必须恢复修改及保持历史不变，不能再转入默认处理。
 - AttributeHandlerRegistry 按启用顺序调用 matches，首个命中即停止，顺序就是优先级；无命中才使用已有模型属性规则。不收集多命中，也不采用冲突拒绝或组合执行。
 - 模型类型、属性 key 和别名判断集中在 matches；注册表只保存有序静态类，不维护具体属性映射。matches 和 display 必须只读，静态类不保存单次执行状态。
-- SetCommand 定位 Shape 并查询注册表，命中后通过 apply 修改、display 取得领域回显值；null 表示未设置，不触发回退。匹配错误直接传播，执行或展示错误恢复当前模型快照后传播，均不继续尝试后续 Handler。
+- Receiver 在编辑时定位目标并查询一次注册表，命中后通过 apply 修改、display 取得领域回显值；null 表示未设置，不触发回退。匹配错误直接传播，执行或展示错误恢复当前模型快照后传播，均不继续尝试后续 Handler。
+- 创建与设置共用 Receiver 的内部写入；创建逐项写入后校验一次，编辑在写入后校验并读取前后回显。整图校验由 Receiver 的公开入口调用 Shape.validate()，命令不调用。
 - 只有需要独立增加、替换或开放给插件的领域操作才抽成 Handler，不把所有模型方法机械地包装为 Handler。
 
 ## Command：应用服务层
@@ -108,7 +109,7 @@ Document（画布、节点树、全局约束）
 ## 模型扩展与注册
 
 - 新增模型通过具体 Shape 类及按需的 Handler 接入。
-- 具体 Shape 类的静态描述与构造能力承担图形类型注册契约。创建参数默认复用属性规格，特殊模型可单独声明。ShapeFactory.register 接收 Shape 的类对象，在运行时校验继承关系和解析方法。使用侧通过 has/definition/create 获取支持信息、只读规格和实例，不能查询构造函数。
+- 具体 Shape 类的静态描述与构造能力承担图形类型注册契约。创建参数默认复用属性模板，特殊模型可单独声明。ShapeFactory.register 接收 Shape 的类对象，在运行时校验继承关系和解析方法。使用侧通过 has/definition/create 获取支持信息、只读规格和候选实例，不能查询构造函数。
 - 课程中的 ShapeProvider 对应图形类型注册契约，由具体 Shape 类承担；交付文档须明确对应关系。
 - ShapeFactory 负责注册、查找与创建；具体图形的选择和注册放在宿主装配侧，工厂不自行导入、枚举插件图形。
 - 普通图形无需专门 Handler。特殊领域操作通过 Handler 独立注册；模型不依赖其处理器，处理器可依赖模型公开接口，两者可以同包维护。
@@ -125,7 +126,7 @@ Document（画布、节点树、全局约束）
 
 - 内核定义公开领域抽象和扩展契约，通过契约调用扩展，不导入具体插件。
 - 宿主和扩展的公共导入入口为 `src/backend/index.ts`；ShapeNode 只导出类型，节点构造及关系存储不作为扩展接口。
-- ShapeFactory 初始为空。main 按配置装配插件，独立的代码入口使用显式导入列表。宿主向 Receiver 注入工厂、文件访问、SvgReader、SvgWriter、AttributeHandlerRegistry 和 TreeRenderer。Receiver 持有当前文档及路径，并公开命令所需的操作。
+- ShapeFactory 初始为空。main 按配置装配插件，独立的代码入口使用显式导入列表。宿主向 Receiver 注入工厂、文件访问、SvgReader、SvgWriter、AttributeHandlerRegistry 和 TreeRenderer。Receiver 持有当前文档及路径，并公开创建、设置、校验与查询操作。
 - 宿主完成接收者与具体命令的绑定，承担经典命令模式的装配职责。Client 构造时接收只读命令表和成功通知回调；Invoker 调用 Command 的执行与撤销接口并管理历史。CLI 通过 CommandSession 执行命令并查询退出状态。
 - 插件只依赖内核公开契约，不依赖内核内部实现或宿主装配模块。
 - 树标签、CLI 格式化等展示行为留在展示扩展中，不混入领域 Handler 或模型。

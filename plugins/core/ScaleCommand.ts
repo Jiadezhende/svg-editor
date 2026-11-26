@@ -1,9 +1,5 @@
-import { CommandResult } from '../../src/backend';
-import { EditCommand } from '../../src/backend';
-import { EditorError } from '../../src/backend';
-import type { Shape } from '../../src/backend';
-import type { ShapeMemento } from '../../src/backend';
-import type { Receiver } from '../../src/backend';
+import { CommandResult, EditCommand, EditorError } from '../../src/backend';
+import type { EditSnapshot, Receiver } from '../../src/backend';
 
 /** `scale <id> <factor>`：以坐标原点为中心等比缩放位置与尺寸；容器递归到每个子孙；stroke-width 不缩放。 */
 export default class ScaleCommand extends EditCommand {
@@ -12,8 +8,6 @@ export default class ScaleCommand extends EditCommand {
 
   private readonly id: string;
   private readonly factor: number;
-  /** 本次 execute 缩放的图形及缩放前的快照，供 undo 使用。 */
-  private scaled: { shape: Shape; memento: ShapeMemento } | null = null;
 
   constructor(
     private readonly receiver: Receiver,
@@ -28,23 +22,19 @@ export default class ScaleCommand extends EditCommand {
     }
   }
 
-  execute(): CommandResult {
+  protected snapshot(): EditSnapshot {
+    const doc = this.receiver.document();
+    return doc.capture(doc.requireNode(this.id));
+  }
+
+  protected apply(): { result: CommandResult; undo: string } {
     const doc = this.receiver.document();
     const node = doc.requireNode(this.id);
     const shape = node.value;
-    const memento = doc.capture(node);
     doc.scale(node, this.factor);
-    const result = new CommandResult().line(`${shape.label()} scaled by ${this.formatNumber(this.factor)}`);
-    this.scaled = { shape, memento };
-    return result;
-  }
-
-  undo(): CommandResult {
-    if (this.scaled === null) {
-      throw new Error('undo before execute');
-    }
-    const { shape, memento } = this.scaled;
-    memento.restore();
-    return new CommandResult().line(`${shape.label()} scaled back by ${this.formatNumber(1 / this.factor)}`);
+    return {
+      result: new CommandResult().line(`${shape.label()} scaled by ${this.formatNumber(this.factor)}`),
+      undo: `${shape.label()} scaled back by ${this.formatNumber(1 / this.factor)}`,
+    };
   }
 }

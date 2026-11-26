@@ -3,6 +3,7 @@ import Invoker from '../../../src/backend/invoker/Invoker';
 import CommandResult from '../../../src/backend/command/CommandResult';
 import DocumentCommand from '../../../src/backend/command/DocumentCommand';
 import EditCommand from '../../../src/backend/command/EditCommand';
+import type { EditSnapshot } from '../../../src/backend/command/EditCommand';
 import EditorError from '../../../src/backend/error/EditorError';
 import StubCommand from '../../support/StubCommand';
 
@@ -20,17 +21,17 @@ class AddCommand extends EditCommand {
     super();
   }
 
-  execute(): CommandResult {
+  protected snapshot(): EditSnapshot {
+    const value = this.counter.value;
+    return { restore: () => { this.counter.value = value; } };
+  }
+
+  protected apply(): { result: CommandResult; undo: string } {
     if (this.n < 0) {
       throw new EditorError('negative');
     }
     this.counter.value += this.n;
-    return new CommandResult().line(`added ${this.n}`);
-  }
-
-  undo(): CommandResult {
-    this.counter.value -= this.n;
-    return new CommandResult().line(`removed ${this.n}`);
+    return { result: new CommandResult().line(`added ${this.n}`), undo: `removed ${this.n}` };
   }
 }
 

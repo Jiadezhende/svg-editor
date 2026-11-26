@@ -143,11 +143,11 @@ export default class Document {
   }
 
   move(root: ShapeNode, dx: number, dy: number): void {
-    this.transform(root, (shape) => shape.move(dx, dy));
+    for (const node of this.nodes(root)) node.value.move(dx, dy);
   }
 
   scale(root: ShapeNode, factor: number): void {
-    this.transform(root, (shape) => shape.scale(factor));
+    for (const node of this.nodes(root)) node.value.scale(factor);
   }
 
   captureStructure(): DocumentStructureMemento {
@@ -174,17 +174,6 @@ export default class Document {
         owners.set(node.value, this);
       }
     });
-  }
-
-  private transform(root: ShapeNode, change: (shape: Shape) => void): void {
-    const nodes = this.nodes(root);
-    const before = this.capture(root);
-    try {
-      for (const node of nodes) change(node.value);
-    } catch (error) {
-      before.restore();
-      throw error;
-    }
   }
 
   private checkIdentifiers(shapes: readonly Shape[]): void {

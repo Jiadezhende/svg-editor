@@ -8,9 +8,8 @@ import CreateCommand from '../../../plugins/core/CreateCommand';
 import DeleteCommand from '../../../plugins/core/DeleteCommand';
 import GroupCommand from '../../../plugins/core/GroupCommand';
 import MoveCommand from '../../../plugins/core/MoveCommand';
+import ScaleCommand from '../../../plugins/core/ScaleCommand';
 import SetCommand from '../../../plugins/core/SetCommand';
-import UndoRecord from '../../../src/backend/command/UndoRecord';
-import CommandResult from '../../../src/backend/command/CommandResult';
 
 async function scene() {
   const receiver = (await createReceiver());
@@ -28,20 +27,13 @@ function contents(doc: Document) {
 }
 
 describe('真实编辑命令的历史组合', () => {
-  it('局部编辑失败恢复本次快照，并保留上一次成功的撤销记录', () => {
-    const record = new UndoRecord();
-    let value = 1;
-    record.execute({ restore: () => { value = 1; } }, () => {
-      value = 2;
-      return { result: new CommandResult().line('edited'), undo: 'first undo' };
-    });
-    expect(() => record.execute({ restore: () => { value = 2; } }, () => {
-      value = 3;
-      throw new Error('failed');
-    })).toThrow('failed');
-    expect(value).toBe(2);
-    expect(record.undo().lines()).toEqual(['first undo']);
-    expect(value).toBe(1);
+  it('编辑失败恢复本次快照，并保留上一次成功的撤销记录', async () => {
+    const { receiver, doc, invoker } = (await scene());
+    invoker.execute(new SetCommand(receiver, ['r', 'y', `1${'0'.repeat(308)}`]));
+    expect(() => invoker.execute(new ScaleCommand(receiver, ['g', '2']))).toThrow('y must be a finite number');
+    expect(doc.requireNode('r').value.value('y')).toBe(1e308);
+    expect(doc.requireNode('r').value.value('x')).toBe(10);
+    expect(invoker.undo().lines()).toEqual(['rect#r updated: y=20']);
   });
 
   it('属性、变换和分组可多轮整体撤销与重做，不丢失原节点身份', async () => {

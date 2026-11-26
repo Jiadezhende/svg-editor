@@ -76,6 +76,14 @@ describe('MoveCommand', () => {
     expect(command.execute().lines()).toEqual(first);
   });
 
+  it('变换失败时恢复整棵子树，不留下部分修改', async () => {
+    const receiver = (await receiverWith(['g', 'g1'], ['rect', 'r1', '10', '20', '30', '40', 'in', 'g1']));
+    receiver.document().requireNode('r1').value.set('y', `1${'0'.repeat(308)}`);
+    const before = receiver.document().requireNode('r1').value.entries();
+    expect(() => new MoveCommand(receiver, ['g1', '1', `1${'0'.repeat(308)}`]).execute()).toThrow('y must be a finite number');
+    expect(receiver.document().requireNode('r1').value.entries()).toEqual(before);
+  });
+
   it('id 不存在时报错', async () => {
     await expect(async () => new MoveCommand((await receiverWith()), ['r9', '1', '1']).execute()).rejects.toThrow(new EditorError('no such shape: r9'));
   });

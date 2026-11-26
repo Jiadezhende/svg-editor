@@ -63,6 +63,14 @@ describe('ScaleCommand', () => {
     await expect(async () => new ScaleCommand((await createReceiver()), ['r1', factor])).rejects.toThrow(new EditorError('scale factor must be positive'));
   });
 
+  it('变换失败时恢复整棵子树，不留下部分修改', async () => {
+    const receiver = (await receiverWith(['g', 'g1'], ['rect', 'r1', '10', '20', '30', '40', 'in', 'g1']));
+    receiver.document().requireNode('r1').value.set('y', `1${'0'.repeat(308)}`);
+    const before = receiver.document().requireNode('r1').value.entries();
+    expect(() => new ScaleCommand(receiver, ['g1', '2']).execute()).toThrow('y must be a finite number');
+    expect(receiver.document().requireNode('r1').value.entries()).toEqual(before);
+  });
+
   it('参数个数与数字在构造时校验', async () => {
     await expect(async () => new ScaleCommand((await createReceiver()), ['r1'])).rejects.toThrow('wrong number of arguments. usage: scale <id> <factor>');
     await expect(async () => new ScaleCommand((await createReceiver()), ['r1', 'x'])).rejects.toThrow('not a number: x');

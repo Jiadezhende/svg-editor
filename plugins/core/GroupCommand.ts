@@ -1,8 +1,5 @@
-import { CommandResult } from '../../src/backend';
-import { EditCommand } from '../../src/backend';
-import { UndoRecord } from '../../src/backend';
-import { EditorError } from '../../src/backend';
-import type { Receiver } from '../../src/backend';
+import { CommandResult, EditCommand, EditorError } from '../../src/backend';
+import type { EditSnapshot, Receiver } from '../../src/backend';
 
 /**
  * `group <newGid> <id1> <id2>…`：新建容器并收入若干图形。
@@ -11,7 +8,6 @@ import type { Receiver } from '../../src/backend';
 export default class GroupCommand extends EditCommand {
   static override readonly command = 'group';
   static override readonly usage = 'group <newGid> <id1> <id2>…';
-  private readonly undoRecord = new UndoRecord();
 
   private readonly groupId: string;
   private readonly memberIds: readonly string[];
@@ -30,29 +26,27 @@ export default class GroupCommand extends EditCommand {
     }
   }
 
-  undo(): CommandResult { return this.undoRecord.undo(); }
+  protected snapshot(): EditSnapshot { return this.receiver.document().captureStructure(); }
 
-  execute(): CommandResult {
+  protected apply(): { result: CommandResult; undo: string } {
     const doc = this.receiver.document();
-    return this.undoRecord.execute(doc.captureStructure(), () => {
-      const group = this.receiver.createShape('g', this.groupId);
-      const members = this.memberIds.map((id) => doc.requireNode(id));
-      for (const outer of members) {
-        if (members.some((inner) => inner !== outer && doc.nodes(outer).includes(inner))) {
-          throw new EditorError(`cannot group a container into its own descendant: ${outer.value.id()}`);
-        }
-        doc.checkRemove(outer);
-        group.checkInsert(outer.value);
+    const group = this.receiver.createShape('g', this.groupId);
+    const members = this.memberIds.map((id) => doc.requireNode(id));
+    for (const outer of members) {
+      if (members.some((inner) => inner !== outer && doc.nodes(outer).includes(inner))) {
+        throw new EditorError(`cannot group a container into its own descendant: ${outer.value.id()}`);
       }
-      const order = doc.nodes();
-      const sorted = [...members].sort((a, b) => order.indexOf(a) - order.indexOf(b));
-      const first = sorted[0];
-      const node = doc.insert(group, first.parent(), doc.indexOf(first));
-      for (const member of sorted) doc.relocate(member, node);
-      return {
-        result: new CommandResult().line(`${group.label()} created with ${members.length} children`),
-        undo: `${group.label()} removed, ${members.length} children restored`,
-      };
-    });
+      doc.checkRemove(outer);
+      group.checkInsert(outer.value);
+    }
+    const order = doc.nodes();
+    const sorted = [...members].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    const first = sorted[0];
+    const node = doc.insert(group, first.parent(), doc.indexOf(first));
+    for (const member of sorted) doc.relocate(member, node);
+    return {
+      result: new CommandResult().line(`${group.label()} created with ${members.length} children`),
+      undo: `${group.label()} removed, ${members.length} children restored`,
+    };
   }
 }

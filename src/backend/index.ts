@@ -18,9 +18,9 @@ export { default as TextAttribute } from './receiver/document/shape/attribute/Te
 export { default as StrokeWidthAttribute } from './receiver/document/shape/attribute/StrokeWidthAttribute';
 export { default as Command } from './command/Command';
 export { default as EditCommand } from './command/EditCommand';
+export type { EditSnapshot } from './command/EditCommand';
 export { default as DocumentCommand } from './command/DocumentCommand';
 export { default as CommandResult } from './command/CommandResult';
-export { default as UndoRecord } from './command/UndoRecord';
 export { default as Client, frameworkCommandNames } from './Client';
 export type { CommandForm, CommandSession, CommandTable } from './Client';
 export type { ActivatePlugin, PluginOptions, PluginContributions } from './PluginContributions';

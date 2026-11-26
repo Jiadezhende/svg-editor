@@ -1,7 +1,7 @@
 import {
-  CommandResult, CoordinateAttribute, EditCommand, EditorError, Shape, UndoRecord,
+  CommandResult, CoordinateAttribute, EditCommand, EditorError, Shape,
 } from '../../src/backend';
-import type { Receiver } from '../../src/backend';
+import type { EditSnapshot, Receiver } from '../../src/backend';
 
 /** 仅依赖公共入口的测试扩展，不参与默认宿主装配。 */
 export class Marker extends Shape {
@@ -48,7 +48,6 @@ export class NudgeMarkerCommand extends EditCommand {
 
   private readonly id: string;
   private readonly dx: number;
-  private readonly record = new UndoRecord();
 
   constructor(private readonly receiver: Receiver, args: readonly string[]) {
     super();
@@ -57,16 +56,14 @@ export class NudgeMarkerCommand extends EditCommand {
     this.dx = this.parseNumber(args[1]);
   }
 
-  execute(): CommandResult {
-    const model = this.receiver.document().requireNode(this.id).value;
-    if (!(model instanceof Marker)) throw new EditorError('expected test-marker');
-    return this.record.execute(model.capture(), () => {
-      model.nudge(this.dx);
-      return { result: new CommandResult().line(`${model.label()} nudged`), undo: `${model.label()} restored` };
-    });
+  protected snapshot(): EditSnapshot {
+    return this.receiver.document().requireNode(this.id).value.capture();
   }
 
-  undo(): CommandResult {
-    return this.record.undo();
+  protected apply(): { result: CommandResult; undo: string } {
+    const model = this.receiver.document().requireNode(this.id).value;
+    if (!(model instanceof Marker)) throw new EditorError('expected test-marker');
+    model.nudge(this.dx);
+    return { result: new CommandResult().line(`${model.label()} nudged`), undo: `${model.label()} restored` };
   }
 }

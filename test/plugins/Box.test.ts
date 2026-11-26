@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AttributeHandlerRegistry, CoordinateAttribute, Document, LengthAttribute, Shape, ShapeFactory, SvgReader, SvgWriter, TextAttribute, TreeRenderer,
+  AttributeHandlerRegistry, CoordinateAttribute, Document, LengthAttribute, Receiver, Shape, ShapeFactory, SvgReader, SvgWriter, TextAttribute, TreeRenderer,
 } from '../../src/backend';
 import Box from '../../plugins/box/Box';
 import activate from '../../plugins/box/index';
+import MoveCommand from '../../plugins/core/MoveCommand';
 
 class Rect extends Shape {
   static override readonly type = 'rect';
@@ -112,9 +113,19 @@ describe('box 插件', () => {
 
     const xml = '<svg><g id="n" data-kind="box"><rect id="n-rect"/><text id="n-label" x="160' +
       '0'.repeat(306) + '">title</text></g></svg>';
-    const restored = new SvgReader(factory(true)).read(xml).document;
+    const registry = factory(true);
+    const restored = new SvgReader(registry).read(xml).document;
+    const receiver = new Receiver(
+      registry,
+      { read: () => '', write: () => {} },
+      new SvgReader(registry),
+      new SvgWriter(),
+      new AttributeHandlerRegistry(),
+      new TreeRenderer(),
+    );
+    receiver.replace(restored);
     const before = restored.shapeViews();
-    expect(() => restored.move(restored.requireNode('n'), 1e308, 0)).toThrow('finite');
+    expect(() => new MoveCommand(receiver, ['n', `1${'0'.repeat(308)}`, '0']).execute()).toThrow('finite');
     expect(restored.shapeViews()).toEqual(before);
   });
 

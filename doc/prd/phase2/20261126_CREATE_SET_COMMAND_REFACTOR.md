@@ -43,18 +43,18 @@
 1. **解释输入。** 读取已注册图形的只读创建声明，检查必填参数个数和可选外观参数，识别 `in <containerId>`，用同一声明生成用法。创建参数的名称在自己的声明内校验，可对应实际属性或内部部件。按声明顺序组织必填输入，再加入显式给出的可选输入。命令传递原始文本，属性解析发生在实际写入时。
 2. **定位插入位置。** 取得当前 `Document`，使用 `in <containerId>` 指定的容器或文档根。`in` 指定的容器不存在时报告 `no such container`；是否为容器、全局 id 和私有部件 id 由 `Document.insert` 统一检查。
 3. **请求完成的模型。** 命令调用 `Receiver.createShape(type, id, inputs)`。工厂按类型和 id 构造候选，构造内绑定标识并准备部件。`Receiver` 逐项调用与编辑相同的写入：命中 Handler 则 `apply`，否则 `Shape.set`。全部写入后调用 `validate()`，通过后返回完成的 `Shape`。
-4. **提交并输出。** 命令通过结构快照和 `UndoRecord` 组织 `Document.insert` 与 `created` 回显。只有成功插入后才有一条编辑历史和成功通知。任一输入写入、整图校验或插入失败时，文档关系和历史保持原状。 [现有 CreateCommand](../../../plugins/core/CreateCommand.ts) [ShapeFactory](../../../src/backend/receiver/document/shape/ShapeFactory.ts) [UndoRecord](../../../src/backend/command/UndoRecord.ts)
+4. **提交并输出。** 命令通过结构快照与 `EditCommand` 的模板方法组织 `Document.insert` 与 `created` 回显：`snapshot` 返回结构快照，`apply` 插入并给出撤销文本，失败由基类恢复。只有成功插入后才有一条编辑历史和成功通知。任一输入写入、整图校验或插入失败时，文档关系和历史保持原状。 [现有 CreateCommand](../../../plugins/core/CreateCommand.ts) [ShapeFactory](../../../src/backend/receiver/document/shape/ShapeFactory.ts)
 
 `create rect r1 10 20 100 50 red in g1` 将 `rect`、`r1` 和 `g1` 分别用作类型、标识和容器，依次传入 `x='10'`、`y='20'`、`width='100'`、`height='50'` 和 `fill='red'`。例如 `width` 没有 Handler 命中时，由 `Shape.set` 通过 `LengthAttribute` 解析和校验。
 
-`Box` 声明 `label` 及几何创建参数，构造时准备 `Frame` 和 `Caption`。几何与外观经 `box-attributes` 写入 `Frame`，`label` 写入 `Caption.text`，几何写入后重排标题；创建完成时 `Box.validate` 检查部件结构。SVG 恢复使用模型的构造能力和文件中的部件属性。 [Box 模型](../../../plugins/box/Box.ts) [SVG 读入](../../../src/backend/receiver/svg/SvgReader.ts)
+`Box` 声明 `label` 及几何创建参数，构造时准备矩形与标题两个部件（`core` 的 `Rect` / `Text`）。几何与外观经 `box-attributes` 写入矩形，`label` 写入标题的 `text`，几何写入后重排标题；创建完成时 `Box.validate` 检查部件结构。SVG 恢复使用模型的构造能力和文件中的部件属性。 [Box 模型](../../../plugins/box/Box.ts) [SVG 读入](../../../src/backend/receiver/svg/SvgReader.ts)
 
 ## SetCommand 执行流程
 
 1. **解释输入并定位。** 读取 `set <id> <attr> <value>`，从当前文档取得已有 `ShapeNode` 及其 `Shape`。
-2. **捕获模型快照。** 快照覆盖目标和复合模型的内部部件。
-3. **写入、校验并取得回显。** 命令调用 `Receiver.set(shape, key, token)`。`Receiver` 只解析一次匹配：读取旧展示值，执行写入（Handler 可能修改多个部件），写入完成后调用 `validate()`，再用同一匹配读取更新后的展示值。`null` 表示未设置。命令保存撤销所需的旧展示值。
-4. **完成或恢复。** 成功时用更新后展示值生成 `updated`。写入、整图校验或回显抛错时命令恢复快照并传播原错误；校验失败不读取新值。撤销恢复快照，并用缓存的旧展示值回显，旧值未设置时显示 `unset`。`Invoker` 在成功后更新历史。 [现有 SetCommand](../../../plugins/core/SetCommand.ts) [Invoker](../../../src/backend/invoker/Invoker.ts)
+2. **捕获模型快照。** `snapshot` 返回目标的模型快照，覆盖复合模型的内部部件。
+3. **写入、校验并取得回显。** 命令在 `apply` 中调用 `Receiver.set(shape, key, token)`。`Receiver` 只解析一次匹配：读取旧展示值，执行写入（Handler 可能修改多个部件），写入完成后调用 `validate()`，再用同一匹配读取更新后的展示值。`null` 表示未设置。`apply` 同时返回撤销所需的旧展示值文本。
+4. **完成或恢复。** 成功时用更新后展示值生成 `updated`。写入、整图校验或回显抛错时基类恢复快照并传播原错误；校验失败不读取新值。撤销恢复快照，并用 `apply` 返回的旧展示值回显，旧值未设置时显示 `unset`。`Invoker` 在成功后更新历史。 [现有 SetCommand](../../../plugins/core/SetCommand.ts) [Invoker](../../../src/backend/invoker/Invoker.ts)
 
 ## 验收场景
 

@@ -67,14 +67,14 @@ describe('业务复合模型与文档节点分离', () => {
     expect(panel.frameShape().position()).toEqual(['10', '20']);
   });
 
-  it('后一个内部部件溢出时恢复先前部件，文档变换也恢复前面的普通节点', async () => {
-    const { doc, panel, node } = (await scene());
+  it('后一个内部部件溢出时命令恢复先前部件与前面的普通节点', async () => {
+    const { receiver, doc, panel, node } = (await scene());
     const root = doc.insert(new Group('outer'));
     const other = doc.insert(new Group('other', new Map([['stroke-width', 1]])), root);
     doc.relocate(node, root);
     panel.captionShape().set('y', `1${'0'.repeat(308)}`);
     const before = panel.frameShape().entries();
-    expect(() => doc.scale(root, 2)).toThrow('y must be a finite number');
+    expect(() => new ScaleCommand(receiver, ['outer', '2']).execute()).toThrow('y must be a finite number');
     expect(panel.frameShape().entries()).toEqual(before);
     expect(other.value.value('stroke-width')).toBe(1);
   });

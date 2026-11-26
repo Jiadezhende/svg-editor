@@ -1,13 +1,11 @@
-import { CommandResult } from '../../src/backend';
-import { EditCommand } from '../../src/backend';
-import { UndoRecord } from '../../src/backend';
-import type { Receiver } from '../../src/backend';
+import { CommandResult, EditCommand } from '../../src/backend';
+import type { EditSnapshot, Receiver } from '../../src/backend';
 
 /** `addto <gid> <id>`：节点迁移用例，由 Document 维护结构约束。 */
 export default class AddtoCommand extends EditCommand {
   static override readonly command = 'addto';
   static override readonly usage = 'addto <gid> <id>';
-  private readonly undoRecord = new UndoRecord();
+
   private readonly id: string;
   private readonly containerId: string;
 
@@ -18,19 +16,17 @@ export default class AddtoCommand extends EditCommand {
     this.containerId = args[0];
   }
 
-  execute(): CommandResult {
-    const doc = this.receiver.document();
-    return this.undoRecord.execute(doc.captureStructure(), () => {
-      const node = doc.requireNode(this.id);
-      const target = doc.requireNode(this.containerId);
-      const parent = node.parent();
-      doc.relocate(node, target);
-      return {
-        result: new CommandResult().line(`${node.value.label()} added to ${target!.value.label()}`),
-        undo: `${node.value.label()} restored into ${parent?.value.label() ?? 'svg'}`,
-      };
-    });
-  }
+  protected snapshot(): EditSnapshot { return this.receiver.document().captureStructure(); }
 
-  undo(): CommandResult { return this.undoRecord.undo(); }
+  protected apply(): { result: CommandResult; undo: string } {
+    const doc = this.receiver.document();
+    const node = doc.requireNode(this.id);
+    const target = doc.requireNode(this.containerId);
+    const parent = node.parent();
+    doc.relocate(node, target);
+    return {
+      result: new CommandResult().line(`${node.value.label()} added to ${target.value.label()}`),
+      undo: `${node.value.label()} restored into ${parent?.value.label() ?? 'svg'}`,
+    };
+  }
 }

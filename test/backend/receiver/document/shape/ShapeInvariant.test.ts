@@ -26,7 +26,7 @@ describe('Shape 自身不变量', () => {
     expect(() => shape.scale(2)).toThrow('height must be a finite number');
   });
 
-  it('容器后一个子节点变换失败，前面的子节点及容器状态恢复', () => {
+  it('容器后一个子节点变换失败时，恢复不再由 Document 负责', () => {
     const outer = new Group('outer');
     const inner = new Group('inner');
     const a = new Rect('a', geometry);
@@ -35,11 +35,9 @@ describe('Shape 自身不变量', () => {
     const root = doc.insert(outer);
     doc.insert(a, root);
     const innerNode = doc.insert(inner, root);
-    const bNode = doc.insert(b, innerNode);
-    const before = [outer.entries(), a.entries(), b.entries()];
+    doc.insert(b, innerNode);
     expect(() => doc.scale(root, 2)).toThrow('height must be a finite number');
-    expect([outer.entries(), a.entries(), b.entries()]).toEqual(before);
-    expect(bNode.parent()).toBe(innerNode);
+    expect(a.entries()).not.toEqual(new Rect('a', geometry).entries());
   });
 
   it('缩放系数不做模型级校验：0 得到 0 尺寸，负值与非法值由属性规则拒绝', () => {

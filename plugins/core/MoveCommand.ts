@@ -1,12 +1,10 @@
-import { CommandResult } from '../../src/backend';
-import { EditCommand } from '../../src/backend';
-import type { Shape } from '../../src/backend';
-import type { ShapeMemento } from '../../src/backend';
-import type { Receiver } from '../../src/backend';
+import { CommandResult, EditCommand } from '../../src/backend';
+import type { EditSnapshot, Receiver, Shape } from '../../src/backend';
 
 /**
  * `move <id> <dx> <dy>`：增量平移；容器整体平移（递归到每个子孙）。
  * 有锚点的图形回显移动后的锚点 `moved to (x,y)`，没有锚点的（容器）回显偏移 `moved by (dx,dy)`。
+ * 快照覆盖整棵子树；失败由基类恢复，撤销回显使用移动前记录的锚点。
  */
 export default class MoveCommand extends EditCommand {
   static override readonly command = 'move';
@@ -15,8 +13,7 @@ export default class MoveCommand extends EditCommand {
   private readonly id: string;
   private readonly dx: number;
   private readonly dy: number;
-  /** 本次 execute 平移的图形及平移前的快照，供 undo 使用。 */
-  private moved: { shape: Shape; memento: ShapeMemento } | null = null;
+  private original: readonly [string, string] | null = null;
 
   constructor(
     private readonly receiver: Receiver,
@@ -29,24 +26,21 @@ export default class MoveCommand extends EditCommand {
     this.dy = this.parseNumber(args[2]);
   }
 
-  execute(): CommandResult {
+  protected snapshot(): EditSnapshot {
+    const node = this.receiver.document().requireNode(this.id);
+    this.original = node.value.position();
+    return this.receiver.document().capture(node);
+  }
+
+  protected apply(): { result: CommandResult; undo: string } {
     const doc = this.receiver.document();
     const node = doc.requireNode(this.id);
     const shape = node.value;
-    const memento = doc.capture(node);
     doc.move(node, this.dx, this.dy);
-    const result = new CommandResult().line(this.describe(shape, 'moved', this.dx, this.dy));
-    this.moved = { shape, memento };
-    return result;
-  }
-
-  undo(): CommandResult {
-    if (this.moved === null) {
-      throw new Error('undo before execute');
-    }
-    const { shape, memento } = this.moved;
-    memento.restore();
-    return new CommandResult().line(this.describe(shape, 'moved back', -this.dx, -this.dy));
+    const undo = this.original === null
+      ? `${shape.label()} moved back by (${this.formatNumber(-this.dx)},${this.formatNumber(-this.dy)})`
+      : `${shape.label()} moved back to (${this.original[0]},${this.original[1]})`;
+    return { result: new CommandResult().line(this.describe(shape, 'moved', this.dx, this.dy)), undo };
   }
 
   private describe(shape: Shape, verb: string, dx: number, dy: number): string {

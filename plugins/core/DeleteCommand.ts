@@ -1,12 +1,10 @@
-import { CommandResult } from '../../src/backend';
-import { EditCommand } from '../../src/backend';
-import { UndoRecord } from '../../src/backend';
-import type { Receiver } from '../../src/backend';
+import { CommandResult, EditCommand } from '../../src/backend';
+import type { EditSnapshot, Receiver } from '../../src/backend';
 
 export default class DeleteCommand extends EditCommand {
   static override readonly command = 'delete';
   static override readonly usage = 'delete <id>';
-  private readonly undoRecord = new UndoRecord();
+
   private readonly id: string;
 
   constructor(private readonly receiver: Receiver, args: readonly string[]) {
@@ -15,18 +13,16 @@ export default class DeleteCommand extends EditCommand {
     this.id = args[0];
   }
 
-  undo(): CommandResult { return this.undoRecord.undo(); }
+  protected snapshot(): EditSnapshot { return this.receiver.document().captureStructure(); }
 
-  execute(): CommandResult {
+  protected apply(): { result: CommandResult; undo: string } {
     const doc = this.receiver.document();
-    return this.undoRecord.execute(doc.captureStructure(), () => {
-      const node = doc.requireNode(this.id);
-      const parent = node.parent();
-      doc.remove(node);
-      return {
-        result: new CommandResult().line(`${node.value.label()} deleted`),
-        undo: `${node.value.label()} restored into ${parent?.value.label() ?? 'svg'}`,
-      };
-    });
+    const node = doc.requireNode(this.id);
+    const parent = node.parent();
+    doc.remove(node);
+    return {
+      result: new CommandResult().line(`${node.value.label()} deleted`),
+      undo: `${node.value.label()} restored into ${parent?.value.label() ?? 'svg'}`,
+    };
   }
 }

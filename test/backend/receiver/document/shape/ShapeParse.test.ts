@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CoordinateSpec, Shape, ShapeFactory, TextSpec } from '../../../../../src/backend';
+import { CoordinateAttribute, Shape, ShapeFactory, TextAttribute } from '../../../../../src/backend';
 import type { ShapeParseResult } from '../../../../../src/backend';
 
 class Marker extends Shape {
   static override readonly type = 'marker';
-  static override readonly params = [new CoordinateSpec('x', 'x'), new TextSpec('text')];
+  static override readonly params = [new CoordinateAttribute('x', 'x'), new TextAttribute('text')];
   static override readonly content = 'text';
 }
 

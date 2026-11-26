@@ -1,5 +1,4 @@
 import EditorError from '../../../error/EditorError';
-import type { AttributeValue } from './attribute/AttributeSpec';
 import Shape from './Shape';
 import type { ShapeParseResult } from './Shape';
 
@@ -38,10 +37,12 @@ export default class ShapeFactory {
     return this.lookup(type);
   }
 
-  /** 统一创建入口；属性与自身结构的有效性由具体模型保证。 */
-  create(type: string, id: string, values: ReadonlyMap<string, AttributeValue> = new Map()): Shape {
+  /** 统一创建入口；构造后校验整图约束。创建流程仍会在写入全部属性后再次校验。 */
+  create(type: string, id: string, values: ReadonlyMap<string, number | string> = new Map()): Shape {
     // typeof Shape 带有抽象构造签名，注册表保存的是已校验的子类。
-    return Reflect.construct(this.lookup(type), [id, values]) as Shape;
+    const shape = Reflect.construct(this.lookup(type), [id, values]) as Shape;
+    shape.validate();
+    return shape;
   }
 
   /** 调用已注册类的数据构造能力；递归函数由读入编排者提供。 */

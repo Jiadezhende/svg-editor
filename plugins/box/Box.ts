@@ -1,13 +1,13 @@
-import { CoordinateSpec, EditorError, LengthSpec, Shape, TextSpec } from '../../src/backend';
-import type { AttributeValue, ShapeMemento, ShapeParseResult, ShapeView } from '../../src/backend';
+import { CoordinateAttribute, EditorError, LengthAttribute, Shape, TextAttribute } from '../../src/backend';
+import type { ShapeMemento, ShapeParseResult, ShapeView } from '../../src/backend';
 
-type Values = ReadonlyMap<string, AttributeValue>;
+type Values = ReadonlyMap<string, number | string>;
 
 class Frame extends Shape {
   static override readonly type = 'rect';
   static override readonly params = [
-    new CoordinateSpec('x', 'x'), new CoordinateSpec('y', 'y'),
-    new LengthSpec('width'), new LengthSpec('height'),
+    new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'),
+    new LengthAttribute('width'), new LengthAttribute('height'),
   ];
 
   override summary(): string {
@@ -18,7 +18,7 @@ class Frame extends Shape {
 
 class Caption extends Shape {
   static override readonly type = 'text';
-  static override readonly params = [new CoordinateSpec('x', 'x'), new CoordinateSpec('y', 'y'), new TextSpec('text')];
+  static override readonly params = [new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new TextAttribute('text')];
   static override readonly content = 'text';
 }
 
@@ -29,7 +29,7 @@ interface Parts {
 
 export default class Box extends Shape {
   static override readonly type = 'box';
-  static override readonly createParams = [...Frame.params, new TextSpec('label')];
+  static override readonly createParams = [...Frame.params, new TextAttribute('label')];
 
   private readonly frame: Frame;
   private readonly caption: Caption;
@@ -39,10 +39,10 @@ export default class Box extends Shape {
     for (const spec of Box.createParams) appearance.delete(spec.name());
     super(id, appearance);
     if (restored === undefined) {
-      const frameValues = new Map<string, AttributeValue>([['fill', '#4a90d9']]);
+      const frameValues = new Map<string, number | string>([['fill', '#4a90d9']]);
       for (const spec of Frame.params) frameValues.set(spec.name(), Box.required(values, spec.name()));
       this.frame = new Frame(`${id}-rect`, frameValues);
-      this.caption = new Caption(`${id}-label`, new Map<string, AttributeValue>([
+      this.caption = new Caption(`${id}-label`, new Map<string, number | string>([
         ['x', Number(this.frame.value('x')) + 20],
         ['y', Number(this.frame.value('y')) + Number(this.frame.value('height')) / 2 + 5],
         ['text', Box.required(values, 'label')],
@@ -118,7 +118,7 @@ export default class Box extends Shape {
     catch (error) { before.restore(); throw error; }
   }
 
-  private static required(values: Values, key: string): AttributeValue {
+  private static required(values: Values, key: string): number | string {
     const value = values.get(key);
     if (value === undefined) throw new EditorError(`missing attribute: ${key}`);
     return value;

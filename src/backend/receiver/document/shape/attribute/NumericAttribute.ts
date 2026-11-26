@@ -1,24 +1,24 @@
-import AttributeSpec from './AttributeSpec';
 import DecimalFormat from '../../../../utils/DecimalFormat';
 import EditorError from '../../../../error/EditorError';
+import Attribute from './Attribute';
 
-/** 数值属性：按十进制数字解析，按数值格式展示。 */
-export default abstract class NumericSpec extends AttributeSpec<number> {
+/** 数值属性：按十进制数字解析，按数值格式展示，值必须有限。 */
+export default abstract class NumericAttribute extends Attribute<number> {
   private static readonly decimal = new DecimalFormat();
 
-  defaultValue(): number {
+  override defaultValue(): number {
     return 0;
   }
 
-  parse(token: string): number {
-    return NumericSpec.decimal.parse(token);
+  protected override parse(token: string): number {
+    return NumericAttribute.decimal.parse(token);
   }
 
-  display(value: number): string {
-    return NumericSpec.decimal.format(value);
+  protected override format(value: number): string {
+    return NumericAttribute.decimal.format(value);
   }
 
-  override check(value: number): void {
+  protected override validate(value: number): void {
     if (typeof value !== 'number' || !Number.isFinite(value)) {
       throw new EditorError(`${this.name()} must be a finite number`);
     }
@@ -30,5 +30,4 @@ export default abstract class NumericSpec extends AttributeSpec<number> {
       throw new EditorError(`${this.name()} must be non-negative`);
     }
   }
-
 }

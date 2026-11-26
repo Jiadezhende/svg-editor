@@ -2,13 +2,12 @@ import { describe, expect, it } from 'vitest';
 import Rect from '../../../../../plugins/core/Rect';
 import Group from '../../../../../plugins/core/Group';
 import Document from '../../../../../src/backend/receiver/document/Document';
-import type { AttributeValue } from '../../../../../src/backend/receiver/document/shape/attribute/AttributeSpec';
 
-const geometry = new Map<string, AttributeValue>([['x', 1], ['y', 2], ['width', 3], ['height', 4]]);
+const geometry = new Map<string, number | string>([['x', 1], ['y', 2], ['width', 3], ['height', 4]]);
 
 describe('Shape 自身不变量', () => {
-  it('直接构造也必须提供完整必填属性，不能只依靠命令校验', () => {
-    expect(() => new Rect('r')).toThrow('missing attribute: x');
+  it('构造允许必填属性暂缺，validate 报告缺失；非法值仍在构造时拒绝', () => {
+    expect(() => new Rect('r').validate()).toThrow('missing attribute: x');
     expect(() => new Rect('r', new Map(geometry).set('width', -1))).toThrow('width must be non-negative');
   });
 

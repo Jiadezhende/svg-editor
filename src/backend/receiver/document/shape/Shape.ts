@@ -1,7 +1,6 @@
-import type AttributeSpec from './attribute/AttributeSpec';
-import type { AttributeValue } from './attribute/AttributeSpec';
-import StringSpec from './attribute/StringSpec';
-import StrokeWidthSpec from './attribute/StrokeWidthSpec';
+import type Attribute from './attribute/Attribute';
+import StringAttribute from './attribute/StringAttribute';
+import StrokeWidthAttribute from './attribute/StrokeWidthAttribute';
 import EditorError from '../../../error/EditorError';
 import ShapeMemento from './ShapeMemento';
 import type ShapeView from './ShapeView';
@@ -15,38 +14,41 @@ export interface ShapeParseResult {
 /**
  * 单个图形的领域模型；不保存文档树关系。
  *
- * 静态成员即定义：子类覆盖 `type`（类型名）、`params`（必填属性，默认也作为创建参数）、
+ * 静态成员即定义：子类覆盖 `type`（类型名）、`params`（必填属性模板，默认也作为创建参数）、
  * `paint`（create 的可选外观参数名）、`anchor`（move 回显的锚点：x 轴与 y 轴坐标属性名，注册时校验）、
  * `content`（在 SVG 中写成子文本而非元素属性的那个属性名）；
- * 外观属性 fill / stroke / stroke-width 由本类统一声明。
- * 不变量：id 符合合法字符规则，各属性值满足其属性种类的约束；校验失败时不产生图形。
+ * 外观属性 fill / stroke / stroke-width 由本类统一声明，复合模型可以覆写属性表选择不合并。
+ *
+ * 实例按模板持有全部属性对象（未赋值时 value 为 null），构造只建立结构；
+ * 必填、跨属性与部件结构约束由 validate() 检查，Receiver 的创建与设置入口负责调用。
+ * 不变量：id 符合合法字符规则，属性值满足其具体种类的约束。
  */
 export default abstract class Shape {
   // ── 类型定义与注册契约（静态成员） ──
 
   static readonly type: string = '';
-  static readonly params: readonly AttributeSpec[] = [];
-  static readonly createParams: readonly AttributeSpec[] | null = null;
+  static readonly params: readonly Attribute[] = [];
+  static readonly createParams: readonly Attribute[] | null = null;
   static readonly paint: string | null = null;
   static readonly anchor: readonly [string, string] | null = null;
   static readonly content: string | null = null;
 
-  private static readonly appearance: readonly AttributeSpec[] = [
-    new StringSpec('fill'),
-    new StringSpec('stroke'),
-    new StrokeWidthSpec('stroke-width'),
+  private static readonly appearance: readonly Attribute[] = [
+    new StringAttribute('fill'),
+    new StringAttribute('stroke'),
+    new StrokeWidthAttribute('stroke-width'),
   ];
 
   private static readonly idPattern = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
 
-  /** 本类的属性表：create 必填参数在前，外观属性在后。 */
-  static attributes(): readonly AttributeSpec[] {
+  /** 本类的属性表：必填参数在前，外观属性在后；复合模型可覆写以不合并外观。 */
+  static attributes(): readonly Attribute[] {
     return [...this.params, ...Shape.appearance];
   }
 
   /** 按名字查属性表，没有该属性时返回 null。 */
-  static attribute(name: string): AttributeSpec | null {
-    return this.attributes().find((spec) => spec.name() === name) ?? null;
+  static attribute(name: string): Attribute | null {
+    return this.attributes().find((attribute) => attribute.name() === name) ?? null;
   }
 
   /** 通用数据构造；子类型可消费部件并返回剩余文档成员，不接触 XML 或节点。 */
@@ -55,18 +57,22 @@ export default abstract class Shape {
     attributes: ReadonlyMap<string, string>,
     readChildren: () => readonly Shape[] = () => [],
   ): ShapeParseResult {
-    const Model = this as unknown as new (id: string, values: ReadonlyMap<string, AttributeValue>) => Shape;
+    const Model = this as unknown as new (id: string, values?: ReadonlyMap<string, number | string>) => Shape;
     const shape = new Model(id, this.parseValues(attributes));
+    shape.validate();
     return { shape, children: shape.acceptsChildren() ? readChildren() : [] };
   }
 
-  /** 复用属性规格解析文本；持久化缺失的必填值沿用规格默认值。 */
-  protected static parseValues(attributes: ReadonlyMap<string, string>): Map<string, AttributeValue> {
-    const values = new Map<string, AttributeValue>();
-    for (const spec of this.attributes()) {
-      const raw = attributes.get(spec.name());
-      if (raw !== undefined) values.set(spec.name(), spec.parse(raw));
-      else if (this.params.includes(spec)) values.set(spec.name(), spec.defaultValue());
+  /** 复用属性模板解析文本；持久化缺失的必填值沿用模板默认值，未声明的输入被忽略。 */
+  protected static parseValues(attributes: ReadonlyMap<string, string>): Map<string, number | string> {
+    const values = new Map<string, number | string>();
+    for (const attribute of this.attributes()) {
+      const raw = attributes.get(attribute.name());
+      if (raw !== undefined) {
+        values.set(attribute.name(), attribute.withToken(raw).value as number | string);
+      } else if (this.params.includes(attribute)) {
+        values.set(attribute.name(), attribute.defaultValue());
+      }
     }
     return values;
   }
@@ -79,28 +85,22 @@ export default abstract class Shape {
   // ── 实例状态与构造 ──
 
   private readonly shapeId: string;
-  private readonly values: Map<string, AttributeValue>;
+  private readonly attributesByName: Map<string, Attribute>;
 
-  /** values 中的属性须在本类的属性表内（否则属于程序缺陷），未给出的外观属性视为未设置。 */
+  /**
+   * 绑定并校验 id，按类级模板建立全部属性条目。
+   * `values` 只用于恢复和复合模型初始化，创建路径不传；必填完整性由 `validate()` 检查。
+   */
   constructor(
     id: string,
-    values: ReadonlyMap<string, AttributeValue> = new Map(),
+    values: ReadonlyMap<string, number | string> = new Map(),
   ) {
     Shape.checkId(id);
-    for (const [name, value] of values) {
-      const spec = this.definition().attribute(name);
-      if (spec === null) {
-        throw new Error(`${this.type()} has no attribute ${name}`);
-      }
-      spec.check(value);
-    }
-    for (const spec of this.definition().params) {
-      if (!values.has(spec.name())) {
-        throw new EditorError(`missing attribute: ${spec.name()}`);
-      }
-    }
     this.shapeId = id;
-    this.values = new Map(values);
+    this.attributesByName = Shape.buildAttributes(this.definition());
+    for (const [name, value] of values) {
+      this.assignValue(name, value);
+    }
   }
 
   // ── 实例标识与属性读取 ──
@@ -124,23 +124,23 @@ export default abstract class Shape {
   }
 
   /** 属性的原值；未设置（或不在属性表中）时为 null。 */
-  value(name: string): AttributeValue | null {
-    return this.values.get(name) ?? null;
+  value(name: string): number | string | null {
+    return this.attributesByName.get(name)?.value ?? null;
   }
 
   /** 已设置属性的原值，按属性表顺序，`content` 属性除外（供写出元素属性）。 */
-  entries(): ReadonlyArray<readonly [string, AttributeValue]> {
+  entries(): ReadonlyArray<readonly [string, number | string]> {
     const content = this.definition().content;
     return this.definition()
       .attributes()
-      .flatMap((spec) => {
-        const value = this.values.get(spec.name());
-        return value === undefined || spec.name() === content ? [] : [[spec.name(), value] as const];
+      .flatMap((attribute) => {
+        const value = this.attributesByName.get(attribute.name())?.value ?? null;
+        return value === null || attribute.name() === content ? [] : [[attribute.name(), value] as const];
       });
   }
 
   /** `content` 属性的原值；本类没有 `content` 时为 null（供写出子文本）。 */
-  content(): AttributeValue | null {
+  content(): number | string | null {
     const content = this.definition().content;
     return content === null ? null : this.value(content);
   }
@@ -183,22 +183,27 @@ export default abstract class Shape {
 
   /** 属性值的展示文本；未设置时为 null。 */
   display(name: string): string | null {
-    const spec = this.definition().attribute(name);
-    const value = this.values.get(name);
-    return spec === null || value === undefined ? null : spec.display(value);
+    return this.attributesByName.get(name)?.display() ?? null;
   }
 
-  // ── 属性修改与快照 ──
+  // ── 属性修改、校验与快照 ──
 
   /** 设置属性：不在本类属性表中时报错；解析与约束校验失败时属性不变。 */
   set(name: string, token: string): void {
-    const spec = this.definition().attribute(name);
-    if (spec === null) {
+    const attribute = this.attributesByName.get(name);
+    if (attribute === undefined) {
       throw new EditorError(`unknown attribute: ${name}`);
     }
-    const value = spec.parse(token);
-    spec.check(value);
-    this.values.set(name, value);
+    this.attributesByName.set(name, attribute.withToken(token));
+  }
+
+  /** 整图校验：必填属性齐全；子类可覆写并调用 `super.validate()` 检查部件结构。 */
+  validate(): void {
+    for (const attribute of this.definition().params) {
+      if (this.attributesByName.get(attribute.name())?.value == null) {
+        throw new EditorError(`missing attribute: ${attribute.name()}`);
+      }
+    }
   }
 
   /** 平移自身属性；具体复合模型自行组织内部部件。 */
@@ -207,7 +212,7 @@ export default abstract class Shape {
       throw new EditorError('move offsets must be finite');
     }
     this.transformAtomically(() => {
-      this.transform((spec, value) => spec.translate(value, dx, dy));
+      this.transform((attribute) => attribute.translate(dx, dy));
     });
   }
 
@@ -217,18 +222,18 @@ export default abstract class Shape {
       throw new EditorError('scale factor must be positive');
     }
     this.transformAtomically(() => {
-      this.transform((spec, value) => spec.scale(value, factor));
+      this.transform((attribute) => attribute.scale(factor));
     });
   }
 
   /** 自身属性快照；复合模型可扩展其内部部件快照。 */
   capture(): ShapeMemento {
-    const saved = new Map(this.values);
+    const saved = new Map(this.attributesByName);
     return new ShapeMemento([
       () => {
-        this.values.clear();
-        for (const [name, value] of saved) {
-          this.values.set(name, value);
+        this.attributesByName.clear();
+        for (const [name, attribute] of saved) {
+          this.attributesByName.set(name, attribute);
         }
       },
     ]);
@@ -263,6 +268,15 @@ export default abstract class Shape {
 
   // ── 子类扩展与内部辅助 ──
 
+  /** 写入已校验的原值；供构造、恢复与复合部件初始化使用，不作为用户编辑入口。 */
+  protected assignValue(name: string, value: number | string): void {
+    const attribute = this.attributesByName.get(name);
+    if (attribute === undefined) {
+      throw new Error(`${this.type()} has no attribute ${name}`);
+    }
+    this.attributesByName.set(name, attribute.withValue(value));
+  }
+
   /** show 的核心属性行，默认与 tree 的内联属性相同。 */
   protected coreDetail(): string {
     return this.summary();
@@ -277,25 +291,38 @@ export default abstract class Shape {
     return this.constructor as typeof Shape;
   }
 
-  private transform(change: (spec: AttributeSpec, value: AttributeValue) => AttributeValue): void {
-    const next = new Map(this.values);
-    for (const spec of this.definition().attributes()) {
-      const value = this.values.get(spec.name());
-      if (value !== undefined) {
-        const updated = change(spec, value);
-        spec.check(updated);
-        next.set(spec.name(), updated);
+  /** 按类级模板建立实例属性表；重复属性在建立前发现。 */
+  private static buildAttributes(definition: typeof Shape): Map<string, Attribute> {
+    const attributes = new Map<string, Attribute>();
+    for (const attribute of definition.attributes()) {
+      if (attributes.has(attribute.name())) {
+        throw new Error(`duplicate attribute: ${attribute.name()}`);
       }
+      attributes.set(attribute.name(), attribute);
     }
-    for (const [name, value] of next) this.values.set(name, value);
+    return attributes;
   }
 
-  /** specs 中已设置的属性，以 `名=展示值` 用空格连接。 */
-  private joined(specs: readonly AttributeSpec[]): string {
-    return specs
-      .flatMap((spec) => {
-        const value = this.values.get(spec.name());
-        return value === undefined ? [] : [`${spec.name()}=${spec.display(value)}`];
+  private transform(change: (attribute: Attribute) => Attribute): void {
+    const next = new Map<string, Attribute>();
+    for (const attribute of this.definition().attributes()) {
+      const current = this.attributesByName.get(attribute.name());
+      if (current === undefined || current.value === null) {
+        continue;
+      }
+      next.set(attribute.name(), change(current));
+    }
+    for (const [name, value] of next) {
+      this.attributesByName.set(name, value);
+    }
+  }
+
+  /** attributes 中已设置的值，以 `名=展示值` 用空格连接。 */
+  private joined(attributes: readonly Attribute[]): string {
+    return attributes
+      .flatMap((attribute) => {
+        const text = this.attributesByName.get(attribute.name())?.display() ?? null;
+        return text === null ? [] : [`${attribute.name()}=${text}`];
       })
       .join(' ');
   }

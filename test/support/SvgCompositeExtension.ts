@@ -1,15 +1,15 @@
-import { CoordinateSpec, EditorError, LengthSpec, Shape, SvgWriter, TextSpec } from '../../src/backend';
-import type { AttributeValue, ShapeMemento, ShapeParseResult, SvgShapeMapping } from '../../src/backend';
+import { CoordinateAttribute, EditorError, LengthAttribute, Shape, SvgWriter, TextAttribute } from '../../src/backend';
+import type { ShapeMemento, ShapeParseResult, SvgShapeMapping } from '../../src/backend';
 
 /** 仅依赖公共入口的持久化测试模型，不参与默认装配。 */
 export class Frame extends Shape {
   static override readonly type = 'rect';
-  static override readonly params = [new CoordinateSpec('x', 'x'), new CoordinateSpec('y', 'y'), new LengthSpec('width'), new LengthSpec('height')];
+  static override readonly params = [new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new LengthAttribute('width'), new LengthAttribute('height')];
 }
 
 export class Caption extends Shape {
   static override readonly type = 'text';
-  static override readonly params = [new CoordinateSpec('x', 'x'), new CoordinateSpec('y', 'y'), new TextSpec('text')];
+  static override readonly params = [new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new TextAttribute('text')];
   static override readonly content = 'text';
 }
 
@@ -18,9 +18,9 @@ export class Panel extends Shape {
 
   constructor(
     id: string,
-    values: ReadonlyMap<string, AttributeValue> = new Map(),
+    values: ReadonlyMap<string, number | string> = new Map(),
     private readonly frame: Shape = new Frame(`${id}-frame`, new Map([['x', 1], ['y', 2], ['width', 20], ['height', 10]])),
-    private readonly caption: Shape = new Caption(`${id}-caption`, new Map<string, AttributeValue>([['x', 3], ['y', 4], ['text', 'hello']])),
+    private readonly caption: Shape = new Caption(`${id}-caption`, new Map<string, number | string>([['x', 3], ['y', 4], ['text', 'hello']])),
   ) {
     super(id, values);
   }

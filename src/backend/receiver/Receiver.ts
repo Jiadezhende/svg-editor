@@ -1,7 +1,6 @@
 import EditorError from '../error/EditorError';
 import type Document from './document/Document';
 import type ShapeNode from './document/ShapeNode';
-import type { AttributeValue } from './document/shape/attribute/AttributeSpec';
 import type AttributeHandlerRegistry from './document/shape/AttributeHandlerRegistry';
 import type Shape from './document/shape/Shape';
 import type ShapeFactory from './document/shape/ShapeFactory';
@@ -31,7 +30,7 @@ export default class Receiver {
     return this.factory.definition(type);
   }
 
-  createShape(type: string, id: string, values?: ReadonlyMap<string, AttributeValue>): Shape {
+  createShape(type: string, id: string, values?: ReadonlyMap<string, number | string>): Shape {
     return this.factory.create(type, id, values);
   }
 

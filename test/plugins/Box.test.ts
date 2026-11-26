@@ -1,20 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AttributeHandlerRegistry, CoordinateSpec, Document, LengthSpec, Shape, ShapeFactory, SvgReader, SvgWriter, TextSpec, TreeRenderer,
+  AttributeHandlerRegistry, CoordinateAttribute, Document, LengthAttribute, Shape, ShapeFactory, SvgReader, SvgWriter, TextAttribute, TreeRenderer,
 } from '../../src/backend';
-import type { AttributeValue } from '../../src/backend';
 import Box from '../../plugins/box/Box';
 import activate from '../../plugins/box/index';
 
 class Rect extends Shape {
   static override readonly type = 'rect';
   static override readonly params = [
-    new CoordinateSpec('x', 'x'), new CoordinateSpec('y', 'y'), new LengthSpec('width'), new LengthSpec('height'),
+    new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new LengthAttribute('width'), new LengthAttribute('height'),
   ];
 }
 class Text extends Shape {
   static override readonly type = 'text';
-  static override readonly params = [new CoordinateSpec('x', 'x'), new CoordinateSpec('y', 'y'), new TextSpec('text')];
+  static override readonly params = [new CoordinateAttribute('x', 'x'), new CoordinateAttribute('y', 'y'), new TextAttribute('text')];
   static override readonly content = 'text';
 }
 class Group extends Shape {
@@ -30,7 +29,7 @@ function factory(boxInstalled: boolean): ShapeFactory {
 }
 
 function box(id: string): Box {
-  return new Box(id, new Map<string, AttributeValue>([
+  return new Box(id, new Map<string, number | string>([
     ['x', 120], ['y', 100], ['width', 160], ['height', 60], ['label', '开始'],
   ]));
 }

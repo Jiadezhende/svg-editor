@@ -16,17 +16,16 @@ describe.each<[typeof Shape, string, string[], string | null, string[]]>([
 ])('%o', (cls, type, params, paint, lengths) => {
   it(`类型为 ${type}，必填参数依次为 ${params.join(' ')}，可选外观参数为 ${paint}`, () => {
     expect(cls.type).toBe(type);
-    expect(cls.params.map((spec) => spec.name())).toEqual(params);
+    expect(cls.params.map((attribute) => attribute.name())).toEqual(params);
     expect(cls.paint).toBe(paint);
   });
 
   it('坐标可为负，只有尺寸类属性不得为负', () => {
-    for (const spec of cls.params) {
-      const value = spec.parse(spec.name() === 'text' ? 'hello' : '-1');
-      if (lengths.includes(spec.name())) {
-        expect(() => spec.check(value)).toThrow('must be non-negative');
+    for (const attribute of cls.params) {
+      if (lengths.includes(attribute.name())) {
+        expect(() => attribute.withToken('-1')).toThrow('must be non-negative');
       } else {
-        expect(() => spec.check(value)).not.toThrow();
+        expect(() => attribute.withToken(attribute.name() === 'text' ? 'hello' : '-1')).not.toThrow();
       }
     }
   });

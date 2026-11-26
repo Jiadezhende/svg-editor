@@ -142,7 +142,7 @@ describe('CreateCommand 参数格式（构造时）', async () => {
 
 describe('CreateCommand 业务校验（执行时）', () => {
   it('无文档时报无文档，先于其他业务校验', async () => {
-    const command = new CreateCommand((await createReceiver()), 'rect 1abc 0 0 -1 1 in node9'.split(' '));
+    const command = new CreateCommand((await createReceiver()), 'rect 1abc 0 0 1 1 in node9'.split(' '));
     expect(() => command.execute()).toThrow(new EditorError("no document. use 'init' or 'read' first"));
   });
 

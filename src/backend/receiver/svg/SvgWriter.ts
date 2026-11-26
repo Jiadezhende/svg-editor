@@ -1,4 +1,3 @@
-import type { AttributeValue } from '../document/shape/attribute/AttributeSpec';
 import DecimalFormat from '../../utils/DecimalFormat';
 import type Document from '../document/Document';
 import type ShapeNode from '../document/ShapeNode';
@@ -8,8 +7,8 @@ import EditorError from '../../error/EditorError';
 /** SVG 映射结果，不携带文档节点关系。 */
 export interface SvgElement {
   readonly type: string;
-  readonly attributes: ReadonlyArray<readonly [string, AttributeValue]>;
-  readonly content?: AttributeValue | null;
+  readonly attributes: ReadonlyArray<readonly [string, number | string]>;
+  readonly content?: number | string | null;
   readonly children?: readonly SvgElement[];
 }
 
@@ -108,7 +107,7 @@ export default class SvgWriter {
   }
 
   /** 属性原值的文本形式：数值按数值格式，字符串原样。 */
-  private static text(value: AttributeValue): string {
+  private static text(value: number | string): string {
     return typeof value === 'number' ? SvgWriter.decimal.format(value) : value;
   }
 

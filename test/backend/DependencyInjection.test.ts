@@ -1,13 +1,13 @@
 import { createClientWithCommands } from '../support/Plugins';
 import { describe, expect, it, vi } from 'vitest';
-import { AttributeHandlerRegistry, TreeRenderer, CoordinateSpec, Document, Shape, ShapeFactory, SvgReader, SvgWriter, Receiver } from '../../src/backend';
+import { AttributeHandlerRegistry, TreeRenderer, CoordinateAttribute, Document, Shape, ShapeFactory, SvgReader, SvgWriter, Receiver } from '../../src/backend';
 import CreateCommand from '../../plugins/core/CreateCommand';
 import ReadCommand from '../../plugins/core/ReadCommand';
 import SaveCommand from '../../plugins/core/SaveCommand';
 
 class Marker extends Shape {
   static override readonly type = 'marker';
-  static override readonly params = [new CoordinateSpec('x', 'x')];
+  static override readonly params = [new CoordinateAttribute('x', 'x')];
 }
 
 describe('会话依赖注入', () => {

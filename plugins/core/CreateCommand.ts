@@ -2,7 +2,6 @@ import { EditorError } from '../../src/backend';
 import { CommandResult } from '../../src/backend';
 import { EditCommand } from '../../src/backend';
 import { UndoRecord } from '../../src/backend';
-import type { AttributeValue } from '../../src/backend';
 import type { Receiver } from '../../src/backend';
 
 /**
@@ -20,7 +19,7 @@ export default class CreateCommand extends EditCommand {
 
   private readonly shapeDefinition: ReturnType<Receiver['shapeDefinition']>;
   private readonly id: string;
-  private readonly values = new Map<string, AttributeValue>();
+  private readonly values = new Map<string, number | string>();
   private readonly containerId: string | null;
 
   constructor(
@@ -55,7 +54,7 @@ export default class CreateCommand extends EditCommand {
       throw this.wrongArgCount(this.syntax());
     }
 
-    params.forEach((spec, i) => this.values.set(spec.name(), spec.parse(required[i])));
+    params.forEach((spec, i) => this.values.set(spec.name(), spec.withToken(required[i]).value as number | string));
     if (paint !== null && paintToken !== null) {
       this.parseValue(paint, paintToken);
     }
@@ -81,7 +80,7 @@ export default class CreateCommand extends EditCommand {
     if (spec === null) {
       throw new Error(`${this.shapeDefinition.type} declares paint ${name} without such attribute`);
     }
-    this.values.set(name, spec.parse(token));
+    this.values.set(name, spec.withToken(token).value as number | string);
   }
 
   /** 本类型的完整语法，用于参数个数不符时的提示。 */

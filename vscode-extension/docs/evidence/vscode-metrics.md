@@ -1,6 +1,6 @@
 # VS Code 扩展源码指标
 
-基线提交 `3f0f5a96ac3f6e1ea7438f7d3f893e76174d7c61`，目标 `WORKTREE`。
+基线提交 `3f0f5a96ac3f6e1ea7438f7d3f893e76174d7c61`，目标 `9ee618e1f3a0573cb84e881e652884187bd7764b`。
 
 统计 `vscode-extension/src` 的扩展运行源码，不含测试、构建产物和 CLI 源码。行数按物理行统计，圈复杂度口径与 CLI 报告一致。
 

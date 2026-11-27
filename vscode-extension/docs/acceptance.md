@@ -57,7 +57,7 @@
 | `npm run typecheck` | 通过 |
 | `npm test` | 5 个测试文件、16 项测试通过 |
 | `npm run build` | 通过，生成 `out/extension.js` |
-| `npm run metrics:worktree` | 生成 [VS Code 指标](evidence/vscode-metrics.md) |
+| `npm run metrics` | 按 `HEAD` 生成 [VS Code 指标](evidence/vscode-metrics.md) |
 
 CLI 回归（执行目录：`cli`，不依赖扩展）：
 
@@ -95,7 +95,7 @@ code --extensionDevelopmentPath=. samples/workspace
 | 扩展测试 | [test/](../test/) |
 | 示例工作区 | [samples/workspace/](../samples/workspace/) |
 
-指标当前由 `npm run metrics:worktree` 生成，目标列显示 `WORKTREE`；最终候选提交确定后执行 `npm run metrics`，按 `HEAD` 重新生成。
+指标由 `npm run metrics` 从 `final` 到 `HEAD` 生成，报告头记录实际目标提交；最终 `p2` 确定后再复跑一次。
 
 ## 7. 已知限制
 

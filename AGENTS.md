@@ -8,6 +8,8 @@
 
 本文先按「Shape → Document → Handler → Command → SVG 读写 → 树展示」说明架构，再汇总调用关系，最后说明注册、配置与依赖装配原则。说明概念时先定义基础对象，再说明依赖它的结构与行为；运行时调用顺序另行展示，不与概念介绍顺序混淆。
 
+本文描述 CLI 的架构，路径相对 `cli/`（例如 `src/backend/index.ts` 即 `cli/src/backend/index.ts`）。`vscode-extension/` 是独立产品，不引用 CLI 的 `src/` 或 `plugins/`。
+
 ## Shape：领域模型
 
 - 持有单个图形的状态，封装内部部件，通过公开方法修改自身；业务复合 Shape 按实际需要声明内部 Shape 成员；普通 SVG 容器的成员关系保存在文档节点树中。

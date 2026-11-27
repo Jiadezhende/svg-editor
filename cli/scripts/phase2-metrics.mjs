@@ -57,12 +57,14 @@ function complexity(source) {
 function measure(revision) {
   const sha = git('rev-parse', '--verify', '--end-of-options', `${revision}^{commit}`).trim();
   const rows = new Map();
-  for (const path of git('ls-tree', '-rz', '--name-only', sha).split('\0')) {
-    const group = scope(path);
+  for (const path of git('ls-tree', '-r', '--full-tree', '-rz', '--name-only', sha).split('\0')) {
+    // 迁移到 cli/ 前后的提交都按 CLI 根目录内的相对路径归并。
+    const relative = path.startsWith('cli/') ? path.slice(4) : path;
+    const group = scope(relative);
     if (group === null) continue;
     const source = git('show', `${sha}:${path}`);
     const lines = source === '' ? 0 : source.split('\n').length - Number(source.endsWith('\n'));
-    rows.set(path, { group, lines, complexity: complexity(source) });
+    rows.set(relative, { group, lines, complexity: complexity(source) });
   }
   return { sha, rows };
 }
@@ -78,7 +80,7 @@ const after = measure(target);
 console.log('# CLI 源码指标\n');
 console.log(`基线提交 \`${before.sha}\`，目标提交 \`${after.sha}\`。\n`);
 console.log('统计 Git 提交中的 CLI 运行源码。内核含前端与 App，装配含入口和宿主，插件按源码路径归类。依赖、测试、文档、生成文件与 VS Code 扩展排除。\n');
-console.log('行数按物理行统计。圈复杂度按每个文件顶层和每个有函数体的可调用单元各计 1，再计入条件、循环、catch、非 default 的 case、三元表达式和短路逻辑表达式。历史上位于内核的内置实现按历史位置计入内核。\n');
+console.log('行数按物理行统计。圈复杂度按每个文件顶层和每个有函数体的可调用单元各计 1，再计入条件、循环、catch、非 default 的 case、三元表达式和短路逻辑表达式。历史上位于内核的内置实现按历史位置计入内核。目录迁移到 `cli/` 前后的提交都按 CLI 根目录内的路径归并。\n');
 console.log('| 分类 | 文件基线 | 文件目标 | 行数基线 | 行数目标 | 行数增量 | 复杂度基线 | 复杂度目标 | 复杂度增量 |');
 console.log('| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |');
 for (const group of groups) {

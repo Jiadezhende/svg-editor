@@ -1,6 +1,6 @@
 # SVG Editor
 
-课程 Lab1 的 TypeScript 命令行 SVG 编辑器。本分支完成 Phase 2 CLI，当前内核能力、装配方式和验收证据见下文。Phase 1 的设计记录保留为历史基线。
+课程 Lab1 的 TypeScript 命令行 SVG 编辑器。仓库按产品拆分：CLI 位于 [`cli/`](../cli/)，VS Code 扩展位于 [`vscode-extension/`](../vscode-extension/)，两者各自安装、构建和测试。本分支完成 Phase 2 CLI 与 VS Code 扩展，当前内核能力、装配方式、扩展实现和验收证据见下文。Phase 1 的设计记录保留为历史基线。
 
 Phase 1 基线是同一仓库的 `final` 标签。 [项目仓库](https://github.com/Jiadezhende/svg-editor)
 
@@ -33,16 +33,17 @@ SVG 是用 XML 文本描述矢量图形的格式：纯文本、树形结构（`<
 使用 Node.js 22.14 或更新的兼容版本。本轮使用 Node.js 22.23.2 验收。
 
 ```bash
+cd cli
 npm install
 npm run cli -- --config plugins.config.json
 npm run cli:code
-npm run cli -- --config doc/transcript/phase1.plugins.json
+npm run cli -- --config test/fixtures/transcript/phase1.plugins.json
 npm test
 npm run typecheck
 npm run verify:transcripts
 ```
 
-`npm run cli` 要求传入 `--config <path>`。仓库配置按顺序启用 `core`、`stats`、`dir`、`modified-star`、`box`。`cli:code` 在 [代码装配入口](../src/cli-code.ts) 静态导入同一套插件，再逐包调用 `registerPlugin`。代码装配可以传入插件的激活函数，也可以直接传入已有的四类贡献对象。
+`npm run cli` 要求传入 `--config <path>`。仓库配置按顺序启用 `core`、`stats`、`dir`、`modified-star`、`box`。`cli:code` 在 [代码装配入口](../cli/src/cli-code.ts) 静态导入同一套插件，再逐包调用 `registerPlugin`。代码装配可以传入插件的激活函数，也可以直接传入已有的四类贡献对象。
 
 配置文件只含 `plugins` 数组。每项声明 `module`，可选 `enabled` 和 `options`。
 
@@ -58,18 +59,18 @@ npm run verify:transcripts
 }
 ```
 
-相对路径从配置文件所在目录解析，可指向声明了 `main` 的插件目录或已有包的入口文件。包名由 Node ESM 以配置文件为解析基准解析。禁用项跳过模块解析和求值。选项对象交给入口默认导出的同步 `activate(options)`，省略时使用空对象。当前发行插件使用自身默认行为。`plugins: []` 只保留 `help`、`undo`、`redo`、`exit`、`quit`。配置整体无效时报告 `error: invalid plugin config` 并装配 `core`。单包失败后继续装配后续包。 [插件编写示例](../plugins/README.md)
+相对路径从配置文件所在目录解析，可指向声明了 `main` 的插件目录或已有包的入口文件。包名由 Node ESM 以配置文件为解析基准解析。禁用项跳过模块解析和求值。选项对象交给入口默认导出的同步 `activate(options)`，省略时使用空对象。当前发行插件使用自身默认行为。`plugins: []` 只保留 `help`、`undo`、`redo`、`exit`、`quit`。配置整体无效时报告 `error: invalid plugin config` 并装配 `core`。单包失败后继续装配后续包。 [插件编写示例](../cli/plugins/README.md)
 
 ### 扩展点清单
 
 | 内核契约 | 职责与调用位置 | 发行实现 | 禁用可选扩展时 | 违反契约时 |
 | --- | --- | --- | --- | --- |
-| [Shape](../src/backend/receiver/document/shape/Shape.ts) 的静态类契约，即课程 `ShapeProvider` | 提供类型、创建参数和 SVG 模型构造。内核 `ShapeFactory.create` / `ShapeFactory.parse` 分别调用构造函数和静态 `parse`，持久化由 `SvgReader.children` 编排 | `core` 的 rect、circle、ellipse、line、text、g，另有 `box` | `create box` 报未知类型，带 `data-kind="box"` 的 SVG 按标签读为普通 `g` | 类、解析方法或注册名非法时拒绝整包。已声明类型的无效模型或重复 id 拒绝创建或读入 |
-| [Command](../src/backend/command/Command.ts) | 定义命令、参数形式和执行能力。`Client.execute` 选定已绑定的命令表条目，`Invoker.execute` 调用并按命令种类管理历史 | `core` 的 17 种形式，独立的 `stats` 和 `dir` | 未装入的命令从 `help` 消失，执行时报 `unknown command` | 与框架或其他包命令重名、命令定义非法时拒绝整包。用户参数不符时返回用法 |
-| [TreeDecorator](../src/backend/receiver/tree/TreeDecorator.ts) | 在基础树行追加标签。`TreeRenderer` 构造器包装渲染器，`render` 传入只读视图，`notify` 发布成功后的内容快照 | `modified-star` 与 `box-type-label` | 无装饰器使用基础渲染，Phase 1 树输出逐字节一致 | 继承、名称或构造失败时拒绝整包。成功通知中的异常转为警告 |
-| [AttributeHandler](../src/backend/receiver/document/shape/AttributeHandler.ts) | 定义特定图形上的属性语义。`AttributeHandlerRegistry.resolve` 找首个命中项，`Receiver.set` 在同一次匹配内完成修改、校验与前后回显；`Receiver.createShape` 复用同一写入 | `box-attributes` 处理 `fill`、`stroke`、`stroke-width`、`label` 与几何 | 未命中时使用模型属性规则，普通矩形 `fill` 仍可设置，未知属性报错 | 注册契约或名称非法时拒绝整包。处理器执行或回显失败时由命令的快照恢复，历史保持原状 |
+| [Shape](../cli/src/backend/receiver/document/shape/Shape.ts) 的静态类契约，即课程 `ShapeProvider` | 提供类型、创建参数和 SVG 模型构造。内核 `ShapeFactory.create` / `ShapeFactory.parse` 分别调用构造函数和静态 `parse`，持久化由 `SvgReader.children` 编排 | `core` 的 rect、circle、ellipse、line、text、g，另有 `box` | `create box` 报未知类型，带 `data-kind="box"` 的 SVG 按标签读为普通 `g` | 类、解析方法或注册名非法时拒绝整包。已声明类型的无效模型或重复 id 拒绝创建或读入 |
+| [Command](../cli/src/backend/command/Command.ts) | 定义命令、参数形式和执行能力。`Client.execute` 选定已绑定的命令表条目，`Invoker.execute` 调用并按命令种类管理历史 | `core` 的 17 种形式，独立的 `stats` 和 `dir` | 未装入的命令从 `help` 消失，执行时报 `unknown command` | 与框架或其他包命令重名、命令定义非法时拒绝整包。用户参数不符时返回用法 |
+| [TreeDecorator](../cli/src/backend/receiver/tree/TreeDecorator.ts) | 在基础树行追加标签。`TreeRenderer` 构造器包装渲染器，`render` 传入只读视图，`notify` 发布成功后的内容快照 | `modified-star` 与 `box-type-label` | 无装饰器使用基础渲染，Phase 1 树输出逐字节一致 | 继承、名称或构造失败时拒绝整包。成功通知中的异常转为警告 |
+| [AttributeHandler](../cli/src/backend/receiver/document/shape/AttributeHandler.ts) | 定义特定图形上的属性语义。`AttributeHandlerRegistry.resolve` 找首个命中项，`Receiver.set` 在同一次匹配内完成修改、校验与前后回显；`Receiver.createShape` 复用同一写入 | `box-attributes` 处理 `fill`、`stroke`、`stroke-width`、`label` 与几何 | 未命中时使用模型属性规则，普通矩形 `fill` 仍可设置，未知属性报错 | 注册契约或名称非法时拒绝整包。处理器执行或回显失败时由命令的快照恢复，历史保持原状 |
 
-[ShapeFactory](../src/backend/receiver/document/shape/ShapeFactory.ts) · [SvgReader](../src/backend/receiver/svg/SvgReader.ts) · [Client](../src/backend/Client.ts) · [Invoker](../src/backend/invoker/Invoker.ts) · [TreeRenderer](../src/backend/receiver/tree/TreeRenderer.ts) · [AttributeHandlerRegistry](../src/backend/receiver/document/shape/AttributeHandlerRegistry.ts) · [SetCommand](../plugins/core/SetCommand.ts)
+[ShapeFactory](../cli/src/backend/receiver/document/shape/ShapeFactory.ts) · [SvgReader](../cli/src/backend/receiver/svg/SvgReader.ts) · [Client](../cli/src/backend/Client.ts) · [Invoker](../cli/src/backend/invoker/Invoker.ts) · [TreeRenderer](../cli/src/backend/receiver/tree/TreeRenderer.ts) · [AttributeHandlerRegistry](../cli/src/backend/receiver/document/shape/AttributeHandlerRegistry.ts) · [SetCommand](../cli/plugins/core/SetCommand.ts)
 
 ### 依赖结构
 
@@ -124,7 +125,7 @@ Contracts ..> Services
 
 ### 目录访问适配器
 
-`DirCommand` 是适配器的使用方。它依赖目标接口 `DirectoryAccess`，从该接口取得进程工作目录和直接子项，再排序、格式化或报告 `cannot read directory`。`NodeDirectoryAccess` 是适配器，被适配者是 Node 的 `process.cwd()` 和 `fs.readdirSync`。它将 `Dirent` 转成包含名称及目录标志的记录。目录优先，组内采用与区域设置无关的名称升序，隐藏项保留，符号链接与其他特殊项作为 `[FILE]` 显示。两种装配使用同一个 `DirCommand`，测试从其构造函数注入替身。 [目录接口与适配器](../plugins/dir/DirectoryAccess.ts) [命令实现](../plugins/dir/index.ts) [插件测试](../test/plugins/Dir.test.ts)
+`DirCommand` 是适配器的使用方。它依赖目标接口 `DirectoryAccess`，从该接口取得进程工作目录和直接子项，再排序、格式化或报告 `cannot read directory`。`NodeDirectoryAccess` 是适配器，被适配者是 Node 的 `process.cwd()` 和 `fs.readdirSync`。它将 `Dirent` 转成包含名称及目录标志的记录。目录优先，组内采用与区域设置无关的名称升序，隐藏项保留，符号链接与其他特殊项作为 `[FILE]` 显示。两种装配使用同一个 `DirCommand`，测试从其构造函数注入替身。 [目录接口与适配器](../cli/plugins/dir/DirectoryAccess.ts) [命令实现](../cli/plugins/dir/index.ts) [插件测试](../cli/test/plugins/Dir.test.ts)
 
 ### 决策记录
 
@@ -135,17 +136,19 @@ Contracts ..> Services
 
 ### 验收证据与指标
 
-- `npm run verify:transcripts` 比较代码和配置装配的标准输出及保存的 SVG。基础会话只启用 `core`，另与 `final` 中的实际程序输出逐字节比较。`dir` 在同一临时工作目录和固定目录项上运行，输出样本保存在工作目录之外。 [命令输入、期望输出与 SVG 样例](transcript/)
+- `npm run verify:transcripts` 比较代码和配置装配的标准输出及保存的 SVG。基础会话只启用 `core`，另与 `final` 中的实际程序输出逐字节比较。`dir` 在同一临时工作目录和固定目录项上运行，输出样本保存在工作目录之外。 [命令输入、期望输出与 SVG 样例](../cli/test/fixtures/transcript/)
 - `b8b45dd` 是 `box` 接入前的共同基准。`9e1edd1` 加入插件、测试和配置项。`3124971` 位于本地 `codex/phase-2-cli-code-demo`，加入同一份插件和测试，并修改单个代码装配入口。 [配置装配差异](#box-接入差异复核)
 - 源码指标按内核、装配、插件分类，通过脚本对 Git 提交生成文件清单、职责、行数和圈复杂度增量。 [框架节点报告](../docs/metrics/framework.md) [CLI 候选报告](../docs/metrics/cli-candidate.md)
 
 ```bash
-node scripts/phase2-metrics.mjs final b1d929c
+node cli/scripts/phase2-metrics.mjs final b1d929c
 ```
 
-完整交付后可将目标提交替换为 `p2`。CLI 交付候选的 Vitest 结果为 61 个测试文件、549 项通过，类型检查通过。
+完整交付后可将目标提交替换为 `p2`。当前 CLI 的 Vitest 结果为 62 个测试文件、564 项通过，类型检查通过。
 
 #### box 接入差异复核
+
+以下命令核对重构前的历史提交，路径保持当时的仓库布局；当前源码位于 [`cli/`](../cli/)。
 
 ```bash
 git diff --name-status b8b45dd 9e1edd1
@@ -164,10 +167,9 @@ git diff --exit-code 9e1edd1 3124971 -- plugins/box
 - 在临时 `node_modules` 中测试只声明 ESM 导出的包。真实进程暴露了 tsx 解析钩子要求父路径使用 URL 字符串的问题，修正后相对路径、包名和失败恢复一并通过回归。
 - 使用 Git 中的 `final` 运行基础会话，以程序输出核对兼容性。课程示例中的展示格式可作为语义参考，`box` 沿用通用创建与属性命令的回显。
 
-
 ## Phase 1 历史架构方案
 
-以下保留第一阶段的设计与决策过程。当前架构见上方 Phase 2 CLI。
+以下保留第一阶段的设计与决策过程。当前架构见上方 Phase 2 CLI。下文沿用 Phase 1 时的目录写法，这些代码现位于 `cli/` 下（例如 `cli/src/main.ts`、`cli/plugins/`），分层与依赖方向不变；VS Code 扩展是独立产品，不在下文的 CLI 分层内。
 
 ### 1. 模块划分
 
@@ -302,7 +304,7 @@ plugins ..> backend : 只依赖公共契约
 
 ### 依赖方向
 
-全部需求完成后首次检查（2026-10-24），本次重构后再次复查（2026-11-27），针对第 3 节的每条规则检索 `src/` 中的 import，结果如下：
+全部需求完成后首次检查（2026-10-24），本次重构后再次复查（2026-11-27），针对第 3 节的每条规则检索 `cli/src/` 中的 import，结果如下：
 
 | 规则 | 检查方式 | 结果 |
 | --- | --- | --- |
@@ -325,8 +327,8 @@ command → receiver 属于允许的方向：Command 基类使用 `DecimalFormat
 
 | 位置 | 名字 → 对象 | 翻译之后 | 条目由谁登记 |
 | --- | --- | --- | --- |
-| `Client.execute`（[Client.ts](../src/backend/Client.ts)） | 命令名 → 内置命令 / ConcreteCommand 类；同名多形式（如 `canvas` 与 `canvas <w> <h>`）由各形式的 `accepts` 按参数结构唯一命中 | 命令对象自己解析参数、执行、撤销；Invoker 只认抽象 `Command` | 现状：命令类由插件贡献，宿主装配时登记，新增命令不改 Client |
-| `ShapeFactory.lookup`（[ShapeFactory.ts](../src/backend/receiver/document/shape/ShapeFactory.ts)） | 图形类型名 → 图形类（create 按类型参数、read 按元素名使用；read 用 `has` / `definition` 查询，未注册时跳过） | 查找、删除、撤销，以及平移、缩放、显示、序列化，都由各模型的覆盖完成 | 现状：工厂初始为空，由宿主按插件装配注册；工厂不导入、枚举具体图形 |
+| `Client.execute`（[Client.ts](../cli/src/backend/Client.ts)） | 命令名 → 内置命令 / ConcreteCommand 类；同名多形式（如 `canvas` 与 `canvas <w> <h>`）由各形式的 `accepts` 按参数结构唯一命中 | 命令对象自己解析参数、执行、撤销；Invoker 只认抽象 `Command` | 现状：命令类由插件贡献，宿主装配时登记，新增命令不改 Client |
+| `ShapeFactory.lookup`（[ShapeFactory.ts](../cli/src/backend/receiver/document/shape/ShapeFactory.ts)） | 图形类型名 → 图形类（create 按类型参数、read 按元素名使用；read 用 `has` / `definition` 查询，未注册时跳过） | 查找、删除、撤销，以及平移、缩放、显示、序列化，都由各模型的覆盖完成 | 现状：工厂初始为空，由宿主按插件装配注册；工厂不导入、枚举具体图形 |
 
 以下几处也比较了名字或字符，但都不是按名分派：
 
@@ -345,21 +347,21 @@ command → receiver 属于允许的方向：Command 基类使用 `DecimalFormat
 
 | 位置 | 内容 | 说明 |
 | --- | --- | --- |
-| `Invoker.execute`（[Invoker.ts](../src/backend/invoker/Invoker.ts)） | 用 `instanceof` 分两支：EditCommand 入撤销栈，DocumentCommand 清空历史并禁止 undo / redo | 行为只有两条分支，集中在 Invoker 一处，不是课程禁止的"到处 `switch(tag)`"；新增命令类别时需在此增加分支 |
+| `Invoker.execute`（[Invoker.ts](../cli/src/backend/invoker/Invoker.ts)） | 用 `instanceof` 分两支：EditCommand 入撤销栈，DocumentCommand 清空历史并禁止 undo / redo | 行为只有两条分支，集中在 Invoker 一处，不是课程禁止的"到处 `switch(tag)`"；新增命令类别时需在此增加分支 |
 
-自查方式：以 `switch`、与字符串字面量的比较、`Map.get`、`instanceof`、`typeof` 为关键词检索 `src/`，逐条归类。每个需求完成时都做了复查，最近一次在全部需求完成后（2026-10-24）。
+自查方式：以 `switch`、与字符串字面量的比较、`Map.get`、`instanceof`、`typeof` 为关键词检索 `cli/src/`，逐条归类。每个需求完成时都做了复查，最近一次在全部需求完成后（2026-10-24）。
 
 ## 质量保证手段
 
 ### 功能完整性
 
 - **需求可追溯**：8 份 PRD 的每一条 case（正常、边界、异常）都在对应提案的"测试与验证"表中列出了用例与验证方式；课程原文中有歧义或缺失的地方，都记入 PRD 的"决策记录"，由开发者确认。
-- **端到端验证**：[test/main.test.ts](../test/main.test.ts) 以子进程运行真实入口，按脚本回放逐条比对回显，覆盖 10 组场景：框架、文档与画布、创建删除、显示、撤销重做、平移缩放设置、层级与 z-order、文件读写等，并断言 stderr 为空。文件读写场景使用临时目录，读入的正是课程给出的 `other.svg`。
+- **端到端验证**：[test/main.test.ts](../cli/test/main.test.ts) 以子进程运行真实入口，按脚本回放逐条比对回显，覆盖 10 组场景：框架、文档与画布、创建删除、显示、撤销重做、平移缩放设置、层级与 z-order、文件读写等，并断言 stderr 为空。文件读写场景使用临时目录，读入的正是课程给出的 `other.svg`。
 - **与课程示例逐字对照**：save 产物与课程的文件格式示例逐字一致；读入 `other.svg` 的警告、元素数与 tree 都与示例一致（见 SvgWriter / SvgReader 的测试）。
 
 ### 代码质量
 
-- **测试**：`npm test` 共 39 个测试文件、411 个用例全部通过。每个类都有单元测试，测试目录与 `src/` 一一对应。总体覆盖率：语句 97.67%、分支 96.47%、函数 97.91%、行 97.71%。未覆盖的部分是入口 `main.ts`、控制台 IO 适配器（由子进程端到端测试间接覆盖），以及少数不会发生的防御性分支。
+- **测试**：`npm test` 共 62 个测试文件、564 个用例全部通过。每个类都有单元测试，测试目录与 `cli/src/` 一一对应。总体覆盖率：语句 88.54%、分支 82.80%、函数 92.98%、行 89.36%。未覆盖的部分是入口与配置装配（`main.ts`、`cli-code.ts`、`pluginConfig.ts`、`runCli.ts`）和控制台 IO 适配器，它们由子进程端到端/宿主测试间接覆盖，其余为少数不会发生的防御性分支。
 - **类型检查**：TypeScript `strict`，并开启 `noImplicitOverride`、`noUnusedLocals`、`noUnusedParameters`；`npm run typecheck` 无错误。
 - **撤销的精确性**：每个可撤销命令都测试了"执行 → undo 后状态与执行前一致 → redo 回显与首次相同"；move / scale 专门用浮点坐标验证 undo 后原值逐位相同。
 - **启动即失败**：命令名或语法缺失、同名多形式未声明 `accepts`、图形类型名缺失或重名、锚点不是坐标属性等程序缺陷，都在注册时直接抛出，不会留到运行时。

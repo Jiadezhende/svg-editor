@@ -5,7 +5,7 @@
 
 ## 需求背景
 
-`Shape` 是单个图形的领域模型，负责自身属性、行为和内部部件。当前实现将属性规则和实例的值分别存放，通过属性名关联。重构将同一属性的值和行为封装在 `Attribute` 中，使模型能按名称直接访问属性，并通过属性对象完成解析、校验与展示。 [Shape 实现](../../../src/backend/receiver/document/shape/Shape.ts)
+`Shape` 是单个图形的领域模型，负责自身属性、行为和内部部件。当前实现将属性规则和实例的值分别存放，通过属性名关联。重构将同一属性的值和行为封装在 `Attribute` 中，使模型能按名称直接访问属性，并通过属性对象完成解析、校验与展示。 [Shape 实现](../../../cli/src/backend/receiver/document/shape/Shape.ts)
 
 ## 决策记录
 
@@ -25,9 +25,9 @@
 
 `Attribute<T extends number | string>` 持有当前值 `T | null`。例如矩形未设置 `fill` 时，`attributes.get('fill')` 返回值为 `null` 的属性对象。Map 中缺少某个键表示该名称未声明。具体属性子类直接实现或继承各自的 `validate`、解析、默认值、展示及变换规则。
 
-图形类的类级模板显式写出有序的 `[属性名, Attribute 模板]`。以圆为例，`new NumericAttribute('cx')` 中的 `cx` 既是 Map 的键，也是 SVG 属性名。`Shape` 按这些键和顺序建立实例 Map，替换属性值时使用原键。合并基础外观和图形自身属性时，在建立 Map 前检查显式键重名；覆写属性表而不合并外观的复合模型不参与该检查。 [现有 Shape 实现](../../../src/backend/receiver/document/shape/Shape.ts)
+图形类的类级模板显式写出有序的 `[属性名, Attribute 模板]`。以圆为例，`new NumericAttribute('cx')` 中的 `cx` 既是 Map 的键，也是 SVG 属性名。`Shape` 按这些键和顺序建立实例 Map，替换属性值时使用原键。合并基础外观和图形自身属性时，在建立 Map 前检查显式键重名；覆写属性表而不合并外观的复合模型不参与该检查。 [现有 Shape 实现](../../../cli/src/backend/receiver/document/shape/Shape.ts)
 
-`Shape` 负责检查属性集合、必填约束及整体更新。`Attribute` 负责单项值是否合法。数字属性继续使用统一的 `DecimalFormat`。变换由各模型在 `move` / `scale` 中直接按值计算：坐标与尺寸乘系数，`stroke-width` 与文字内容不参与缩放，未赋值的可选属性不受影响。 [十进制规则](../../../src/backend/utils/DecimalFormat.ts)
+`Shape` 负责检查属性集合、必填约束及整体更新。`Attribute` 负责单项值是否合法。数字属性继续使用统一的 `DecimalFormat`。变换由各模型在 `move` / `scale` 中直接按值计算：坐标与尺寸乘系数，`stroke-width` 与文字内容不参与缩放，未赋值的可选属性不受影响。 [十进制规则](../../../cli/src/backend/utils/DecimalFormat.ts)
 
 ### Attribute 字段和方法（契约）
 
@@ -46,7 +46,7 @@
 
 - 构造时传入 id，并在构造内校验、绑定根标识。构造按类级模板建立全部属性条目，初始值为 `null`；可选初始值只用于恢复与复合模型初始化，用户编辑一律经 `set`（复合模型由 Handler 路由到部件的 `set`）。
 - 构造期间必填属性可暂为 `null`，构造完成不等于模型完成。完整性由 `Shape.validate()` 检查必填属性、跨属性约束与部件结构。
-- `Box` 持有 `Frame` 和 `Caption`，提供部件访问入口、标题重排与快照。新建时沿用框体默认填充 `#4a90d9`，并根据框体几何计算文字位置；恢复时使用已有部件的属性。`Box.capture()` 覆盖自身和所有可修改部件。 [现有 Box 模型](../../../plugins/box/Box.ts) [Box 读回 ADR](../../adr/phase2-02-box-readback.md)
+- `Box` 持有 `Frame` 和 `Caption`，提供部件访问入口、标题重排与快照。新建时沿用框体默认填充 `#4a90d9`，并根据框体几何计算文字位置；恢复时使用已有部件的属性。`Box.capture()` 覆盖自身和所有可修改部件。 [现有 Box 模型](../../../cli/plugins/box/Box.ts) [Box 读回 ADR](../../adr/phase2-02-box-readback.md)
 - `Box` 覆写属性表为空：外观、标题与几何都由内部部件承载，经 `box-attributes` 读写，自身不再声明基础外观。
 
 ## 接口契约（已确认）
@@ -63,9 +63,9 @@
 
 ## 实施约束
 
-- 文本输入先解析再 `validate`，原值恢复和变换结果也经过同一子类校验。异构 Map 的原值入口可接收 `number | string`，由具体子类校验值的运行时类型及约束。基类构造期间避免调用依赖子类字段的覆写方法。 [现有不变量测试](../../../test/backend/receiver/document/shape/ShapeInvariant.test.ts)
+- 文本输入先解析再 `validate`，原值恢复和变换结果也经过同一子类校验。异构 Map 的原值入口可接收 `number | string`，由具体子类校验值的运行时类型及约束。基类构造期间避免调用依赖子类字段的覆写方法。 [现有不变量测试](../../../cli/test/backend/receiver/document/shape/ShapeInvariant.test.ts)
 - 属性变换全部校验后才提交。复合图形变换失败时用自身快照恢复各部件。不可变的 `Attribute` 允许快照浅拷贝 Map 并保留每个旧属性对象。
-- 构造不再检查必填。所有生成完成模型的路径都以 `validate()` 收尾，`Receiver.createShape` 与 `Shape.parse` 是仅有的两个成图出口。 [公开入口](../../../src/backend/index.ts) [图形扩展示例](../../../test/support/PublicExtension.ts)
+- 构造不再检查必填。所有生成完成模型的路径都以 `validate()` 收尾，`Receiver.createShape` 与 `Shape.parse` 是仅有的两个成图出口。 [公开入口](../../../cli/src/backend/index.ts) [图形扩展示例](../../../cli/test/support/PublicExtension.ts)
 - 覆写属性表的复合模型，`attributes()`、`entries()` 和 `view()` 必须按覆写结果一致工作，不得只改其一。
 - 公开入口迁移到新的 `Attribute` 子类。已有图形声明、直接构造及自定义 `parse` 也使用新契约，`ShapeView` 继续以原始值提供只读数据。
 

@@ -4,4 +4,4 @@
 
 新增行、属性或内容变更、位置变化、直接成员增删或换序都会使所属行标星。行位置包括父 id 和同级索引，因此重排可标记多个行。子图形的属性变化不向容器行传播，私有部件按相同规则标记。画布汇总所有内容和尺寸变化，也能显示已删除行所带来的差异。
 
-装饰链按注册顺序从左到右追加。发行装配先注册 `modified-star`，再注册 Box 的类型标签，所以同一行可以同时显示 `* (box)`。 [标签状态测试](../../test/plugins/ModifiedStar.test.ts) [双标签测试](../../test/plugins/BoxSession.test.ts)
+装饰链按注册顺序从左到右追加。发行装配先注册 `modified-star`，再注册 Box 的类型标签，所以同一行可以同时显示 `* (box)`。 [标签状态测试](../../cli/test/plugins/ModifiedStar.test.ts) [双标签测试](../../cli/test/plugins/BoxSession.test.ts)

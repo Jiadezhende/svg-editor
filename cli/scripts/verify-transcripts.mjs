@@ -6,7 +6,8 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const fixtures = join(root, 'doc/transcript');
+const repo = fileURLToPath(new URL('../..', import.meta.url));
+const fixtures = join(root, 'test/fixtures/transcript');
 const cache = join(root, 'coverage');
 const tsx = import.meta.resolve('tsx');
 const record = process.argv[2] === '--record';
@@ -50,7 +51,7 @@ const baseline = temporary(cache);
 const cwd = temporary(tmpdir());
 try {
   const archive = join(baseline, 'final.tar');
-  execFileSync('git', ['archive', '-o', archive, 'final', 'src', 'package.json'], { cwd: root });
+  execFileSync('git', ['archive', '-o', archive, 'final', 'src', 'package.json'], { cwd: repo });
   execFileSync('tar', ['-xf', archive, '-C', baseline]);
   const fixture = join(fixtures, 'other.svg');
   copyFileSync(fixture, join(cwd, 'other.svg'));

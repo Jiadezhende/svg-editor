@@ -4,4 +4,4 @@ Box 创建时校验并占用根 id、`<id>-rect` 和 `<id>-label`。矩形默认
 
 写出将 Box 映射成带 `data-kind="box"` 的 `g`，先写矩形和标题，再由 Writer 按顺序追加文档成员。已安装插件时，Reader 解析部件并根据派生 id 让 Box 消费必要部件。模型拷贝并校验这两个部件的属性，其余子节点仍由文档持有。缺少插件时按普通 `g` 和基础图形读入，部件变为可单独编辑的节点。已安装时部件缺失或类型错误会拒绝候选文档。重复 id 在整个 SVG 上统一检查。读入失败时保留原文档、路径和历史。
 
-私有部件测试用基础图形替身构建读取上下文。 [Box 测试](../../test/plugins/Box.test.ts) [Box 会话测试](../../test/plugins/BoxSession.test.ts)
+私有部件测试用基础图形替身构建读取上下文。 [Box 测试](../../cli/test/plugins/Box.test.ts) [Box 会话测试](../../cli/test/plugins/BoxSession.test.ts)

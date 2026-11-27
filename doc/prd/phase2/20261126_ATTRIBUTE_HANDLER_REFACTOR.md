@@ -5,7 +5,7 @@
 
 ## 需求背景
 
-当前 `Receiver` 持有有序的属性处理器注册表，`SetCommand` 在匹配后选择写入方式并组织回显。创建和编辑都需要支持属性处理器，因此将共同的匹配和写入逻辑集中到 `Receiver`，由私有写入与公开设置入口分别服务创建和编辑。 [Receiver](../../../src/backend/receiver/Receiver.ts) [SetCommand](../../../plugins/core/SetCommand.ts)
+当前 `Receiver` 持有有序的属性处理器注册表，`SetCommand` 在匹配后选择写入方式并组织回显。创建和编辑都需要支持属性处理器，因此将共同的匹配和写入逻辑集中到 `Receiver`，由私有写入与公开设置入口分别服务创建和编辑。 [Receiver](../../../cli/src/backend/receiver/Receiver.ts) [SetCommand](../../../cli/plugins/core/SetCommand.ts)
 
 ## 决策记录
 
@@ -25,8 +25,8 @@
 
 ## 接口契约
 
-- `AttributeHandler` 延续静态契约 `handlerName`、`matches(shape, key)`、`apply(shape, key, token)` 和 `display(shape, key)`。`matches` 和 `display` 只读。`apply` 可以组合模型和部件的公开操作。 [Handler 契约](../../../src/backend/receiver/document/shape/AttributeHandler.ts)
-- `Receiver` 的私有 `write(shape, key, token)` 是唯一写入动作：解析一次匹配，零命中调用 `Shape.set`，命中调用 `apply`。它不做整图校验、不读回显，供创建和编辑共用。 [现有注册表](../../../src/backend/receiver/document/shape/AttributeHandlerRegistry.ts)
+- `AttributeHandler` 延续静态契约 `handlerName`、`matches(shape, key)`、`apply(shape, key, token)` 和 `display(shape, key)`。`matches` 和 `display` 只读。`apply` 可以组合模型和部件的公开操作。 [Handler 契约](../../../cli/src/backend/receiver/document/shape/AttributeHandler.ts)
+- `Receiver` 的私有 `write(shape, key, token)` 是唯一写入动作：解析一次匹配，零命中调用 `Shape.set`，命中调用 `apply`。它不做整图校验、不读回显，供创建和编辑共用。 [现有注册表](../../../cli/src/backend/receiver/document/shape/AttributeHandlerRegistry.ts)
 - `Receiver.createShape(type, id, inputs)` 让工厂按类型和 id 构造候选，逐项调用 `write`，最后调用 `validate()` 并返回完成的图形。任一步抛错都结束本次创建，候选不入树。
 - `Receiver.set(shape, key, token)` 只解析一次匹配：读旧展示值 → 写入 → `validate()` → 读新展示值，返回 `{ previous, current }`。`null` 表示该值未设置。旧值读取失败时不写入；校验失败时不读取新值。任一步抛错都传播原错误，状态恢复由命令的模型快照负责。 [创建及设置命令 PRD](20261126_CREATE_SET_COMMAND_REFACTOR.md)
 
@@ -36,7 +36,7 @@
 
 - 几何写入后调用标题重排，按框体位置和尺寸重算文字坐标。框体几何尚未齐全时（创建写入过程中）不重排，最后一次几何写入自然得到正确位置。
 - `Box` 覆写属性表为空，自身不再声明基础外观。写出时 `<g>` 只带 `id` 与 `data-kind`，外观统一落在 `Frame` 上，避免出现 `fill` 走框体、`stroke` 走 `<g>` 的分叉。
-- 创建阶段的匹配和写入会看到尚未赋值的属性。Handler 不得假设必填项已就绪，也不得依赖目标已在文档中。 [现有 Box Handler](../../../plugins/box/index.ts)
+- 创建阶段的匹配和写入会看到尚未赋值的属性。Handler 不得假设必填项已就绪，也不得依赖目标已在文档中。 [现有 Box Handler](../../../cli/plugins/box/index.ts)
 
 ## 命中规则
 

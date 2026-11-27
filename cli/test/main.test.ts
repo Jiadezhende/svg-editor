@@ -11,7 +11,7 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 function runCli(script: string): string[] {
   const proc = spawnSync(process.execPath, [
     '--experimental-import-meta-resolve', '--import', 'tsx', 'src/main.ts',
-    '--config', 'doc/transcript/phase1.plugins.json',
+    '--config', 'test/fixtures/transcript/phase1.plugins.json',
   ], {
     cwd: ROOT,
     input: script,

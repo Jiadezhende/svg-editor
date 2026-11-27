@@ -15,7 +15,7 @@ export default class SvgWriter {
   write(doc: Document): string {
     const elements = doc.children().map((node) => this.mapNode(node));
     const ids = new Set<string>();
-    for (const element of elements) this.checkElement(element, ids);
+    for (const element of elements) this.checkElementTree(element, ids);
     const size = [doc.width(), doc.height()].map((n) => SvgWriter.decimal.format(n));
     const viewBox = doc.viewBox().map((n) => SvgWriter.decimal.format(n)).join(' ');
     const root = `<svg xmlns="http://www.w3.org/2000/svg" width="${size[0]}" height="${size[1]}" viewBox="${viewBox}"`;
@@ -31,18 +31,22 @@ export default class SvgWriter {
   }
 
   private mapNode(node: ShapeNode): SvgElement {
-    const own = node.value.toSvg();
-    this.checkOwn(node.value, own);
+    const ownElement = node.value.toSvg();
+    this.checkShapeElement(node.value, ownElement);
     return {
-      ...own,
-      children: [...(own.children ?? []), ...node.children().map((child) => this.mapNode(child))],
+      ...ownElement,
+      children: [...(ownElement.children ?? []), ...node.children().map((child) => this.mapNode(child))],
     };
   }
 
-  /** 校验模型自身元素：标签、类型标记及声明 id 都已写出；额外结构 id 交给全局检查。 */
-  private checkOwn(shape: Shape, element: SvgElement): void {
+  /** 校验模型自身元素（含私有部件，尚未追加文档成员）：形状身份、标签、类型标记与声明 id。 */
+  private checkShapeElement(shape: Shape, element: SvgElement): void {
     if (element.type !== shape.element()) {
       throw new EditorError(`SVG element mismatch: ${shape.id()} (<${element.type}> != <${shape.element()}>)`);
+    }
+    const rootIds = element.attributes.filter(([name]) => name === 'id');
+    if (rootIds.length === 1 && String(rootIds[0][1]) !== shape.id()) {
+      throw new EditorError(`SVG element id mismatch: ${shape.id()}`);
     }
     const kinds = element.attributes.filter(([name]) => name === 'data-kind');
     if (kinds.length > 1) throw new EditorError(`multiple data-kind attributes: ${shape.id()}`);
@@ -67,7 +71,7 @@ export default class SvgWriter {
   }
 
   /** 在生成文本前校验完整元素树，包含私有部件与普通文档成员。 */
-  private checkElement(element: SvgElement, ids: Set<string>): void {
+  private checkElementTree(element: SvgElement, ids: Set<string>): void {
     const declared = element.attributes.filter(([name]) => name === 'id');
     if (declared.length > 1) throw new EditorError('multiple id attributes in SVG element');
     if (declared.length === 1) {
@@ -79,7 +83,7 @@ export default class SvgWriter {
     if (element.content != null && (element.children?.length ?? 0) > 0) {
       throw new EditorError(`SVG element has both content and children: ${element.type}`);
     }
-    for (const child of element.children ?? []) this.checkElement(child, ids);
+    for (const child of element.children ?? []) this.checkElementTree(child, ids);
   }
 
   private writeElement(element: SvgElement, depth: number, lines: string[]): void {

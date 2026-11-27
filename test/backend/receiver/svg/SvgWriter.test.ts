@@ -124,6 +124,14 @@ describe('SvgWriter 多态写出', () => {
     kind.insert(new PayloadShape({ type: 'g', attributes: [['id', 'p']] }));
     expect(() => new SvgWriter().write(kind)).toThrow('missing data-kind: p');
 
+    const rootId = new Document(100, 100);
+    rootId.insert(new PayloadShape({
+      type: 'g',
+      attributes: [['id', 'other']],
+      children: [{ type: 'rect', attributes: [['id', 'p']] }],
+    }));
+    expect(() => new SvgWriter().write(rootId)).toThrow('SVG element id mismatch: p');
+
     const missing = new Document(100, 100);
     missing.insert(new MissingPart('p'));
     expect(() => new SvgWriter().write(missing)).toThrow('missing SVG element id: p-label');

@@ -29,11 +29,11 @@ npm run typecheck
 npm run build
 ```
 
-CLI 的架构与验收说明见 [doc/README.md](doc/README.md)，详细架构见 [cli/docs/architecture.md](cli/docs/architecture.md)，插件编写见 [cli/docs/plugins.md](cli/docs/plugins.md)，完整验收资料见 [cli/docs/acceptance.md](cli/docs/acceptance.md)。
+CLI 的架构与验收说明见 [doc/README.md](doc/README.md)，详细架构见 [cli/docs/architecture.md](cli/docs/architecture.md)，插件编写见 [cli/docs/plugins.md](cli/docs/plugins.md)，完整验收资料见 [cli/docs/acceptance.md](cli/docs/acceptance.md)。VS Code 扩展见 [vscode-extension/README.md](vscode-extension/README.md)、[架构](vscode-extension/docs/architecture.md) 和 [验收](vscode-extension/docs/acceptance.md)。
 
 ## 文档结构
 
-README 只保留仓库入口和 CLI 入口两级；CLI 的详细文档集中在 `cli/docs/`：
+README 只保留仓库入口和各产品入口两级；CLI 与 VS Code 的详细文档分别集中在 `cli/docs/` 和 `vscode-extension/docs/`：
 
 | 入口 | 内容 |
 | --- | --- |
@@ -45,6 +45,8 @@ README 只保留仓库入口和 CLI 入口两级；CLI 的详细文档集中在 
 | [cli/docs/plugins.md](cli/docs/plugins.md) | 插件包与贡献声明 |
 | [doc/DOCUMENTATION.md](doc/DOCUMENTATION.md) | 文档撰写规则与目录约定 |
 | [vscode-extension/README.md](vscode-extension/README.md) | VS Code 扩展的安装、运行与结构 |
+| [vscode-extension/docs/architecture.md](vscode-extension/docs/architecture.md) | VS Code 扩展的包边界、provider 与解析器 |
+| [vscode-extension/docs/acceptance.md](vscode-extension/docs/acceptance.md) | VS Code 扩展的 A.1/A.2/A.3 验收与证据 |
 
 ## 分支与基线
 

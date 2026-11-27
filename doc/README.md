@@ -107,6 +107,20 @@ git diff --exit-code 9e1edd1 3124971 -- plugins/box
 - 在临时 `node_modules` 中测试只声明 ESM 导出的包。真实进程暴露了 tsx 解析钩子要求父路径使用 URL 字符串的问题，修正后相对路径、包名和失败恢复一并通过回归。
 - 使用 Git 中的 `final` 运行基础会话，以程序输出核对兼容性。课程示例中的展示格式可作为语义参考，`box` 沿用通用创建与属性命令的回显。
 
+
+## Phase 2 VS Code 扩展
+
+Phase 2 第一部分是独立的 VS Code 扩展，入口在 [`vscode-extension/`](../vscode-extension/)。它不属于 CLI 插件，也不引用 `cli/src` 或 `cli/plugins`。
+
+- 功能：Explorer 对 `.svg` 显示 `[]`；原生 Outline 展示 SVG 元素层级并定位源码。
+- 架构与设计：[vscode-extension/docs/architecture.md](../vscode-extension/docs/architecture.md)
+- 验收与证据：[vscode-extension/docs/acceptance.md](../vscode-extension/docs/acceptance.md)
+- 扩展入口：[vscode-extension/README.md](../vscode-extension/README.md)
+- VS Code 指标：[vscode-metrics.md](../vscode-extension/docs/evidence/vscode-metrics.md)
+- 需求：[A.1 文件标记](prd/phase2/20261125_VSCODE_FILE_BADGE.md) · [A.2 原生大纲](prd/phase2/20261125_VSCODE_OUTLINE.md) · [A.3 演示材料](prd/phase2/20261125_VSCODE_EVIDENCE.md)
+- 实现提案：[update/20261127_FEAT_VSCODE_EXTENSION.md](update/20261127_FEAT_VSCODE_EXTENSION.md)
+- 当前结果：扩展 16 项测试、类型检查和构建通过；CLI 回归 62 个测试文件、564 项通过。详细结果与截图见验收文档。
+
 ## Phase 1 历史基线
 
 Phase 1 的模块划分、设计模式与依赖规则已并入 [cli/docs/architecture.md](../cli/docs/architecture.md)；`final` 标签保留当时的实现，用于回放和指标基线。Phase 2 在同一分层上增加插件装配、配置加载和公开扩展契约。

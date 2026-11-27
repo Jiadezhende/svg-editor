@@ -1,6 +1,7 @@
 /** 扩展与宿主的公共入口；不导出具体内置图形、命令或节点关系写入能力。 */
 export { default as Shape } from './receiver/document/shape/Shape';
 export type { ShapeParseResult } from './receiver/document/shape/Shape';
+export type { SvgElement } from './receiver/document/shape/SvgElement';
 export type { default as ShapeView } from './receiver/document/shape/ShapeView';
 export { default as ShapeFactory } from './receiver/document/shape/ShapeFactory';
 export { default as ShapeMemento } from './receiver/document/shape/ShapeMemento';
@@ -32,5 +33,4 @@ export { default as SvgReader } from './receiver/svg/SvgReader';
 export { default as SvgFile } from './receiver/svg/SvgFile';
 export type { SvgReadResult } from './receiver/svg/SvgReader';
 export { default as SvgWriter } from './receiver/svg/SvgWriter';
-export type { SvgElement, SvgShapeMapping } from './receiver/svg/SvgWriter';
 export { default as EditorError } from './error/EditorError';

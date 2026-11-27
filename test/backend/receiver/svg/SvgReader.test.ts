@@ -34,7 +34,7 @@ describe('SvgReader', () => {
   it('使用工厂返回的实例，未知元素仍警告并跳过', async () => {
     const factory = (await createShapeFactory());
     const supplied = factory.create('rect', 'r1');
-    const parse = vi.spyOn(factory, 'parse').mockReturnValue({ shape: supplied, children: [] });
+    const parse = vi.spyOn(factory, 'parse').mockReturnValue({ shape: supplied, parts: [], children: [] });
     const { document, warnings } = new SvgReader(factory).read(svg('<path id="unsupported"/><rect id="r1"/>'));
     expect(document.requireNode('r1').value).toBe(supplied);
     expect(document.findNode('unsupported')).toBeNull();

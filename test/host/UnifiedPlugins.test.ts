@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { Command, CommandResult, Shape } from '../../src/backend';
 import { assemblePlugins, corePlugin, createHost } from '../support/Plugins';
 import type { PluginRegistration } from '../support/Plugins';
-import { Panel, panelMapping } from '../support/SvgCompositeExtension';
+import { Panel } from '../support/SvgCompositeExtension';
 
 class PanelAttributes {
   static readonly handlerName: string = 'panel-attributes';
@@ -26,7 +26,7 @@ class LaterAttributes extends PanelAttributes {
 const panelPlugin: PluginRegistration = {
   name: 'panel', contributes: { shapes: [Panel.type], attributes: [PanelAttributes.handlerName, LaterAttributes.handlerName] },
   classes: {
-    shapes: [{ model: Panel, mapping: panelMapping }],
+    shapes: [Panel],
     attributes: [PanelAttributes, LaterAttributes],
   },
 };

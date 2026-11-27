@@ -2,43 +2,15 @@ import DecimalFormat from '../../utils/DecimalFormat';
 import type Document from '../document/Document';
 import type ShapeNode from '../document/ShapeNode';
 import Shape from '../document/shape/Shape';
+import type { SvgElement } from '../document/shape/SvgElement';
 import EditorError from '../../error/EditorError';
-
-/** SVG 映射结果，不携带文档节点关系。 */
-export interface SvgElement {
-  readonly type: string;
-  readonly attributes: ReadonlyArray<readonly [string, number | string]>;
-  readonly content?: number | string | null;
-  readonly children?: readonly SvgElement[];
-}
-
-/** 业务复合模型的显式写出映射；普通 SVG 仍按文档节点遍历。 */
-export interface SvgShapeMapping {
-  matches(shape: Shape): boolean;
-  write(shape: Shape): SvgElement;
-}
 
 /**
  * 把文档写成 SVG 文本：XML 声明 + `<svg xmlns width height viewBox>` + 2 空格缩进的嵌套元素。
- * 按图形类的声明通用处理：元素名取 `element()`（默认与类型名相同），属性依次为 id 与属性表中已设置的属性，`content` 属性写成子文本，
- * 容器递归子节点；没有子节点也没有子文本的元素自闭合。
+ * 每个模型多态提供自身及私有部件的 `toSvg()`，Writer 追加文档成员，校验完整元素树后格式化文本。
  */
 export default class SvgWriter {
   private static readonly decimal = new DecimalFormat();
-
-  private readonly mappings: SvgShapeMapping[];
-
-  constructor(mappings: readonly SvgShapeMapping[] = []) {
-    this.mappings = [...mappings];
-  }
-
-  register(mapping: SvgShapeMapping): void {
-    this.mappings.push(mapping);
-  }
-
-  static elementOf(shape: Shape): SvgElement {
-    return { type: shape.element(), attributes: [['id', shape.id()], ...shape.entries()], content: shape.content() };
-  }
 
   write(doc: Document): string {
     const elements = doc.children().map((node) => this.mapNode(node));
@@ -59,16 +31,42 @@ export default class SvgWriter {
   }
 
   private mapNode(node: ShapeNode): SvgElement {
-    const matches = this.mappings.filter((mapping) => mapping.matches(node.value));
-    if (matches.length > 1) throw new EditorError(`multiple SVG mappings: ${node.value.id()}`);
-    if (matches.length === 1) {
-      const mapped = matches[0].write(node.value);
-      return { ...mapped, children: [...(mapped.children ?? []), ...node.children().map((child) => this.mapNode(child))] };
-    }
-    return { ...SvgWriter.elementOf(node.value), children: node.children().map((child) => this.mapNode(child)) };
+    const own = node.value.toSvg();
+    this.checkOwn(node.value, own);
+    return {
+      ...own,
+      children: [...(own.children ?? []), ...node.children().map((child) => this.mapNode(child))],
+    };
   }
 
-  /** 在生成文本前校验完整映射树，包含私有部件与普通文档成员。 */
+  /** 校验模型自身元素：标签、类型标记及声明 id 都已写出；额外结构 id 交给全局检查。 */
+  private checkOwn(shape: Shape, element: SvgElement): void {
+    if (element.type !== shape.element()) {
+      throw new EditorError(`SVG element mismatch: ${shape.id()} (<${element.type}> != <${shape.element()}>)`);
+    }
+    const kinds = element.attributes.filter(([name]) => name === 'data-kind');
+    if (kinds.length > 1) throw new EditorError(`multiple data-kind attributes: ${shape.id()}`);
+    if (kinds.length === 1 && String(kinds[0][1]) !== shape.type()) {
+      throw new EditorError(`data-kind mismatch: ${shape.id()}`);
+    }
+    if (shape.element() !== shape.type() && kinds.length === 0) {
+      throw new EditorError(`missing data-kind: ${shape.id()}`);
+    }
+    const written = new Set<string>();
+    SvgWriter.collectIds(element, written);
+    for (const id of shape.identifiers()) {
+      if (!written.has(id)) throw new EditorError(`missing SVG element id: ${id}`);
+    }
+  }
+
+  private static collectIds(element: SvgElement, ids: Set<string>): void {
+    for (const [name, value] of element.attributes) {
+      if (name === 'id') ids.add(String(value));
+    }
+    for (const child of element.children ?? []) SvgWriter.collectIds(child, ids);
+  }
+
+  /** 在生成文本前校验完整元素树，包含私有部件与普通文档成员。 */
   private checkElement(element: SvgElement, ids: Set<string>): void {
     const declared = element.attributes.filter(([name]) => name === 'id');
     if (declared.length > 1) throw new EditorError('multiple id attributes in SVG element');

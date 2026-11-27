@@ -14,7 +14,8 @@ export type SvgReadResult = { readonly document: Document; readonly warnings: re
 
 /**
  * XML、类型选择及递归由 Reader 编排；领域属性解析和部件构造委托已注册 Shape.parse。
- * 优先选择已安装的 data-kind，否则按原标签降级；仅将模型返回的成员组装为文档节点。
+ * 优先选择已安装的 data-kind，否则按原标签降级；模型显式返回消费的 parts 与文档成员 children，
+ * Reader 校验归属后仅将 children 组装为文档节点。
  *
  * - 不支持的元素：警告并跳过（连同其子树）；未知属性：丢弃；缺少的必填属性：取属性种类的默认值；
  * - 缺 id 的图形按文档顺序分配 `<标签名><序号>`（跳过已占用的编号）并警告；
@@ -71,19 +72,34 @@ export default class SvgReader {
       };
       const parsed = this.factory.parse(type, id, attributes, readChildren);
       if (parsed.shape.id() !== id) throw new EditorError(`parsed shape id mismatch: ${id}`);
-      const available = new Map((children ?? []).map((entry: ParsedShape) => [entry.shape, entry]));
-      const retained = new Set<Shape>();
-      const remaining = parsed.children.map((shape) => {
-        const entry = available.get(shape);
-        if (entry === undefined || retained.has(shape)) throw new EditorError(`invalid parsed children: ${id}`);
-        retained.add(shape);
-        return entry;
-      });
-      for (const entry of available.values()) {
-        if (!retained.has(entry.shape) && entry.children.length > 0) {
-          throw new EditorError(`internal part has document children: ${entry.shape.id()}`);
-        }
+      if (parsed.shape.type() !== type) throw new EditorError(`parsed shape type mismatch: ${id}`);
+      if (parsed.shape.element() !== tag) throw new EditorError(`parsed shape element mismatch: ${id}`);
+
+      // readChildren 是惰性回调，TypeScript 的控制流看不到它已给 children 赋值。
+      const input: ParsedShape[] = (children as ParsedShape[] | null) ?? [];
+      const entries = new Map(input.map((entry: ParsedShape) => [entry.shape, entry]));
+      const declared = new Set(parsed.shape.identifiers());
+      const claimed = new Set<Shape>();
+      for (const part of parsed.parts) {
+        const entry = entries.get(part);
+        if (entry === undefined || claimed.has(part)) throw new EditorError(`invalid parsed parts: ${id}`);
+        if (!declared.has(part.id())) throw new EditorError(`undeclared private part: ${part.id()}`);
+        if (entry.children.length > 0) throw new EditorError(`internal part has document children: ${part.id()}`);
+        claimed.add(part);
       }
+      for (const member of parsed.children) {
+        const entry = entries.get(member);
+        if (entry === undefined || claimed.has(member)) throw new EditorError(`invalid parsed children: ${id}`);
+        if (declared.has(member.id())) throw new EditorError(`private part used as document member: ${member.id()}`);
+        claimed.add(member);
+      }
+      for (const entry of input) {
+        if (claimed.has(entry.shape)) continue;
+        if (entry.children.length > 0) throw new EditorError(`internal part has document children: ${entry.shape.id()}`);
+        throw new EditorError(`unclaimed child: ${entry.shape.id()}`);
+      }
+
+      const remaining = parsed.children.map((shape) => entries.get(shape)!);
       result.push({ shape: parsed.shape, children: remaining });
     }
     return result;

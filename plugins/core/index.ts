@@ -25,7 +25,7 @@ import UngroupCommand from './UngroupCommand';
 
 export default function activate(): PluginContributions {
   return {
-    shapes: [Circle, Ellipse, Group, Line, Rect, Text].map((model) => ({ model })),
+    shapes: [Circle, Ellipse, Group, Line, Rect, Text],
     commands: [
       AddtoCommand, BackCommand, CanvasResizeCommand, CanvasShowCommand, CreateCommand, DeleteCommand,
       FrontCommand, GroupCommand, InitCommand, MoveCommand, ReadCommand, SaveCommand, ScaleCommand,

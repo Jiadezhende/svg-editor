@@ -2,11 +2,11 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { Command, CommandResult, Document, Shape, TreeDecorator } from '../../src/backend';
+import { Command, CommandResult, Shape, TreeDecorator } from '../../src/backend';
 import type { ShapeView } from '../../src/backend';
 import { assemblePlugins, createHost } from '../support/Plugins';
 import type { PluginRegistration } from '../support/Plugins';
-import { Panel, panelMapping } from '../support/SvgCompositeExtension';
+import { Panel } from '../support/SvgCompositeExtension';
 import { TestChangedDecorator } from '../support/PublicTreeExtension';
 
 class Hello extends Command {
@@ -28,7 +28,7 @@ const all: PluginRegistration = {
   name: 'all',
   contributes: { shapes: [Panel.type], commands: [Hello.command], attributes: [LabelHandler.handlerName], decorators: [TestChangedDecorator.decoratorName, PanelType.decoratorName] },
   classes: {
-    shapes: [{ model: Panel, mapping: panelMapping }],
+    shapes: [Panel],
     commands: [Hello],
     attributes: [LabelHandler],
     decorators: [TestChangedDecorator, PanelType],
@@ -43,7 +43,7 @@ afterEach(() => {
 });
 
 describe('插件暂存与原子装配', () => {
-  it('装配四类扩展及附属 SVG 映射，实际参与命令、属性、树和读写', async () => {
+  it('装配四类扩展及模型写出，实际参与命令、属性、树和读写', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'svg-assembly-'));
     directories.push(dir);
     const host = await createHost([all]);
@@ -67,7 +67,7 @@ describe('插件暂存与原子装配', () => {
     expect((host.receiver.document().requireNode('p').value as Panel).captionShape().value('text')).toBe('changed');
   });
 
-  it('命令注册失败时丢弃整包及 SVG 映射，之后同名扩展可正常装配', () => {
+  it('命令注册失败时丢弃整包，之后同名扩展可正常装配', () => {
     class Reserved extends Hello { static override readonly command = 'help'; }
     const failed: PluginRegistration = {
       name: 'failed',
@@ -77,9 +77,6 @@ describe('插件暂存与原子装配', () => {
     const rejected = assemblePlugins([failed]);
     expect(rejected.factory.has(Panel.type)).toBe(false);
     expect(() => rejected.client.execute([Hello.command])).toThrow('unknown command');
-    const doc = new Document(100, 100);
-    doc.insert(new Panel('p'));
-    expect(rejected.writer.write(doc)).not.toContain('data-kind');
     expect(rejected.handlers.resolve(new Panel('p'), 'label')).toBeNull();
     const continued = assemblePlugins([failed, all]);
     expect(continued.plugins).toEqual(['all']);
@@ -87,7 +84,7 @@ describe('插件暂存与原子装配', () => {
     expect(continued.factory.has(Panel.type)).toBe(true);
   });
 
-  it('贡献声明不一致拒绝整个插件，包括其 SVG 映射', () => {
+  it('贡献声明不一致拒绝整个插件', () => {
     const host = assemblePlugins([{ ...all, contributes: {} }]);
     expect(host.errors[0]).toContain('plugin manifest mismatch: all');
     expect(host.plugins).toEqual([]);
@@ -141,7 +138,7 @@ describe('插件暂存与原子装配', () => {
     const broken: PluginRegistration = {
       name: 'broken',
       contributes: { shapes: [Panel.type], decorators: [Broken.decoratorName] },
-      classes: { shapes: [{ model: Panel, mapping: panelMapping }], decorators: [Broken] },
+      classes: { shapes: [Panel], decorators: [Broken] },
     };
     const host = assemblePlugins([broken, all]);
     expect(host.plugins).toEqual(['all']);

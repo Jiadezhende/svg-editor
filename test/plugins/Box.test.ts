@@ -33,7 +33,7 @@ class Group extends Shape {
 function factory(boxInstalled: boolean): ShapeFactory {
   const result = new ShapeFactory();
   for (const model of [Rect, Text, Group]) result.register(model);
-  if (boxInstalled) result.register(activate().shapes[0].model);
+  if (boxInstalled) result.register(activate().shapes[0]);
   return result;
 }
 
@@ -138,7 +138,7 @@ describe('box 插件', () => {
     const parent = document.insert(shape);
     shape.captionShape().set('text', 'a & b');
     document.insert(box('child'), parent);
-    const writer = new SvgWriter([activate().shapes[0].mapping!]);
+    const writer = new SvgWriter();
     const svg = writer.write(document);
     expect(svg).toContain('<g id="n" data-kind="box">');
     expect(svg).toContain('a &amp; b');

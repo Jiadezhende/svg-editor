@@ -1,18 +1,37 @@
 import { createClientWithCommands } from '../../../support/Plugins';
 import { describe, expect, it, vi } from 'vitest';
 import { AttributeHandlerRegistry, TreeRenderer, Document, EditorError, Shape, ShapeFactory, SvgReader, SvgWriter, Receiver } from '../../../../src/backend';
-import type { SvgElement, SvgShapeMapping } from '../../../../src/backend';
+import type { SvgElement } from '../../../../src/backend';
 import ReadCommand from '../../../../plugins/core/ReadCommand';
 import SaveCommand from '../../../../plugins/core/SaveCommand';
 import MoveCommand from '../../../../plugins/core/MoveCommand';
 import TreeCommand from '../../../../plugins/core/TreeCommand';
-import { Caption, Frame, Panel, panelMapping } from '../../../support/SvgCompositeExtension';
+import { Caption, Frame, Panel } from '../../../support/SvgCompositeExtension';
 
 class Group extends Shape {
   static override readonly type = 'g';
   override acceptsChildren(): boolean { return true; }
   override move(): void {}
   override scale(): void {}
+}
+
+class ExternalPartPanel extends Panel {
+  override toSvg(): SvgElement {
+    const base = super.toSvg();
+    return { ...base, children: [...(base.children ?? []), { type: 'rect', attributes: [['id', 'external']] }] };
+  }
+}
+
+class BadShape extends Shape {
+  static override readonly type = 'g';
+
+  constructor(private readonly bad: SvgElement) {
+    super('p');
+  }
+
+  override move(): void {}
+  override scale(): void {}
+  override toSvg(): SvgElement { return this.bad; }
 }
 
 function factory(installed = true): ShapeFactory {
@@ -22,7 +41,7 @@ function factory(installed = true): ShapeFactory {
   return result;
 }
 
-function sample(mapping: SvgShapeMapping = panelMapping) {
+function sample(panel: Panel = new Panel('p')) {
   const shapes = factory();
   const storage = new Map<string, string>();
   const files = {
@@ -32,11 +51,10 @@ function sample(mapping: SvgShapeMapping = panelMapping) {
     },
     write: vi.fn((path: string, text: string) => { storage.set(path, text); }),
   };
-  const writer = new SvgWriter([mapping]);
+  const writer = new SvgWriter();
   const handlers = new AttributeHandlerRegistry();
   const receiver = new Receiver(shapes, files, new SvgReader(shapes), writer, handlers, new TreeRenderer());
   const document = new Document(100, 100);
-  const panel = shapes.create(Panel.type, 'p') as Panel;
   const node = document.insert(panel);
   receiver.replace(document, 'original.svg');
   const client = createClientWithCommands(receiver, [ReadCommand, SaveCommand, MoveCommand, TreeCommand]);
@@ -100,10 +118,7 @@ describe('SVG 复合类型完整读写', () => {
   });
 
   it('私有部件与文档节点 id 冲突在写文件前拒绝，文件、路径和历史不变', () => {
-    const { receiver, document, panel, client, storage, files } = sample({
-      matches: panelMapping.matches,
-      write: (shape) => ({ ...panelMapping.write(shape), children: [{ type: 'rect', attributes: [['id', 'external']] }] }),
-    });
+    const { receiver, document, panel, client, storage, files } = sample(new ExternalPartPanel('p'));
     document.insert(Frame.parse('external', new Map()).shape);
     storage.set('existing.svg', 'keep this file');
     client.execute(['move', 'p', '5', '6']);
@@ -115,21 +130,21 @@ describe('SVG 复合类型完整读写', () => {
     expect(panel.frameShape().value('x')).toBe(1);
   });
 
-  it('映射只执行一次，再验证并格式化同一份结果', () => {
-    const { document } = sample();
-    const write = vi.fn(panelMapping.write);
-    expect(new SvgWriter([{ matches: panelMapping.matches, write }]).write(document)).toContain('data-kind="test-panel"');
-    expect(write).toHaveBeenCalledOnce();
+  it('toSvg 每个模型只执行一次，再验证并格式化同一份结果', () => {
+    const { document, panel } = sample();
+    const toSvg = vi.spyOn(panel, 'toSvg');
+    expect(new SvgWriter().write(document)).toContain('data-kind="test-panel"');
+    expect(toSvg).toHaveBeenCalledOnce();
   });
 
   it.each([
     [{ type: 'g', attributes: [['id', 'p']], children: [{ type: 'rect', attributes: [['id', 'p']] }] }, 'id already exists: p'],
-    [{ type: 'g', attributes: [['id', 'bad id']] }, 'invalid id: bad id'],
+    [{ type: 'g', attributes: [['id', 'p']], children: [{ type: 'rect', attributes: [['id', 'bad id']] }] }, 'invalid id: bad id'],
     [{ type: 'g', attributes: [['id', 'p'], ['id', 'other']] }, 'multiple id attributes in SVG element'],
     [{ type: 'g', attributes: [['id', 'p']], content: 'text', children: [{ type: 'rect', attributes: [['id', 'child']] }] }, 'SVG element has both content and children: g'],
-  ] satisfies [SvgElement, string][])('校验最终映射树，不只检查文档节点', (element, message) => {
-    const { document } = sample();
-    const writer = new SvgWriter([{ matches: () => true, write: () => element }]);
-    expect(() => writer.write(document)).toThrow(message);
+  ] satisfies [SvgElement, string][])('校验最终元素树，不只检查文档节点', (element, message) => {
+    const document = new Document(100, 100);
+    document.insert(new BadShape(element));
+    expect(() => new SvgWriter().write(document)).toThrow(message);
   });
 });

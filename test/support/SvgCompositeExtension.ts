@@ -1,5 +1,5 @@
-import { EditorError, LengthAttribute, NumericAttribute, Shape, SvgWriter, TextAttribute } from '../../src/backend';
-import type { ShapeMemento, ShapeParseResult, SvgShapeMapping } from '../../src/backend';
+import { EditorError, LengthAttribute, NumericAttribute, Shape, TextAttribute } from '../../src/backend';
+import type { ShapeMemento, ShapeParseResult } from '../../src/backend';
 
 /** 仅依赖公共入口的持久化测试模型，不参与默认装配。 */
 export class Frame extends Shape {
@@ -55,8 +55,15 @@ export class Panel extends Shape {
     const frame = parts.find((shape) => shape.id() === `${id}-frame`);
     const caption = parts.find((shape) => shape.id() === `${id}-caption`);
     if (frame?.type() !== 'rect' || caption?.type() !== 'text') throw new EditorError(`invalid panel parts: ${id}`);
+    const Model = this as unknown as new (
+      id: string,
+      values: ReadonlyMap<string, number | string>,
+      frame: Shape,
+      caption: Shape,
+    ) => Panel;
     return {
-      shape: new Panel(id, this.parseValues(attributes), frame, caption),
+      shape: new Model(id, this.parseValues(attributes), frame, caption),
+      parts: [frame, caption],
       children: parts.filter((shape) => shape !== frame && shape !== caption),
     };
   }
@@ -66,9 +73,7 @@ export class Panel extends Shape {
   captionShape(): Shape { return this.caption; }
   setLabel(value: string): void { this.caption.set('text', value); }
 
-  override identifiers(): readonly string[] {
-    return [this.id(), ...this.frame.identifiers(), ...this.caption.identifiers()];
-  }
+  protected override parts(): readonly Shape[] { return [this.frame, this.caption]; }
 
   override capture(): ShapeMemento {
     return super.capture().with([this.frame.capture(), this.caption.capture()]);
@@ -84,15 +89,3 @@ export class Panel extends Shape {
     this.caption.scale(factor);
   }
 }
-
-export const panelMapping: SvgShapeMapping = {
-  matches: (shape) => shape instanceof Panel,
-  write: (shape) => {
-    const panel = shape as Panel;
-    return {
-      type: shape.element(),
-      attributes: [['id', panel.id()], ['data-kind', Panel.type], ...panel.entries()],
-      children: [SvgWriter.elementOf(panel.frameShape()), SvgWriter.elementOf(panel.captionShape())],
-    };
-  },
-};

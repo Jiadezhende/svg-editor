@@ -58,9 +58,14 @@ export default class Box extends Shape {
     const frame = children.find((child) => child.id() === `${id}-rect`);
     const caption = children.find((child) => child.id() === `${id}-label`);
     if (frame === undefined || caption === undefined) throw new EditorError(`invalid box parts: ${id}`);
-    const shape = new Box(id, { frame, caption });
+    const Model = this as unknown as new (id: string, restored?: Parts) => Box;
+    const shape = new Model(id, { frame, caption });
     shape.validate();
-    return { shape, children: children.filter((child) => child !== frame && child !== caption) };
+    return {
+      shape,
+      parts: [frame, caption],
+      children: children.filter((child) => child !== frame && child !== caption),
+    };
   }
 
   /** 外观、标题和几何都由部件承载，自身不声明属性。 */
@@ -96,10 +101,6 @@ export default class Box extends Shape {
     throw new EditorError(`cannot ungroup composite shape: ${this.id()}`);
   }
 
-  override identifiers(): readonly string[] {
-    return [this.id(), this.frame.id(), this.caption.id()];
-  }
-
   override capture(): ShapeMemento {
     return super.capture().with([this.frame.capture(), this.caption.capture()]);
   }
@@ -113,6 +114,8 @@ export default class Box extends Shape {
     this.frame.scale(factor);
     this.caption.scale(factor);
   }
+
+  protected override parts(): readonly Shape[] { return [this.frame, this.caption]; }
 
   protected override viewParts(): readonly ShapeView[] { return [this.frame.view(), this.caption.view()]; }
 }

@@ -16,11 +16,12 @@ describe('Shape 数据解析契约', () => {
     const factory = new ShapeFactory();
     factory.register(Marker);
     const children = vi.fn(() => []);
-    const { shape, children: remaining } = factory.parse('marker', 'm', new Map([['x', '2.50'], ['unknown', 'ignored']]), children);
+    const { shape, parts, children: remaining } = factory.parse('marker', 'm', new Map([['x', '2.50'], ['unknown', 'ignored']]), children);
     expect(shape).toBeInstanceOf(Marker);
     expect(shape.value('x')).toBe(2.5);
     expect(shape.value('text')).toBe('');
     expect(shape.value('unknown')).toBeNull();
+    expect(parts).toEqual([]);
     expect(remaining).toEqual([]);
     expect(children).not.toHaveBeenCalled();
     expect(() => factory.parse('marker', 'm', new Map([['x', 'bad']]))).toThrow('not a number: bad');
@@ -36,6 +37,7 @@ describe('Shape 数据解析契约', () => {
     }
     const child = Marker.parse('m', new Map()).shape;
     const result = Group.parse('g', new Map(), () => [child]);
+    expect(result.parts).toEqual([]);
     expect(result.children).toEqual([child]);
     expect(result.children[0]).toBe(child);
   });
@@ -48,7 +50,7 @@ describe('Shape 数据解析契约', () => {
       static override parse(id: string, attributes: ReadonlyMap<string, string>, readChildren: () => readonly Shape[]): ShapeParseResult {
         const parts = readChildren();
         if (parts.length !== 1 || !(parts[0] instanceof Marker)) throw new Error('invalid parts');
-        return { shape: new Composite(id, this.parseValues(attributes)), children: [] };
+        return { shape: new Composite(id, this.parseValues(attributes)), parts, children: [] };
       }
     }
     const factory = new ShapeFactory();

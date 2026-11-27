@@ -97,7 +97,7 @@ describe('SvgReader 复合数据构造', () => {
       override scale(): void {}
       static override parse(id: string, _attributes: ReadonlyMap<string, string>, readChildren: () => readonly Shape[]): ShapeParseResult {
         const children = readChildren();
-        return { shape: new Invalid(mode === 'wrong-id' ? 'different' : id), children: mode === 'duplicate' ? [children[0], children[0]] : [new Invalid('foreign')] };
+        return { shape: new Invalid(mode === 'wrong-id' ? 'different' : id), parts: [], children: mode === 'duplicate' ? [children[0], children[0]] : [new Invalid('foreign')] };
       }
     }
     const registry = factory();
@@ -112,11 +112,99 @@ describe('SvgReader 复合数据构造', () => {
       override scale(): void {}
       static override parse(id: string, _attributes: ReadonlyMap<string, string>, readChildren: () => readonly Shape[]): ShapeParseResult {
         readChildren();
-        return { shape: new Drop(id), children: [] };
+        return { shape: new Drop(id), parts: [], children: [] };
       }
     }
     const registry = factory();
     registry.register(Drop);
     expect(() => new SvgReader(registry).read(svg('<drop id="d"><g id="nested"><rect id="r"/></g></drop>'))).toThrow('internal part has document children: nested');
+  });
+
+  it('拒绝未在 identifiers 中声明的私有部件', () => {
+    class Undeclared extends Shape {
+      static override readonly type = 'undeclared';
+      override move(): void {}
+      override scale(): void {}
+      static override parse(id: string, _attributes: ReadonlyMap<string, string>, readChildren: () => readonly Shape[]): ShapeParseResult {
+        const children = readChildren();
+        return { shape: new Undeclared(id), parts: [children[0]], children: [] };
+      }
+    }
+    const registry = factory();
+    registry.register(Undeclared);
+    expect(() => new SvgReader(registry).read(svg('<undeclared id="u"><rect id="r"/></undeclared>'))).toThrow('undeclared private part: r');
+  });
+
+  it('拒绝显式声明的部件仍携带文档子节点', () => {
+    class NestedPart extends Shape {
+      static override readonly type = 'nested-part';
+      override move(): void {}
+      override scale(): void {}
+      override identifiers(): readonly string[] { return [this.id(), 'nested']; }
+      static override parse(id: string, _attributes: ReadonlyMap<string, string>, readChildren: () => readonly Shape[]): ShapeParseResult {
+        const children = readChildren();
+        return { shape: new NestedPart(id), parts: [children[0]], children: [] };
+      }
+    }
+    const registry = factory();
+    registry.register(NestedPart);
+    expect(() => new SvgReader(registry).read(svg('<nested-part id="n"><g id="nested"><rect id="r"/></g></nested-part>')))
+      .toThrow('internal part has document children: nested');
+  });
+
+  it('拒绝未归属的叶子输入，不能静默丢弃子 Shape', () => {
+    class Unclaimed extends Shape {
+      static override readonly type = 'unclaimed';
+      override move(): void {}
+      override scale(): void {}
+      static override parse(id: string, _attributes: ReadonlyMap<string, string>, readChildren: () => readonly Shape[]): ShapeParseResult {
+        readChildren();
+        return { shape: new Unclaimed(id), parts: [], children: [] };
+      }
+    }
+    const registry = factory();
+    registry.register(Unclaimed);
+    expect(() => new SvgReader(registry).read(svg('<unclaimed id="u"><rect id="r"/></unclaimed>'))).toThrow('unclaimed child: r');
+  });
+
+  it('拒绝把声明为私有部件的 id 用作文档成员', () => {
+    class Reuse extends Shape {
+      static override readonly type = 'reuse';
+      override move(): void {}
+      override scale(): void {}
+      override identifiers(): readonly string[] { return [this.id(), 'shared']; }
+      static override parse(id: string, _attributes: ReadonlyMap<string, string>, readChildren: () => readonly Shape[]): ShapeParseResult {
+        return { shape: new Reuse(id), parts: [], children: readChildren() };
+      }
+    }
+    const registry = factory();
+    registry.register(Reuse);
+    expect(() => new SvgReader(registry).read(svg('<reuse id="r"><rect id="shared"/></reuse>')))
+      .toThrow('private part used as document member: shared');
+  });
+
+  it('拒绝 data-kind 选中类型的元素名与输入标签不一致', () => {
+    class Fake extends Shape {
+      static override readonly type = 'fake';
+      override move(): void {}
+      override scale(): void {}
+    }
+    const registry = factory();
+    registry.register(Fake);
+    expect(() => new SvgReader(registry).read(svg('<rect id="f" data-kind="fake"/>'))).toThrow('parsed shape element mismatch: f');
+  });
+
+  it('拒绝 parse 返回与选择类型不一致的模型', () => {
+    class WrongType extends Shape {
+      static override readonly type = 'wrong-type';
+      override move(): void {}
+      override scale(): void {}
+      static override parse(id: string): ShapeParseResult {
+        return { shape: new Frame(id), parts: [], children: [] };
+      }
+    }
+    const registry = factory();
+    registry.register(WrongType);
+    expect(() => new SvgReader(registry).read(svg('<wrong-type id="w"/>'))).toThrow('parsed shape type mismatch: w');
   });
 });

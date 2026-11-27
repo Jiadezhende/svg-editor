@@ -11,7 +11,6 @@ import TreeCommand from '../../../../plugins/core/TreeCommand';
 import EditorError from '../../../../src/backend/error/EditorError';
 import Document from '../../../../src/backend/receiver/document/Document';
 import Receiver from '../../../../src/backend/receiver/Receiver';
-import SvgWriter from '../../../../src/backend/receiver/svg/SvgWriter';
 import CompositeShape from '../../../support/CompositeShape';
 
 let dir: string;
@@ -79,22 +78,13 @@ describe('SaveCommand', () => {
   });
 });
 
-describe('SaveCommand 的复合模型映射', () => {
-  it('保存复用会话注册的写出映射，内部成员不进入文档节点树', async () => {
-    const { receiver, writer } = await createHost();
+describe('SaveCommand 的复合模型写出', () => {
+  it('保存复用会话 writer 的模型多态写出，内部成员不进入文档节点树', async () => {
+    const { receiver } = await createHost();
     const doc = new Document(100, 100);
     const panel = new CompositeShape('panel');
     doc.insert(panel);
     receiver.replace(doc);
-    writer.register({
-      matches: (shape) => shape instanceof CompositeShape,
-      write: (shape) => {
-        const model = shape as CompositeShape;
-        return { ...SvgWriter.elementOf(model), children: [
-          SvgWriter.elementOf(model.frameShape()), SvgWriter.elementOf(model.captionShape()),
-        ] };
-      },
-    });
     const path = join(dir, 'composite.svg');
     expect(new SaveCommand(receiver, [path]).execute().lines()).toEqual([`saved to ${path} (3 elements)`]);
     const svg = readFileSync(path, 'utf8');

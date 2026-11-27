@@ -1,8 +1,13 @@
 import { createReceiver } from '../../../support/Plugins';
 import { describe, expect, it } from 'vitest';
 import CreateCommand from '../../../../plugins/core/CreateCommand';
+import Rect from '../../../../plugins/core/Rect';
 import Document from '../../../../src/backend/receiver/document/Document';
+import Shape from '../../../../src/backend/receiver/document/shape/Shape';
+import type { SvgElement } from '../../../../src/backend/receiver/document/shape/SvgElement';
 import SvgWriter from '../../../../src/backend/receiver/svg/SvgWriter';
+import CompositeShape from '../../../support/CompositeShape';
+import { Panel } from '../../../support/SvgCompositeExtension';
 
 async function documentWith(width: number, height: number, ...lines: string[][]): Promise<Document> {
   const receiver = (await createReceiver());
@@ -11,6 +16,25 @@ async function documentWith(width: number, height: number, ...lines: string[][])
     new CreateCommand(receiver, args).execute();
   }
   return receiver.document();
+}
+
+class PayloadShape extends Shape {
+  static override readonly type = 'box';
+
+  constructor(private readonly payload: SvgElement) {
+    super('p');
+  }
+
+  override element(): string { return 'g'; }
+  override move(): void {}
+  override scale(): void {}
+  override toSvg(): SvgElement { return this.payload; }
+}
+
+class MissingPart extends CompositeShape {
+  override toSvg(): SvgElement {
+    return { type: 'g', attributes: [['id', 'p']], children: [this.frameShape().toSvg()] };
+  }
 }
 
 describe('SvgWriter', () => {
@@ -76,16 +100,32 @@ describe('SvgWriter', () => {
 });
 
 
-describe('SvgWriter 显式映射', () => {
-  it('多个映射同时命中时报错，不依赖注册顺序猜测', async () => {
-    const doc = (await documentWith(100, 100, ['g', 'g']));
-    const mapping = { matches: () => true, write: SvgWriter.elementOf };
-    expect(() => new SvgWriter([mapping, mapping]).write(doc)).toThrow('multiple SVG mappings: g');
+describe('SvgWriter 多态写出', () => {
+  it('模型自身与私有部件在前，文档成员按原顺序追加', () => {
+    const doc = new Document(100, 100);
+    const panel = new Panel('p');
+    const node = doc.insert(panel);
+    doc.insert(new Rect('child', new Map([['x', 0], ['y', 0], ['width', 1], ['height', 1]])), node);
+    expect(new SvgWriter().write(doc)).toContain(
+      '  <g id="p" data-kind="test-panel">\n' +
+      '    <rect id="p-frame" x="1" y="2" width="20" height="10"/>\n' +
+      '    <text id="p-caption" x="3" y="4">hello</text>\n' +
+      '    <rect id="child" x="0" y="0" width="1" height="1"/>\n' +
+      '  </g>',
+    );
   });
 
-  it('复合映射保留文档子节点，不允许映射静默覆盖成员', async () => {
-    const doc = (await documentWith(100, 100, ['g', 'g'], ['circle', 'c', '0', '0', '1', 'in', 'g']));
-    const mapping = { matches: () => true, write: SvgWriter.elementOf };
-    expect(new SvgWriter([mapping]).write(doc)).toContain('  <g id="g">\n    <circle id="c" cx="0" cy="0" r="1"/>\n  </g>');
+  it('元素名、data-kind 与声明 id 在写文件前校验', () => {
+    const mismatch = new Document(100, 100);
+    mismatch.insert(new PayloadShape({ type: 'rect', attributes: [['id', 'p'], ['data-kind', 'box']] }));
+    expect(() => new SvgWriter().write(mismatch)).toThrow('SVG element mismatch: p');
+
+    const kind = new Document(100, 100);
+    kind.insert(new PayloadShape({ type: 'g', attributes: [['id', 'p']] }));
+    expect(() => new SvgWriter().write(kind)).toThrow('missing data-kind: p');
+
+    const missing = new Document(100, 100);
+    missing.insert(new MissingPart('p'));
+    expect(() => new SvgWriter().write(missing)).toThrow('missing SVG element id: p-label');
   });
 });

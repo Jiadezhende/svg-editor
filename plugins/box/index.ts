@@ -1,5 +1,5 @@
 import { TreeDecorator } from '../../src/backend';
-import type { AttributeHandler, PluginContributions, Shape, ShapeView, SvgShapeMapping } from '../../src/backend';
+import type { AttributeHandler, PluginContributions, Shape, ShapeView } from '../../src/backend';
 import Box from './Box';
 
 const geometryKeys = new Set(['x', 'y', 'width', 'height']);
@@ -36,23 +36,7 @@ class BoxTypeLabel extends TreeDecorator {
   }
 }
 
-const mapping: SvgShapeMapping = {
-  matches: (shape) => shape instanceof Box,
-  write: (shape) => {
-    const box = shape.view();
-    return {
-      type: shape.element(),
-      attributes: [['id', box.id], ['data-kind', Box.type], ...box.attributes],
-      children: box.children.map((part) => ({
-        type: part.type,
-        attributes: [['id', part.id], ...part.attributes],
-        content: part.content,
-      })),
-    };
-  },
-};
-
 export default function activate(): PluginContributions {
   const attributes: AttributeHandler = BoxAttributes;
-  return { shapes: [{ model: Box, mapping }], commands: [], attributes: [attributes], decorators: [BoxTypeLabel] };
+  return { shapes: [Box], commands: [], attributes: [attributes], decorators: [BoxTypeLabel] };
 }

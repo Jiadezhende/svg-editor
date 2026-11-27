@@ -14,7 +14,7 @@ class Marker extends Shape {
 }
 
 describe('会话依赖注入', () => {
-  it('创建与读入使用宿主选定的工厂，保存复用注入 writer 的映射和内存文件服务', () => {
+  it('创建与读入使用宿主选定的工厂，保存复用注入 writer 和内存文件服务', () => {
     const factory = new ShapeFactory();
     factory.register(Marker);
     const storage = new Map<string, string>();
@@ -35,10 +35,6 @@ describe('会话依赖注入', () => {
     client.execute(['create', 'marker', 'm', '7']);
     const model = original.requireNode('m').value;
     expect(model).toBeInstanceOf(Marker);
-    writer.register({
-      matches: (shape) => shape instanceof Marker,
-      write: (shape) => ({ type: 'marker', attributes: [['id', shape.id()], ['x', shape.value('x')!]] }),
-    });
     client.execute(['save', 'memory.svg']);
     expect(write).toHaveBeenCalledWith(original);
     expect(storage.get('memory.svg')).toContain('<marker id="m" x="7"/>');
@@ -59,7 +55,7 @@ describe('会话依赖注入', () => {
       write: () => { throw new Error('write failed'); },
     };
     const reader = { read: () => { throw new Error('parse failed'); } };
-    const writer = { register: () => {}, write: () => 'output' };
+    const writer = { write: () => 'output' };
     const receiver = new Receiver(factory, files, reader, writer, new AttributeHandlerRegistry(), new TreeRenderer());
     const original = new Document(40, 50);
     receiver.replace(original, 'original.svg');

@@ -16,13 +16,11 @@ export default class CompositeShape extends Shape {
     this.caption = new Text(`${id}-label`, new Map<string, string | number>([['x', 20], ['y', 40], ['text', 'label']]));
   }
 
-  /** 明确的部件查询，用于领域检查和独立的 SVG 映射。 */
+  /** 明确的部件查询，用于领域检查。 */
   frameShape(): Rect { return this.frame; }
   captionShape(): Text { return this.caption; }
 
-  override identifiers(): readonly string[] {
-    return [this.id(), ...this.frame.identifiers(), ...this.caption.identifiers()];
-  }
+  protected override parts(): readonly Shape[] { return [this.frame, this.caption]; }
 
   override capture(): ShapeMemento {
     return super.capture().with([this.frame.capture(), this.caption.capture()]);

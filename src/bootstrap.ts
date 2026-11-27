@@ -78,7 +78,7 @@ export function createAssembler(report: (message: string) => void) {
     try {
       // 按类别核对清单声明与实际提供的贡献。
       const actual: Required<ContributionNames> = {
-        shapes: contributions.shapes.map(({ model }) => model.type),
+        shapes: contributions.shapes.map((model) => model.type),
         commands: [...new Set(contributions.commands.map((command) => command.command))],
         attributes: contributions.attributes.map((handler) => handler.handlerName),
         decorators: contributions.decorators.map((decorator) => decorator.decoratorName),
@@ -144,14 +144,10 @@ function buildSession(plugins: readonly RegisteredPlugin[]) {
   const attributeNames = new Set<string>();
   const decoratorNames = new Set<string>();
   for (const plugin of plugins) {
-    for (const { model, mapping } of plugin.shapes) {
+    for (const model of plugin.shapes) {
       const type = model?.type;
       if (type && factory.has(type)) throw new Error(`duplicate registration: shapes/${type}`);
       factory.register(model);
-      if (mapping !== undefined) {
-        if (typeof mapping.matches !== 'function' || typeof mapping.write !== 'function') throw new Error('invalid SVG mapping');
-        writer.register(mapping);
-      }
     }
     for (const handler of plugin.attributes) {
       if (attributeNames.has(handler.handlerName)) throw new Error(`duplicate registration: attributes/${handler.handlerName}`);

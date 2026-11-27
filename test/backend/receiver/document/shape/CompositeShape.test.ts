@@ -10,6 +10,20 @@ import ScaleCommand from '../../../../../plugins/core/ScaleCommand';
 import TreeCommand from '../../../../../plugins/core/TreeCommand';
 import SvgWriter from '../../../../../src/backend/receiver/svg/SvgWriter';
 import SvgReader from '../../../../../src/backend/receiver/svg/SvgReader';
+import type { SvgElement } from '../../../../../src/backend/receiver/document/shape/SvgElement';
+
+class WrappedComposite extends CompositeShape {
+  override toSvg(): SvgElement {
+    const base = super.toSvg();
+    return {
+      ...base,
+      children: [
+        this.frameShape().toSvg(),
+        { type: 'g', attributes: [['id', 'title-group']], children: [this.captionShape().toSvg()] },
+      ],
+    };
+  }
+}
 
 async function scene() {
   const receiver = (await createReceiver());
@@ -79,19 +93,11 @@ describe('业务复合模型与文档节点分离', () => {
     expect(other.value.value('stroke-width')).toBe(1);
   });
 
-  it('复合 SVG 映射独立于文档树，读回普通 SVG 时保留全部嵌套元素', async () => {
-    const { doc, panel } = (await scene());
-    const writer = new SvgWriter([{
-      matches: (shape) => shape instanceof CompositeShape,
-      write: (shape) => {
-        const model = shape as CompositeShape;
-        return { ...SvgWriter.elementOf(model), children: [
-          SvgWriter.elementOf(model.frameShape()),
-          { type: 'g', attributes: [['id', 'title-group']], children: [SvgWriter.elementOf(model.captionShape())] },
-        ] };
-      },
-    }]);
-    const svg = writer.write(doc);
+  it('复合写出独立于文档树，读回普通 SVG 时保留全部嵌套元素', async () => {
+    const doc = new Document(800, 600);
+    const panel = new WrappedComposite('panel');
+    doc.insert(panel);
+    const svg = new SvgWriter().write(doc);
     expect(svg).toContain('<rect id="panel-rect" x="10" y="20" width="100" height="50"/>');
     expect(svg).toContain('<text id="panel-label" x="20" y="40">label</text>');
     expect(doc.nodes().map((node) => node.value)).toEqual([panel]);

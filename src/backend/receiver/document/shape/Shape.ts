@@ -4,10 +4,12 @@ import StrokeWidthAttribute from './attribute/StrokeWidthAttribute';
 import EditorError from '../../../error/EditorError';
 import ShapeMemento from './ShapeMemento';
 import type ShapeView from './ShapeView';
+import type { SvgElement } from './SvgElement';
 
-/** 解析后的领域模型；children 只列出仍应成为文档子节点的输入 Shape。 */
+/** 解析后的领域模型；parts 是消费的私有部件，children 只列出仍应成为文档子节点的输入 Shape。 */
 export interface ShapeParseResult {
   readonly shape: Shape;
+  readonly parts: readonly Shape[];
   readonly children: readonly Shape[];
 }
 
@@ -19,6 +21,9 @@ export interface ShapeParseResult {
  * `content`（在 SVG 中写成子文本而非元素属性的那个属性名）；`element()` 默认返回 `type`，
  * 复合模型可覆写为实际写出的底层 SVG 标签（如 Box 的 `g`）。
  * 外观属性 fill / stroke / stroke-width 由本类统一声明，复合模型可以覆写属性表选择不合并。
+ *
+ * 读入由静态 `parse` 多态构造，写出由实例方法 `toSvg` 多态生成；两者都只描述模型自身的组成，
+ * 外部 XML 与文档节点树的递归分别由 SvgReader / SvgWriter 负责。
  *
  * 实例按模板持有全部属性对象（未赋值时 value 为 null），构造只建立结构；
  * 必填、跨属性与部件结构约束由 validate() 检查，Receiver 的创建与设置入口负责调用。
@@ -52,7 +57,7 @@ export default abstract class Shape {
     return this.attributes().find((attribute) => attribute.name() === name) ?? null;
   }
 
-  /** 通用数据构造；子类型可消费部件并返回剩余文档成员，不接触 XML 或节点。 */
+  /** 通用数据构造；子类型可消费部件并返回 parts 与剩余文档成员，不接触 XML 或节点。 */
   static parse(
     id: string,
     attributes: ReadonlyMap<string, string>,
@@ -61,7 +66,7 @@ export default abstract class Shape {
     const Model = this as unknown as new (id: string, values?: ReadonlyMap<string, number | string>) => Shape;
     const shape = new Model(id, this.parseValues(attributes));
     shape.validate();
-    return { shape, children: shape.acceptsChildren() ? readChildren() : [] };
+    return { shape, parts: [], children: shape.acceptsChildren() ? readChildren() : [] };
   }
 
   /** 复用属性模板解析文本；持久化缺失的必填值沿用模板默认值，未声明的输入被忽略。 */
@@ -110,9 +115,9 @@ export default abstract class Shape {
     return this.shapeId;
   }
 
-  /** 自身及私有部件占用的 id；复合模型覆写，不暴露部件或文档关系。 */
+  /** 自身及私有部件占用的 id；默认由 parts() 汇总，特殊模型可覆写。 */
   identifiers(): readonly string[] {
-    return [this.shapeId];
+    return [this.shapeId, ...this.parts().flatMap((part) => part.identifiers())];
   }
 
   type(): string {
@@ -166,6 +171,20 @@ export default abstract class Shape {
   content(): number | string | null {
     const content = this.definition().content;
     return content === null ? null : this.value(content);
+  }
+
+  /**
+   * 自身及私有部件的 SVG 元素描述；文档成员由 Writer 追加。
+   * 默认实现通过多态 `parts()` 递归，复合模型无需重复写出自身属性。
+   */
+  toSvg(): SvgElement {
+    const kind = this.element() === this.type() ? [] : [['data-kind', this.type()] as const];
+    return {
+      type: this.element(),
+      attributes: [['id', this.id()], ...kind, ...this.entries()],
+      content: this.content(),
+      children: this.parts().map((part) => part.toSvg()),
+    };
   }
 
   // ── 实例展示 ──
@@ -282,6 +301,10 @@ export default abstract class Shape {
     return this.summary();
   }
 
+  /** 自身持有的私有部件；不包含文档成员。复合模型覆写。 */
+  protected parts(): readonly Shape[] { return []; }
+
+  /** 展示层可选提供的私有部件视图；默认不展示，复合模型按需覆写。 */
   protected viewParts(): readonly ShapeView[] { return []; }
 
   /** 本实例所属图形类的静态定义。 */

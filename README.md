@@ -29,7 +29,7 @@ npm run typecheck
 npm run build
 ```
 
-CLI 的架构与验收说明见 [doc/README.md](doc/README.md)，插件编写见 [cli/plugins/README.md](cli/plugins/README.md)，完整验收资料见 [cli/acceptance/README.md](cli/acceptance/README.md)。
+CLI 的架构与验收说明见 [doc/README.md](doc/README.md)，详细架构见 [cli/ARCHITECTURE.md](cli/ARCHITECTURE.md)，插件编写见 [cli/plugins/README.md](cli/plugins/README.md)，完整验收资料见 [cli/acceptance/README.md](cli/acceptance/README.md)。
 
 ## 分支与基线
 

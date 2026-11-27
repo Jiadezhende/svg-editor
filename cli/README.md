@@ -1,6 +1,6 @@
 # SVG Editor CLI
 
-命令行 SVG 编辑器，包含内核、插件实现、配置与测试。VS Code 扩展是独立项目，见 [`../vscode-extension/`](../vscode-extension/README.md)。
+命令行 SVG 编辑器，包含内核、插件实现、配置与测试。VS Code 扩展是独立项目，见 [`../vscode-extension/`](../vscode-extension/README.md)。详细架构见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
 ## 运行
 

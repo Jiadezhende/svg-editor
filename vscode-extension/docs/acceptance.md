@@ -17,6 +17,7 @@
 | A.1 SVG 文件标记 | 通过 | `.svg` 显示 `[]`；普通文件和目录不显示；扩展不写文件 |
 | A.2 原生 SVG 大纲 | 通过 | 展示 `svg → g#flowchart → rect#start / text → g#nested → circle#dot`；`selectionRange` 断言第 3 行；编辑更新和不完整 XML 有单元测试 |
 | A.3 说明与演示材料 | 通过 | 架构、职责、Decorator/Adapter 对比、Phase 1 复用评估和证据索引已归档 |
+| 最终交付复跑 | 通过 | tag `p2` 候选上重跑类型检查、5 个测试文件 16 项测试和构建，全部通过 |
 
 ## 3. 结果
 
@@ -95,7 +96,7 @@ code --extensionDevelopmentPath=. samples/workspace
 | 扩展测试 | [test/](../test/) |
 | 示例工作区 | [samples/workspace/](../samples/workspace/) |
 
-指标由 `npm run metrics` 从 `final` 到 `HEAD` 生成，报告头记录实际目标提交；最终 `p2` 确定后再复跑一次。
+指标由 `npm run metrics` 从 `final` 到扩展源码提交生成，报告头记录实际目标提交。tag `p2` 的扩展源码与报告目标 `9ee618e` 相同（其后只有本目录的文档与截图变化），最终验收按 `p2` 复跑后数值一致。
 
 ## 7. 已知限制
 

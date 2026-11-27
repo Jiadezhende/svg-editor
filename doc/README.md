@@ -63,9 +63,134 @@ npm run verify:transcripts
 
 ### 架构说明
 
-CLI 的详细架构——分层、领域模型、命令生命周期、SVG 持久化、装配、设计模式与依赖规则——见 [cli/docs/architecture.md](../cli/docs/architecture.md)。本 README 只保留运行、验收与过程记录，不重复架构细节。
+CLI 的详细架构——分层、领域模型、命令生命周期、SVG 持久化、装配、设计模式与依赖规则——见 [cli/docs/architecture.md](../cli/docs/architecture.md)。本节保留课程交付所需的扩展点清单、两种装配方式、模块依赖对比和 `dir` 的适配器说明，实现细节以架构文档为准。
 
-扩展点与插件包格式见该文档的「扩展点」一节和 [插件编写说明](../cli/docs/plugins.md)。
+### 扩展点清单
+
+四类扩展点的接口或抽象类都位于内核一侧；插件只依赖 `src/backend/index.ts`，不依赖宿主装配模块或内核内部实现。课程中的 `ShapeProvider` 由具体 `Shape` 类承担注册契约。
+
+| 扩展点 | 职责 | 内核调用位置（文件 · 函数） | 已有实现 | 禁用可选插件时的行为 | 违反契约时的报错 |
+| --- | --- | --- | --- | --- | --- |
+| 图形 `ShapeProvider`（`Shape` + `ShapeFactory`） | 一种图形类型的属性、解析、写出与变换 | `ShapeFactory.register` / `parse` / `create`；`SvgReader.read` 调用 `factory.parse`；`Receiver.createShape` 调用 `factory.create`；`bootstrap.buildSession` 调用 `factory.register` | core 六种基础图形；box 的 `Box` | 只有六种基础图形；未知 `data-kind` 按原标签降级；创建未知类型报 `unknown shape type` | `shape must extend Shape and provide parse`、`shape class must declare static type`、`duplicate registration: shapes/<type>`；读入结构不符时拒绝整次读入 |
+| 命令 `Command` | 一条命令的定义、参数校验、执行与撤销 | `Client.execute` 查表并交给 `Invoker`；`bootstrap.buildSession` 绑定 Receiver；`bootstrap.buildCommandTable` 校验名称与多形式 | core 的 17 个形式；stats；dir | 只剩五个框架入口与已装配命令；未加载时 `error: unknown command: <name>` | `command must extend Command and provide accepts`、`duplicate registration: commands/<name>`、多形式缺 `accepts` |
+| 属性处理器 `AttributeHandler` | 某图形上某属性的领域语义 | `Receiver.write` / `Receiver.set` → `AttributeHandlerRegistry.resolve`；`bootstrap.buildSession` 调用 `handlers.register` | box 的 `box-attributes`（`fill`、`label`、几何与外观属性） | 零命中回退模型属性规则；普通矩形仍可改 `fill`，未定义属性报 `unknown attribute` | `attribute handler must be a static class ...`、`duplicate registration: attributes/<name>`；失败由 `EditCommand` 快照恢复 |
+| 树装饰器 `TreeDecorator` | 树行尾标签；状态封装在实例 | `TreeRenderer` 构造函数按装配顺序包装，`render` / `notify` 应用装饰器；`Receiver.renderTree` / `notifyTree`；`bootstrap.buildSession` | modified-star；box 的 `box-type-label` | 没有装饰器时直接使用 `BaseTreeLineRenderer`，树输出与 Phase 1 基线逐字节一致 | `tree decorator must extend TreeDecorator and declare decoratorName`、`duplicate tree decorator: <name>`；标签异常转为展示警告 |
+
+插件包用 `package.json` 的 `name` 与 `contributes` 声明四类贡献，入口默认导出的 `activate(options)` 返回实际贡献；清单声明与实际注册逐类逐名核对。完整调用链见 [cli/docs/architecture.md](../cli/docs/architecture.md#12-扩展点)，包格式见 [插件编写说明](../cli/docs/plugins.md)。
+
+### 两种装配方式
+
+两种方式经过同一个 `registerPlugin` 与同一套清单校验，装入后的插件集合与行为一致，差别只在谁实例化插件。
+
+- **方式 A：改代码。** [cli-code.ts](../cli/src/cli-code.ts) 静态导入插件，把清单和 `activate` 交给 `createAssembler().registerPlugin`；新增插件需要改这一处并重新构建。
+- **方式 B：改配置。** [plugins.config.json](../cli/plugins.config.json) 按数组顺序列出模块，[pluginConfig.ts](../cli/src/pluginConfig.ts) 解析模块后仍交给同一个 `registerPlugin`；新增插件只改配置。相对路径以配置文件目录为基准，包名按 Node ESM 规则解析，`enabled: false` 完全跳过，`options` 传给 `activate(options)`。
+
+配置文件格式与失败分类见上文「运行与配置」；两类接入的差异复核见「box 接入差异复核」。
+
+### 模块依赖图（重构前后）
+
+Phase 1（`final`）的模块依赖：
+
+```plantuml
+@startuml
+package "main.ts / App" as app
+package "frontend" as frontend {
+  package io
+}
+package "backend" as backend {
+  component Client
+  package invoker
+  package command {
+    package impl
+  }
+  package receiver {
+    package workspace
+    package document {
+      package shape
+      package attribute
+    }
+    package svg
+  }
+  package error
+}
+
+app --> frontend
+app --> backend
+Client --> invoker
+Client --> command
+Client --> workspace
+invoker --> command
+command --> receiver
+workspace --> document
+workspace --> svg
+svg --> document
+shape --> attribute
+backend ..> error : 各模块均可依赖
+@enduml
+```
+
+Phase 2（`p2`）在同一分层上把内置命令与图形移入插件，增加宿主装配与配置加载：
+
+```plantuml
+@startuml
+package "入口与宿主（cli/src）" as host {
+  component "main.ts / cli-code.ts" as entry
+  component "pluginConfig.ts" as loader
+  component "bootstrap.ts" as assembler
+}
+package "前端" as frontend {
+  component "App" as app
+  component "CommandReader / Tokenizer" as input
+  component "ResultPrinter / io" as output
+}
+package "后端内核" as backend {
+  component "Client / Invoker" as dispatch
+  component "Command 类层次" as commands
+  component "Receiver" as receiver
+  component "Document / Shape / Attribute" as domain
+  component "SvgReader / SvgWriter / SvgFile" as svg
+  component "TreeRenderer / TreeDecorator" as tree
+}
+package "插件（cli/plugins）" as plugins {
+  component "core / stats / dir / modified-star / box" as packages
+}
+
+entry --> loader
+entry --> assembler
+entry --> app
+loader --> assembler
+assembler --> dispatch
+assembler --> receiver
+assembler --> tree
+app --> input
+app --> output
+app --> dispatch
+dispatch --> commands
+dispatch --> receiver
+commands --> receiver
+receiver --> domain
+receiver --> svg
+receiver --> tree
+svg --> domain
+tree --> domain
+packages ..> backend : 只依赖 src/backend/index.ts
+@enduml
+```
+
+VS Code 扩展是独立产品，两条虚线都不跨越包边界：`vscode-extension` 不引用 CLI 源码，CLI 也不引用 `vscode`。
+
+### `dir` 的目录访问适配器
+
+`dir` 通过适配器模式访问文件系统，命令逻辑不直接调用 `node:fs`：
+
+| 适配器角色 | 实现 | 职责 |
+| --- | --- | --- |
+| Target（目标接口） | `DirectoryAccess`（[DirectoryAccess.ts](../cli/plugins/dir/DirectoryAccess.ts)） | 声明 `currentDirectory()` 与 `read(path)`，返回与平台无关的 `DirectoryEntry` |
+| Adaptee（被适配者） | `node:fs.readdirSync` | 提供真实的目录读取能力 |
+| Adapter（适配器） | `NodeDirectoryAccess` | 把 `readdirSync` 的 `Dirent` 转成 `DirectoryEntry`，并固定当前工作目录 |
+| Client（使用方） | `DirCommand` | 只依赖 `DirectoryAccess`，负责参数、排序、空目录与错误输出 |
+
+`DirCommand` 通过构造函数注入 `DirectoryAccess`（默认 `new NodeDirectoryAccess()`）；测试可注入记录调用的替身，真实临时目录则与 `NodeDirectoryAccess` 组合验证。两种装配都只是把同一个 `DirCommand` 注册进命令表，因此使用同一份目录访问接口。
 
 ### 决策记录
 
@@ -77,14 +202,29 @@ CLI 的详细架构——分层、领域模型、命令生命周期、SVG 持久
 ### 验收证据与指标
 
 - `npm run verify:transcripts` 比较代码和配置装配的标准输出及保存的 SVG。基础会话只启用 `core`，另与 `final` 中的实际程序输出逐字节比较。`dir` 在同一临时工作目录和固定目录项上运行，输出样本保存在工作目录之外。 [命令输入、期望输出与 SVG 样例](../cli/test/fixtures/transcript/)
-- `b8b45dd` 是 `box` 接入前的共同基准。`9e1edd1` 加入插件、测试和配置项。`3124971` 位于本地 `codex/phase-2-cli-code-demo`，加入同一份插件和测试，并修改单个代码装配入口。 [配置装配差异](#box-接入差异复核)
+- `b8b45dd` 是 `box` 接入前的共同基准。`9e1edd1` 加入插件、测试和配置项，位于远程分支 `codex/phase-2-cli`。`3124971` 加入同一份插件和测试，并修改单个代码装配入口，位于远程分支 `codex/phase-2-cli-code-demo`。 [配置装配差异](#box-接入差异复核)
 - 源码指标按内核、装配、插件分类，通过脚本对 Git 提交生成文件清单、职责、行数和圈复杂度增量。 [框架节点报告](../docs/metrics/framework.md) [CLI 候选报告](../docs/metrics/cli-candidate.md)
 
 ```bash
-node cli/scripts/phase2-metrics.mjs final b1d929c
+node cli/scripts/phase2-metrics.mjs final 5107f84
 ```
 
-完整交付后可将目标提交替换为 `p2`。当前 CLI 的 Vitest 结果为 62 个测试文件、564 项通过，类型检查通过。
+`5107f84` 是 CLI 最后一次源码变更（迁入 `cli/`），此后只增加文档和独立的 VS Code 扩展。这份报告已入库为 [CLI 候选报告](../docs/metrics/cli-candidate.md)；最终验收按 `p2` 复跑，核对数值一致。当前 CLI 的 Vitest 结果为 62 个测试文件、564 项通过，类型检查通过。
+
+#### 最终验收记录
+
+2026-11-27 在最终候选上复跑，结果如下（细节见 [CLI 验收资料](../cli/docs/acceptance.md) 与 [VS Code 验收](../vscode-extension/docs/acceptance.md)）：
+
+| 项目 | 结果 |
+| --- | --- |
+| CLI 类型检查 | 通过 |
+| CLI 测试 | 62 个测试文件、564 项通过 |
+| CLI 覆盖率 | 语句 88.54%、分支 82.80%、函数 92.98%、行 89.36% |
+| 双装配逐字节回放 | `phase1`、`box`、`commands` 一致；基础组与 `final` 逐字节相同 |
+| CLI 指标 | `final → 5107f84`：内核 58→43 文件、2370→2056 行、复杂度 483→531；装配 1→5、18→339、3→131；插件 0→30、0→1155、0→237。按 `p2` 复跑一致 |
+| VS Code 验收 | 类型检查、5 个测试文件 16 项测试、构建通过；截图与异常输入记录齐备 |
+| 远程接入证明 | `9e1edd1` 在远程 `codex/phase-2-cli`；`3124971` 在远程 `codex/phase-2-cli-code-demo` |
+| 交付 | 最终提交创建 tag `p2`，以 PR 合入 `master`；`final` 标签保持原指向 |
 
 #### box 接入差异复核
 
@@ -119,7 +259,7 @@ Phase 2 第一部分是独立的 VS Code 扩展，入口在 [`vscode-extension/`
 - VS Code 指标：[vscode-metrics.md](../vscode-extension/docs/evidence/vscode-metrics.md)
 - 需求：[A.1 文件标记](prd/phase2/20261125_VSCODE_FILE_BADGE.md) · [A.2 原生大纲](prd/phase2/20261125_VSCODE_OUTLINE.md) · [A.3 演示材料](prd/phase2/20261125_VSCODE_EVIDENCE.md)
 - 实现提案：[update/20261127_FEAT_VSCODE_EXTENSION.md](update/20261127_FEAT_VSCODE_EXTENSION.md)
-- 当前结果：扩展 16 项测试、类型检查和构建通过；CLI 回归 62 个测试文件、564 项通过。详细结果与截图见验收文档。
+- 当前结果：扩展 16 项测试、类型检查、构建和最终复跑均通过；CLI 回归 62 个测试文件、564 项通过。详细结果与截图见验收文档。
 
 ## Phase 1 历史基线
 

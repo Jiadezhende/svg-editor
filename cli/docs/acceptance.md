@@ -1,20 +1,21 @@
 # CLI 验收资料
 
-本文件是 CLI 的验收入口，汇总验收结论、检查点、证据文件和复现方式。VS Code 扩展有独立的验收材料，不在本文件，也不参与 CLI 指标。
+本文件是 CLI 的验收入口，汇总最终验收结论、检查点、证据文件和复现方式。VS Code 扩展有独立的验收材料，不在本文件，也不参与 CLI 指标。
 
 ## 验收环境
 
 | 项目 | 值 |
 | --- | --- |
 | 验收日期 | 2026-11-27 |
-| 代码提交 | `5107f84`（CLI 迁入 `cli/`） |
+| CLI 源码提交 | `5107f84`（CLI 最后一次源码变更，迁入 `cli/`） |
+| 最终交付 | tag `p2`；CLI 源码与 `5107f84` 相同，其后只有文档与独立的 VS Code 扩展 |
 | Node.js | 22.23.2 |
 | npm | 10.9.8 |
 | 平台 | Windows |
 
 ## 结论
 
-CLI 本地验收通过：类型检查通过，62 个测试文件、564 项测试通过，三组回放与 `final` 基线一致，覆盖率与源码指标可复现。
+CLI 最终验收通过：类型检查通过，62 个测试文件、564 项测试通过，三组回放与 `final` 基线一致，覆盖率和源码指标可复现。最终候选与 VS Code 扩展一并复跑验收后打 tag `p2`；按 `p2` 复跑的 CLI 指标与 [候选报告](../../docs/metrics/cli-candidate.md) 一致。
 
 ## 一键复现
 
@@ -25,7 +26,9 @@ npm run typecheck
 npm test
 npm run verify:transcripts
 npm run coverage
-node scripts/phase2-metrics.mjs final HEAD
+node scripts/phase2-metrics.mjs final 5107f84
+# 交付后按 tag p2 复跑，CLI 源码相同，数值应与上式一致
+node scripts/phase2-metrics.mjs final p2
 ```
 
 Windows PowerShell 5.1 的 `npm.ps1` 会吞掉 `--config`；启动 CLI 时请使用 `npm.cmd run cli -- --config plugins.config.json`，或在 cmd.exe 中运行。
@@ -96,7 +99,7 @@ node scripts/verify-transcripts.mjs --record
 
 ## 指标摘要
 
-基线为 Phase 1 的 `final`，目标为提交 `5107f84`：
+基线为 Phase 1 的 `final`，目标为 CLI 最后一次源码提交 `5107f84`（tag `p2` 的 CLI 源码与之一致）：
 
 | 分类 | 文件数 | 行数 | 圈复杂度 |
 | --- | ---: | ---: | ---: |
@@ -110,5 +113,5 @@ node scripts/verify-transcripts.mjs --record
 
 - 指标脚本以 Git 提交为输入，不统计工作区未提交文件；验收新变更时先用目标提交替换 `HEAD`。
 - `verify:transcripts` 的 Phase 1 基线依赖 `final` 标签中的根目录布局。
-- `docs/metrics/` 中的两份 CLI 报告是历史目标提交的快照；当前结果以 `evidence/metrics.txt` 为准。
+- `docs/metrics/` 中的 `framework.md` 是框架节点快照，`cli-candidate.md` 记录 `final → 5107f84`；tag `p2` 的 CLI 源码与 `5107f84` 相同，按 `p2` 复跑数值一致。
 - VS Code 扩展不依赖 CLI，也不计入上述指标；其验收材料由扩展包单独维护。

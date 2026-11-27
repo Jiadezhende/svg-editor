@@ -371,14 +371,16 @@ CommandReader.next()
 
 ## 12. 扩展点
 
-| 扩展点 | 公开契约 | 注册方式 | 失败处理 |
-| --- | --- | --- | --- |
-| 图形 Shape | 静态 `type`、`params`、`parse` 等定义；实例 `move` / `scale` / `validate` / `toSvg` | 插件 `shapes` 贡献 Shape 类 | 类、类型名或 `parse` 非法时拒绝整包；模型无效时拒绝创建或读入 |
-| 命令 Command | 静态 `command`、`usage`、`accepts`；构造接收 Receiver 和参数 | 插件 `commands` 贡献命令类 | 重名或定义缺失时拒绝整包；参数不符时返回用法 |
-| 属性处理器 AttributeHandler | 静态 `handlerName`、`matches`、`apply`、`display` | 插件 `attributes` 贡献静态类 | 契约或名称非法时拒绝整包；执行/回显失败由命令快照恢复 |
-| 树装饰器 TreeDecorator | 静态 `decoratorName`，实例 `tag` / `onSuccess` | 插件 `decorators` 贡献类 | 继承、名称或构造失败时拒绝整包；通知异常转为警告 |
+四类扩展点的接口或抽象类都定义在内核一侧，插件只经 `src/backend/index.ts` 取得契约。课程中的 `ShapeProvider` 对应图形类型的注册契约，由具体 `Shape` 类承担；其余三类分别是 `Command`、`AttributeHandler` 和 `TreeDecorator`。下表逐项给出接口名、职责、内核调用位置、已有实现、禁用本阶段可选插件时的行为，以及实现违反契约时的报错。
 
-插件包通过 `package.json` 的 `name` 和 `contributes` 声明贡献，入口默认导出 `activate(options)` 返回四类贡献。`contributes` 只需声明该包实际提供的类别；名称必须匹配实际贡献。详细格式和示例见 [plugins.md](plugins.md)。
+| 扩展点 | 职责 | 内核调用位置（文件 · 函数） | 已有实现 | 禁用可选插件时的行为 | 违反契约时的报错 |
+| --- | --- | --- | --- | --- | --- |
+| 图形 `ShapeProvider`（`Shape` 静态注册契约 + `ShapeFactory`） | 一种图形类型的属性、解析、写出与变换 | `receiver/document/shape/ShapeFactory.ts` · `register` / `parse` / `create`；`receiver/svg/SvgReader.ts` · `read` 调用 `factory.parse`；`receiver/Receiver.ts` · `createShape` 调用 `factory.create`；`bootstrap.ts` · `buildSession` 调用 `factory.register` | `plugins/core` 的六种基础图形；`plugins/box` 的 `Box` | 只注册六种基础图形；读入未知 `data-kind` 时按原标签降级；创建未知类型报 `unknown shape type: <type>` | `shape must extend Shape and provide parse`、`shape class must declare static type`、`duplicate registration: shapes/<type>`；类非法或清单不符时整包拒绝；读入结构不符时 `EditorError` 拒绝整次读入 |
+| 命令 `Command` | 一条命令的定义、参数校验、执行与撤销 | `Client.ts` · `execute` 按命令名查表并交给 `Invoker`；`bootstrap.ts` · `buildSession` 绑定 Receiver，`buildCommandTable` 校验名称与多形式 | `plugins/core` 的 17 个命令形式；`plugins/stats` 的 `stats`；`plugins/dir` 的 `dir` | 只保留五个框架入口与已装配插件命令；未加载 `stats` / `dir` 时执行报 `error: unknown command: <name>` | `command must extend Command and provide accepts`、`duplicate registration: commands/<name>`、`command <name> has multiple forms; each must override static accepts`；整包拒绝并继续后续包 |
+| 属性处理器 `AttributeHandler` | 某图形上某属性的领域语义，可组合图形公开方法 | `receiver/Receiver.ts` · `write`（`handlerRegistry.resolve` → `apply`）与 `set`（`resolve` → `display` / `apply`）；`receiver/document/shape/AttributeHandlerRegistry.ts` · `register` / `resolve`；`bootstrap.ts` · `buildSession` 调用 `handlers.register` | `plugins/box` 的 `box-attributes` | 零命中回退 `Shape.set` 的模型属性规则；普通矩形仍可改 `fill`，未定义属性报 `unknown attribute` | `attribute handler must be a static class with handlerName, matches, apply and display`、`duplicate registration: attributes/<name>`；执行或回显失败由 `EditCommand` 快照恢复，不转回默认处理 |
+| 树装饰器 `TreeDecorator` | 树行尾标签；状态封装在装饰器实例中 | `receiver/tree/TreeRenderer.ts` · 构造函数按装配顺序包装，`render` / `notify` 应用装饰器；`receiver/Receiver.ts` · `renderTree` / `notifyTree`；`bootstrap.ts` · `buildSession` 把装饰器列表交给 `TreeRenderer` | `plugins/modified-star`；`plugins/box` 的 `box-type-label` | 装饰器列表为空时直接使用 `BaseTreeLineRenderer`，树输出与 Phase 1 基线逐字节一致 | `tree decorator must extend TreeDecorator and declare decoratorName`、`duplicate tree decorator: <name>`；`tag` 或 `onSuccess` 异常转为展示警告，不影响已提交命令 |
+
+插件包通过 `package.json` 的 `name` 和 `contributes` 声明贡献，入口默认导出 `activate(options)` 返回四类贡献。`contributes` 只需声明该包实际提供的类别；名称必须匹配实际贡献（图形用 `type`，命令用 `command`，处理器用 `handlerName`，装饰器用 `decoratorName`）。详细格式和示例见 [plugins.md](plugins.md)。
 
 ## 13. 关键约束与已知边界
 

@@ -58,6 +58,8 @@ npm run metrics -- final HEAD
 
 `verify:transcripts` 比较配置装配与代码装配的输出，并把 Phase 1 基础会话与 `final` 标签中的程序逐字节比较。
 
+验收检查点、当前结果与证据文件见 [acceptance/](acceptance/README.md)。
+
 ## 扩展入口
 
 插件只依赖 `src/backend/index.ts` 的公开契约。设计与分层说明见 [doc/README.md](../doc/README.md)。

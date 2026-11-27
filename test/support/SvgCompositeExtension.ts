@@ -38,6 +38,9 @@ export class Caption extends Shape {
 export class Panel extends Shape {
   static override readonly type: string = 'test-panel';
 
+  /** 写出为 SVG g 容器。 */
+  override element(): string { return 'g'; }
+
   constructor(
     id: string,
     values: ReadonlyMap<string, number | string> = new Map(),
@@ -87,7 +90,7 @@ export const panelMapping: SvgShapeMapping = {
   write: (shape) => {
     const panel = shape as Panel;
     return {
-      type: 'g',
+      type: shape.element(),
       attributes: [['id', panel.id()], ['data-kind', Panel.type], ...panel.entries()],
       children: [SvgWriter.elementOf(panel.frameShape()), SvgWriter.elementOf(panel.captionShape())],
     };

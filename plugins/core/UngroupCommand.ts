@@ -34,8 +34,8 @@ export default class UngroupCommand extends EditCommand {
     children.forEach((child, i) => doc.relocate(child, parent, index + i));
     doc.remove(node);
     return {
-      result: new CommandResult().line(`${node.value.label()} ungrouped, ${children.length} children moved to ${parent.value.label()}`),
-      undo: `${node.value.label()} restored into ${parent.value.label()} with ${children.length} children`,
+      result: new CommandResult().line(`${node.value.modelLabel()} ungrouped, ${children.length} children moved to ${parent.value.modelLabel()}`),
+      undo: `${node.value.modelLabel()} restored into ${parent.value.modelLabel()} with ${children.length} children`,
     };
   }
 }

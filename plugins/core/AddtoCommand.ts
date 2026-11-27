@@ -25,8 +25,8 @@ export default class AddtoCommand extends EditCommand {
     const parent = node.parent();
     doc.relocate(node, target);
     return {
-      result: new CommandResult().line(`${node.value.label()} added to ${target.value.label()}`),
-      undo: `${node.value.label()} restored into ${parent?.value.label() ?? 'svg'}`,
+      result: new CommandResult().line(`${node.value.modelLabel()} added to ${target.value.modelLabel()}`),
+      undo: `${node.value.modelLabel()} restored into ${parent?.value.modelLabel() ?? 'svg'}`,
     };
   }
 }

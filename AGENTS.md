@@ -13,6 +13,7 @@
 - 持有单个图形的状态，封装内部部件，通过公开方法修改自身；业务复合 Shape 按实际需要声明内部 Shape 成员；普通 SVG 容器的成员关系保存在文档节点树中。
 - 保证自身不变量，例如 Box 必须具有有效的矩形和文字；由 `validate()` 检查必填属性、跨属性约束与部件结构；不承担整份文档的全局 id 检查。
 - Shape 维护 SVG id，不维护 index、文档归属、文档父节点或通用 children 字段，不提供文档树 insert/remove/relocate。业务复合模型的内部成员默认不成为独立文档节点。
+- Shape 区分模型身份与文件身份：`modelLabel()` 是命令回显的 `<type>#<id>`；`fileLabel()` 是 tree/show 使用的 `<element>#<id>`。`element()` 返回图形写出的底层 SVG 标签，默认与 `type` 相同，复合模型可覆写（如 Box 的 `g`）。
 - Shape.identifiers() 声明自身及私有部件占用的全部 id；默认仅自身，复合模型覆写，必须包含根 id、不得重复或非法。声明只读且随模型身份保持稳定，不暴露内部对象或文档关系。
 - Handler、Command 和 Document 都不能绕过图形公开方法直接修改其内部状态。Shape 不依赖 Handler 注册表、Command、CLI 或 SVG 解析器。
 - 属性对象或模型负责共享的值解析、校验与基础修改规则，避免创建、属性设置和读回各写一套。
@@ -80,6 +81,7 @@
 - 装饰器列表为空时直接使用基础行渲染器，输出与原基线一致。
 - 装饰器的状态封装在实例中；新增装饰器不修改内核、基础渲染器或其他装饰器。
 - TreeCommand 委托 TreeRenderer，TreeDecorator 通过受保护 tag 追加标签，可通过 onSuccess 维护实例状态。渲染和通知使用冻结的图形视图与画布快照。复合模型可提供私有部件的视图，文档将其排在普通文档成员之前。视图只包含内容、展示信息和子视图。
+- show 读取同一视图的 `details` 并递归私有组件；组件展开时不再输出 `children=`，文档成员仍由 tree 展示。视图的 `label` 使用文件身份，组件块不带 `parent=`。
 - Client 在 Invoker 成功更新历史后发布 edit/undo/redo/replace/save；DocumentCommand.successKind 声明成功通知类型，画布调整保留文档类历史规则并通知 edit。失败不通知，观察者异常转为展示警告，不把已提交操作误报为失败。不建立通用事件总线或事务。
 
 ## 完整调用关系
@@ -110,7 +112,7 @@ Document（画布、节点树、全局约束）
 ## 模型扩展与注册
 
 - 新增模型通过具体 Shape 类及按需的 Handler 接入。
-- 具体 Shape 类的静态描述与构造能力承担图形类型注册契约。创建参数默认复用属性模板，特殊模型可单独声明。ShapeFactory.register 接收 Shape 的类对象，在运行时校验继承关系和解析方法。使用侧通过 has/definition/create 获取支持信息、只读规格和候选实例，不能查询构造函数。
+- 具体 Shape 类的静态描述与构造能力承担图形类型注册契约。创建参数默认复用属性模板，特殊模型可单独声明。ShapeFactory.register 接收 Shape 的类对象，在运行时校验继承关系、类型名和解析方法。使用侧通过 has/definition/create 获取支持信息、只读规格和候选实例，不能查询构造函数。
 - 课程中的 ShapeProvider 对应图形类型注册契约，由具体 Shape 类承担；交付文档须明确对应关系。
 - ShapeFactory 负责注册、查找与创建；具体图形的选择和注册放在宿主装配侧，工厂不自行导入、枚举插件图形。
 - 普通图形无需专门 Handler。特殊领域操作通过 Handler 独立注册；模型不依赖其处理器，处理器可依赖模型公开接口，两者可以同包维护。

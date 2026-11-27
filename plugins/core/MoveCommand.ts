@@ -38,15 +38,15 @@ export default class MoveCommand extends EditCommand {
     const shape = node.value;
     doc.move(node, this.dx, this.dy);
     const undo = this.original === null
-      ? `${shape.label()} moved back by (${this.formatNumber(-this.dx)},${this.formatNumber(-this.dy)})`
-      : `${shape.label()} moved back to (${this.original[0]},${this.original[1]})`;
+      ? `${shape.modelLabel()} moved back by (${this.formatNumber(-this.dx)},${this.formatNumber(-this.dy)})`
+      : `${shape.modelLabel()} moved back to (${this.original[0]},${this.original[1]})`;
     return { result: new CommandResult().line(this.describe(shape, 'moved', this.dx, this.dy)), undo };
   }
 
   private describe(shape: Shape, verb: string, dx: number, dy: number): string {
     const position = shape.position();
     return position === null
-      ? `${shape.label()} ${verb} by (${this.formatNumber(dx)},${this.formatNumber(dy)})`
-      : `${shape.label()} ${verb} to (${position[0]},${position[1]})`;
+      ? `${shape.modelLabel()} ${verb} by (${this.formatNumber(dx)},${this.formatNumber(dy)})`
+      : `${shape.modelLabel()} ${verb} to (${position[0]},${position[1]})`;
   }
 }

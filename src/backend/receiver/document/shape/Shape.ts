@@ -16,7 +16,8 @@ export interface ShapeParseResult {
  *
  * 静态成员即定义：子类覆盖 `type`（类型名）、`params`（必填属性模板，默认也作为创建参数）、
  * `paint`（create 的可选外观参数名）、`anchor`（move 回显使用的 x、y 属性名）、
- * `content`（在 SVG 中写成子文本而非元素属性的那个属性名）；
+ * `content`（在 SVG 中写成子文本而非元素属性的那个属性名）；`element()` 默认返回 `type`，
+ * 复合模型可覆写为实际写出的底层 SVG 标签（如 Box 的 `g`）。
  * 外观属性 fill / stroke / stroke-width 由本类统一声明，复合模型可以覆写属性表选择不合并。
  *
  * 实例按模板持有全部属性对象（未赋值时 value 为 null），构造只建立结构；
@@ -118,9 +119,22 @@ export default abstract class Shape {
     return this.definition().type;
   }
 
-  /** 回显用的名字：`<type>#<id>`。 */
-  label(): string {
+  /** 命令回显使用的模型身份：`<type>#<id>`。 */
+  modelLabel(): string {
     return `${this.type()}#${this.shapeId}`;
+  }
+
+  /**
+   * 图形写到 SVG 时使用的底层标签名，例如 rect、circle、g。
+   * 默认与 `type` 相同；复合模型可覆写为实际写出的容器标签（如 Box 的 `g`）。
+   */
+  element(): string {
+    return this.type();
+  }
+
+  /** tree / show 使用的文件身份：`<element>#<id>`。 */
+  fileLabel(): string {
+    return `${this.element()}#${this.shapeId}`;
   }
 
   /** 属性的原值；未设置（或不在属性表中）时为 null。 */
@@ -165,16 +179,17 @@ export default abstract class Shape {
     return Object.freeze({
       id: this.id(),
       type: this.type(),
-      label: this.treeLabel(),
+      label: this.fileLabel(),
       summary: this.summary(),
       container: this.acceptsChildren(),
       attributes: Object.freeze(this.entries().map(([name, value]) => Object.freeze([name, value] as const))),
       content: this.content(),
+      details: Object.freeze([...this.details()]),
       children: Object.freeze([...this.viewParts()]),
     });
   }
 
-  /** show 的属性行：核心属性行；设置了外观属性时再加一行外观属性。 */
+  /** show 的自身属性行：核心属性行；设置了外观属性时再加一行外观属性。 */
   details(): string[] {
     const appearance = this.joined(Shape.appearance);
     return appearance === '' ? [this.coreDetail()] : [this.coreDetail(), appearance];
@@ -266,8 +281,6 @@ export default abstract class Shape {
   protected coreDetail(): string {
     return this.summary();
   }
-
-  protected treeLabel(): string { return this.label(); }
 
   protected viewParts(): readonly ShapeView[] { return []; }
 

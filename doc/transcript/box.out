@@ -23,10 +23,10 @@ svg> tree
 svg (800x600) *
 └── g#flowchart *
     ├── g#n1 * (box)
-    │   ├── rect#n1-rect  x=120 y=100 width=160 height=60 fill=#4a90d9 *
+    │   ├── rect#n1-rect  x=120 y=100 width=160 height=60 *
     │   └── text#n1-label  x=140 y=135 text="开始" *
     ├── g#n2 * (box)
-    │   ├── rect#n2-rect  x=520 y=100 width=160 height=60 fill=#f5a623 *
+    │   ├── rect#n2-rect  x=520 y=100 width=160 height=60 *
     │   └── text#n2-label  x=540 y=135 text="处理数据" *
     └── line#arrow1  x1=280 y1=130 x2=520 y2=130 *
 svg> save flowchart-box.svg

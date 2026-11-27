@@ -33,8 +33,8 @@ export default class ScaleCommand extends EditCommand {
     const shape = node.value;
     doc.scale(node, this.factor);
     return {
-      result: new CommandResult().line(`${shape.label()} scaled by ${this.formatNumber(this.factor)}`),
-      undo: `${shape.label()} scaled back by ${this.formatNumber(1 / this.factor)}`,
+      result: new CommandResult().line(`${shape.modelLabel()} scaled by ${this.formatNumber(this.factor)}`),
+      undo: `${shape.modelLabel()} scaled back by ${this.formatNumber(1 / this.factor)}`,
     };
   }
 }

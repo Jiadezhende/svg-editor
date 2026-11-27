@@ -20,6 +20,9 @@ export default class Box extends Shape {
   static override readonly type = 'box';
   static override readonly createParams = [...Rect.params, new TextAttribute('label')];
 
+  /** 写出为 SVG g 容器。 */
+  override element(): string { return 'g'; }
+
   private readonly frame: Rect;
   private readonly caption: Text;
 
@@ -110,8 +113,6 @@ export default class Box extends Shape {
     this.frame.scale(factor);
     this.caption.scale(factor);
   }
-
-  protected override treeLabel(): string { return `g#${this.id()}`; }
 
   protected override viewParts(): readonly ShapeView[] { return [this.frame.view(), this.caption.view()]; }
 }

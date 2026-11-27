@@ -57,11 +57,11 @@ describe('插件暂存与原子装配', () => {
     expect(host.receiver.document().findNode('p')).toBeNull();
     host.client.execute(['redo']);
     host.client.execute(['set', 'p', 'label', 'changed']);
-    expect(host.client.execute(['tree']).lines()).toEqual(['svg (800x600) *', '└── test-panel#p * (panel)']);
+    expect(host.client.execute(['tree']).lines()).toEqual(['svg (800x600) *', '└── g#p * (panel)']);
     const path = join(dir, 'panel.svg');
     host.client.execute(['save', path]);
     expect(readFileSync(path, 'utf8')).toContain('data-kind="test-panel"');
-    expect(host.client.execute(['tree']).lines()[1]).toBe('└── test-panel#p (panel)');
+    expect(host.client.execute(['tree']).lines()[1]).toBe('└── g#p (panel)');
     host.client.execute(['read', path]);
     expect(host.receiver.document().requireNode('p').value).toBeInstanceOf(Panel);
     expect((host.receiver.document().requireNode('p').value as Panel).captionShape().value('text')).toBe('changed');

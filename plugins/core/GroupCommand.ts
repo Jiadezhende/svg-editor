@@ -45,8 +45,8 @@ export default class GroupCommand extends EditCommand {
     const node = doc.insert(group, first.parent(), doc.indexOf(first));
     for (const member of sorted) doc.relocate(member, node);
     return {
-      result: new CommandResult().line(`${group.label()} created with ${members.length} children`),
-      undo: `${group.label()} removed, ${members.length} children restored`,
+      result: new CommandResult().line(`${group.modelLabel()} created with ${members.length} children`),
+      undo: `${group.modelLabel()} removed, ${members.length} children restored`,
     };
   }
 }

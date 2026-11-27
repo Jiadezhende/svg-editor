@@ -41,7 +41,7 @@ const mapping: SvgShapeMapping = {
   write: (shape) => {
     const box = shape.view();
     return {
-      type: 'g',
+      type: shape.element(),
       attributes: [['id', box.id], ['data-kind', Box.type], ...box.attributes],
       children: box.children.map((part) => ({
         type: part.type,

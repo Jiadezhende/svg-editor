@@ -8,7 +8,7 @@ const circle = (id: string) => new Circle(id, new Map([['cx', 0], ['cy', 0], ['r
 describe('Group 模型与文档分组', () => {
   it('声明 g 类型及接收能力，模型不保存成员数或节点关系', () => {
     const group = new Group('g', new Map([['fill', 'red']]));
-    expect(group.label()).toBe('g#g');
+    expect(group.modelLabel()).toBe('g#g');
     expect(Group.params).toEqual([]);
     expect(Group.paint).toBeNull();
     expect(group.acceptsChildren()).toBe(true);

@@ -64,6 +64,6 @@ export class NudgeMarkerCommand extends EditCommand {
     const model = this.receiver.document().requireNode(this.id).value;
     if (!(model instanceof Marker)) throw new EditorError('expected test-marker');
     model.nudge(this.dx);
-    return { result: new CommandResult().line(`${model.label()} nudged`), undo: `${model.label()} restored` };
+    return { result: new CommandResult().line(`${model.modelLabel()} nudged`), undo: `${model.modelLabel()} restored` };
   }
 }

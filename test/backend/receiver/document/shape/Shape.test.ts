@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import Rect from '../../../../../plugins/core/Rect';
 import Group from '../../../../../plugins/core/Group';
+import Shape from '../../../../../src/backend/receiver/document/shape/Shape';
 import EditorError from '../../../../../src/backend/error/EditorError';
 
 const geometry = new Map<string, number | string>([
@@ -16,7 +17,28 @@ describe('Shape 通用行为', () => {
     const rect = new Rect('r1', geometry);
     expect(rect.id()).toBe('r1');
     expect(rect.type()).toBe('rect');
-    expect(rect.label()).toBe('rect#r1');
+    expect(rect.modelLabel()).toBe('rect#r1');
+  });
+
+  it('普通图形的文件身份与模型身份相同', () => {
+    const rect = new Rect('r1', geometry);
+    expect(rect.element()).toBe('rect');
+    expect(rect.fileLabel()).toBe('rect#r1');
+    expect(rect.view().label).toBe('rect#r1');
+  });
+
+  it('复合模型可覆写 element() 为不同的持久化元素名', () => {
+    class Tagged extends Shape {
+      static override readonly type: string = 'tagged';
+      override element(): string { return 'g'; }
+      override move(): void {}
+      override scale(): void {}
+    }
+    const shape = new Tagged('t1');
+    expect(shape.modelLabel()).toBe('tagged#t1');
+    expect(shape.element()).toBe('g');
+    expect(shape.fileLabel()).toBe('g#t1');
+    expect(shape.view().label).toBe('g#t1');
   });
 
   it.each(['r1', 'start-label', '_a', 'A.b_c-1', 'R1'])('id %j 合法', (id) => {
@@ -58,10 +80,13 @@ describe('Shape 通用行为', () => {
   it('details：核心属性行，外观属性按属性表顺序列在第二行；未设置外观属性时只有一行', () => {
     expect(new Rect('r1', geometry).details()).toEqual(['x=10 y=20 width=100 height=50']);
     const styled = new Map(geometry).set('stroke-width', 2.5).set('fill', 'red').set('stroke', 'black');
-    expect(new Rect('r1', styled).details()).toEqual([
+    const rect = new Rect('r1', styled);
+    expect(rect.details()).toEqual([
       'x=10 y=20 width=100 height=50',
       'fill=red stroke=black stroke-width=2.5',
     ]);
+    expect(rect.view().details).toEqual(rect.details());
+    expect(Object.isFrozen(rect.view().details)).toBe(true);
   });
 
   it('数值按数值格式输出', () => {

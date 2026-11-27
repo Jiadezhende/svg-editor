@@ -260,7 +260,7 @@ plugins ..> backend : 只依赖公共契约
 
 | 变化点 | 预留 / 不预留的理由 |
 | --- | --- |
-| 新图形类型（后续阶段的插件 `box`） | **已预留**：图形类声明 `type`、`params`、`paint`、`anchor`、`content`，并实现 `move` / `scale`；create、显示、set、读写按声明通用处理。`ShapeFactory.register` 由宿主装配调用，注册时校验类、类型名与解析方法 |
+| 新图形类型（后续阶段的插件 `box`） | **已预留**：图形类声明 `type`、`params`、`paint`、`anchor`、`content`，并实现 `move` / `scale`；`element()` 默认返回 `type`，复合模型可覆写为实际写出的底层 SVG 标签。create、显示、set、读写按声明通用处理。`ShapeFactory.register` 由宿主装配调用，注册时校验类、类型名与解析方法 |
 | 新命令 | **已预留**：在插件包里新增一个 `EditCommand` / `DocumentCommand` 类并在 `activate` 中贡献即可被装配；同一命令名的多种形式由各形式的 `accepts` 按参数结构唯一命中（如 `canvas` 与 `canvas <w> <h>`），不依赖注册顺序 |
 | 新属性种类（如带单位的长度） | **已预留**：新增 `Attribute` 子类，实现解析、约束、展示、默认值即可，其余代码不改 |
 | 新输入输出通道（agent、文件脚本、GUI） | **已预留**：`InputSource` / `OutputSink` 接口；前后端以"参数数组 + 结果字符串"为边界，命令文本是唯一协议 |

@@ -31,8 +31,8 @@ export default class SetCommand extends EditCommand {
     const { previous, current } = this.receiver.set(shape, this.attribute, this.token);
     const restored = previous === null ? `${this.attribute} unset` : `${this.attribute}=${previous}`;
     return {
-      result: new CommandResult().line(`${shape.label()} updated: ${this.attribute}=${current}`),
-      undo: `${shape.label()} updated: ${restored}`,
+      result: new CommandResult().line(`${shape.modelLabel()} updated: ${this.attribute}=${current}`),
+      undo: `${shape.modelLabel()} updated: ${restored}`,
     };
   }
 }

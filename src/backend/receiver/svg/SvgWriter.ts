@@ -20,7 +20,7 @@ export interface SvgShapeMapping {
 
 /**
  * 把文档写成 SVG 文本：XML 声明 + `<svg xmlns width height viewBox>` + 2 空格缩进的嵌套元素。
- * 按图形类的声明通用处理：元素名即类型名，属性依次为 id 与属性表中已设置的属性，`content` 属性写成子文本，
+ * 按图形类的声明通用处理：元素名取 `element()`（默认与类型名相同），属性依次为 id 与属性表中已设置的属性，`content` 属性写成子文本，
  * 容器递归子节点；没有子节点也没有子文本的元素自闭合。
  */
 export default class SvgWriter {
@@ -37,7 +37,7 @@ export default class SvgWriter {
   }
 
   static elementOf(shape: Shape): SvgElement {
-    return { type: shape.type(), attributes: [['id', shape.id()], ...shape.entries()], content: shape.content() };
+    return { type: shape.element(), attributes: [['id', shape.id()], ...shape.entries()], content: shape.content() };
   }
 
   write(doc: Document): string {

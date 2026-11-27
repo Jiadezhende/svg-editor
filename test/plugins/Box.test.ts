@@ -56,6 +56,9 @@ describe('box 插件', () => {
     const node = document.insert(shape);
     document.insert(box('n2'), node);
     expect(shape.identifiers()).toEqual(['n1', 'n1-rect', 'n1-label']);
+    expect(shape.modelLabel()).toBe('box#n1');
+    expect(shape.element()).toBe('g');
+    expect(shape.fileLabel()).toBe('g#n1');
     expect(shape.value('fill')).toBeNull();
     expect(shape.frameShape().value('fill')).toBe('#4a90d9');
     expect(shape.view().children).toMatchObject([{ id: 'n1-rect' }, { id: 'n1-label', content: '开始' }]);

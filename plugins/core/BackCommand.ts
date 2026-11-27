@@ -22,8 +22,8 @@ export default class BackCommand extends EditCommand {
     const parent = node.parent();
     doc.relocate(node, parent, 0);
     return {
-      result: new CommandResult().line(`${node.value.label()} sent to back`),
-      undo: `${node.value.label()} restored into ${parent?.value.label() ?? 'svg'}`,
+      result: new CommandResult().line(`${node.value.modelLabel()} sent to back`),
+      undo: `${node.value.modelLabel()} restored into ${parent?.value.modelLabel() ?? 'svg'}`,
     };
   }
 }

@@ -64,8 +64,8 @@ export default class CreateCommand extends EditCommand {
     }
     const shape = this.receiver.createShape(this.shapeDefinition.type, this.id, this.inputs);
     doc.insert(shape, parent);
-    const where = this.containerId === null ? '' : ` in ${parent?.value.label() ?? 'svg'}`;
-    return { result: new CommandResult().line(`${shape.label()} created${where}`), undo: `${shape.label()} removed` };
+    const where = this.containerId === null ? '' : ` in ${parent?.value.modelLabel() ?? 'svg'}`;
+    return { result: new CommandResult().line(`${shape.modelLabel()} created${where}`), undo: `${shape.modelLabel()} removed` };
   }
 
   /** 本类型的完整语法，用于参数个数不符时的提示。 */

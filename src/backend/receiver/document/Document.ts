@@ -201,7 +201,7 @@ export default class Document {
 
   private checkParent(parent: ShapeNode | null): void {
     if (parent !== null && this.byId.get(parent.value.id()) !== parent) {
-      throw new EditorError(`container is not in document: ${parent.value.label()}`);
+      throw new EditorError(`container is not in document: ${parent.value.modelLabel()}`);
     }
   }
 

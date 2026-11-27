@@ -22,8 +22,8 @@ export default class FrontCommand extends EditCommand {
     const parent = node.parent();
     doc.relocate(node, parent);
     return {
-      result: new CommandResult().line(`${node.value.label()} brought to front`),
-      undo: `${node.value.label()} restored into ${parent?.value.label() ?? 'svg'}`,
+      result: new CommandResult().line(`${node.value.modelLabel()} brought to front`),
+      undo: `${node.value.modelLabel()} restored into ${parent?.value.modelLabel() ?? 'svg'}`,
     };
   }
 }

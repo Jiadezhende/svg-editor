@@ -11,8 +11,8 @@ describe('树渲染与经典 Decorator', () => {
     const group = doc.insert((await createShapeFactory()).create('g', 'g'));
     doc.insert(new Panel('p'), group);
     const renderer = new TreeRenderer();
-    expect(renderer.render(doc)).toEqual(['svg (100.5x50)', '└── g#g', '    └── test-panel#p']);
-    expect(renderer.render(doc, group)).toEqual(['g#g', '└── test-panel#p']);
+    expect(renderer.render(doc)).toEqual(['svg (100.5x50)', '└── g#g', '    └── g#p']);
+    expect(renderer.render(doc, group)).toEqual(['g#g', '└── g#p']);
   });
 
   it('列表顺序对应标签从左到右，反转顺序反转标签', async () => {

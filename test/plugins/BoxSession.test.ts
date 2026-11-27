@@ -31,6 +31,14 @@ describe('box 命令协作', () => {
     const { execute, receiver } = await session();
     const fill = () => (receiver.document().requireNode('n').value as Box).frameShape().display('fill');
     expect(execute('tree', 'n')[0]).toBe('g#n * (box)');
+    expect(execute('show', 'n')).toEqual([
+      'g#n  parent=svg',
+      '  rect#n-rect',
+      '    x=120 y=100 width=160 height=60',
+      '    fill=#4a90d9',
+      '  text#n-label',
+      '    x=140 y=135 text="开始"',
+    ]);
     execute('set', 'n', 'fill', '#f5a623');
     expect(fill()).toBe('#f5a623');
     execute('undo');
@@ -63,6 +71,8 @@ describe('box 命令协作', () => {
     const { execute, receiver } = await session();
     execute('create', 'g', 'group');
     execute('addto', 'group', 'n');
+    expect(execute('show', 'group')).toEqual(['g#group  parent=svg', '  children=1']);
+    expect(execute('show', 'n')[0]).toBe('g#n  parent=g#group');
     execute('set', 'n', 'label', 'new label');
     execute('undo');
     const document = receiver.document();
@@ -84,5 +94,20 @@ describe('box 命令协作', () => {
     expect(document.findNode('n')).toBeNull();
     execute('undo');
     expect(execute('tree', 'n')[2]).toContain('"new label"');
+  });
+
+  it('show 只展开私有组件，文档成员仍由 tree 展示', async () => {
+    const { execute } = await session();
+    execute('create', 'box', 'child', '0', '0', '10', '10', '子', 'in', 'n');
+    expect(execute('show', 'n')).toEqual([
+      'g#n  parent=svg',
+      '  rect#n-rect',
+      '    x=120 y=100 width=160 height=60',
+      '    fill=#4a90d9',
+      '  text#n-label',
+      '    x=140 y=135 text="开始"',
+    ]);
+    expect(execute('tree', 'n').some((line) => line.includes('g#child'))).toBe(true);
+    expect(execute('show', 'n').some((line) => line.includes('child'))).toBe(false);
   });
 });

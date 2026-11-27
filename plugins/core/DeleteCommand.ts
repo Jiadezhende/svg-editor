@@ -21,8 +21,8 @@ export default class DeleteCommand extends EditCommand {
     const parent = node.parent();
     doc.remove(node);
     return {
-      result: new CommandResult().line(`${node.value.label()} deleted`),
-      undo: `${node.value.label()} restored into ${parent?.value.label() ?? 'svg'}`,
+      result: new CommandResult().line(`${node.value.modelLabel()} deleted`),
+      undo: `${node.value.modelLabel()} restored into ${parent?.value.modelLabel() ?? 'svg'}`,
     };
   }
 }

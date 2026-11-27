@@ -11,7 +11,7 @@
 }
 ```
 
-插件入口默认导出一个同步函数，接收选项并返回分类后的贡献。模型映射与对应的图形类一起放进 `shapes`。
+插件入口默认导出一个同步函数，接收选项并返回分类后的贡献。图形类放进 `shapes`，命令、属性处理器和树装饰器分别放进其余三类。以下示例文件位于 `plugins/hello/index.ts`：
 
 ```ts
 import { Command, CommandResult } from '../../src/backend';

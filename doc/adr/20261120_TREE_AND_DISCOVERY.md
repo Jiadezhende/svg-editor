@@ -39,4 +39,4 @@ Shape.identifiers() 只声明占用的字符串 id，复合模型递归汇总部
 
 不实现配置文件、白名单、禁用、options 或正式业务插件。Phase 2 的双配置装配验收因此明确暂缓；当前完成的是无配置全部发现及代码装配的一致路径。用真实 Node/tsx 进程验证临时磁盘包的扫描与装配，避免测试转换器替代原生加载，覆盖 Windows 带编码字符的临时路径。
 
-用法见 [plugins/README](../../cli/plugins/README.md)，验证与提交记录见[剩余架构记录](../update/20261120_REFACT_EXTENSION_ASSEMBLY.md)和[自动扫描记录](../update/20261120_REFACT_PLUGIN_AUTOSCAN.md)。
+用法见 [plugins.md](../../cli/docs/plugins.md)，验证与提交记录见[剩余架构记录](../update/20261120_REFACT_EXTENSION_ASSEMBLY.md)和[自动扫描记录](../update/20261120_REFACT_PLUGIN_AUTOSCAN.md)。

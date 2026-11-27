@@ -41,4 +41,4 @@
 
 ## 验证入口
 
-运行 `npm test -- test/backend/command/impl/SetHandlerCommand.test.ts test/host/PluginHost.test.ts`。框架提交为 `f1e5274`。 [扩展点清单](../../README.md#扩展点清单) · [属性处理 ADR](../../adr/phase2-01-attributes.md) · [总纲验收](20261125_PHASE2_DELIVERY.md#cli-扩展契约)
+运行 `npm test -- test/backend/command/impl/SetHandlerCommand.test.ts test/host/PluginHost.test.ts`。框架提交为 `f1e5274`。 [扩展点清单](../../../cli/docs/architecture.md#12-扩展点) · [属性处理 ADR](../../adr/phase2-01-attributes.md) · [总纲验收](20261125_PHASE2_DELIVERY.md#cli-扩展契约)

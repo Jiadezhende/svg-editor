@@ -44,6 +44,7 @@ svg-editor/
 │   ├── test/                    单元、宿主、插件测试
 │   │   └── fixtures/transcript/ 回放输入、期望输出与 SVG 样例
 │   ├── scripts/                 回放校验与源码指标
+│   ├── docs/                    架构、验收、插件文档与验收证据
 │   ├── package.json / package-lock.json / tsconfig.json / vitest.config.ts
 │   └── plugins.config.json
 ├── vscode-extension/            VS Code 独立 npm 包

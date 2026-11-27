@@ -1,6 +1,6 @@
 # CLI 架构说明
 
-本文件描述 `cli/` 的详细架构。验收结果与证据见 [acceptance/](acceptance/README.md)，课程交付文档的总览见 [doc/README.md](../doc/README.md#phase-2-cli)。
+本文件描述 `cli/` 的详细架构。验收结果与证据见 [验收资料](acceptance.md)，课程交付文档的总览见 [doc/README.md](../../doc/README.md#phase-2-cli)。
 
 ## 1. 定位与边界
 
@@ -46,12 +46,15 @@ cli/
 │   ├── stats/                  stats 查询命令
 │   ├── dir/                    dir 目录查询命令与 DirectoryAccess 适配器
 │   ├── modified-star/          保存基准与树标签
-│   ├── box/                    Box 复合图形、属性处理器与类型标签
-│   └── README.md               插件包编写说明
+│   └── box/                    Box 复合图形、属性处理器与类型标签
 ├── test/                       与 src/ 对应的单元、宿主与插件测试
 │   └── fixtures/transcript/    CLI 回放输入、期望输出与 SVG 样例
 ├── scripts/                    回放校验与源码指标
-├── acceptance/                 验收入口、结果快照与证据
+├── docs/
+│   ├── architecture.md         详细架构
+│   ├── acceptance.md           验收结果、检查点与证据
+│   ├── plugins.md              插件包编写说明
+│   └── evidence/               验收快照、help 与指标报告
 ├── plugins.config.json         发行配置
 ├── package.json / package-lock.json
 ├── tsconfig.json / vitest.config.ts
@@ -375,7 +378,7 @@ CommandReader.next()
 | 属性处理器 AttributeHandler | 静态 `handlerName`、`matches`、`apply`、`display` | 插件 `attributes` 贡献静态类 | 契约或名称非法时拒绝整包；执行/回显失败由命令快照恢复 |
 | 树装饰器 TreeDecorator | 静态 `decoratorName`，实例 `tag` / `onSuccess` | 插件 `decorators` 贡献类 | 继承、名称或构造失败时拒绝整包；通知异常转为警告 |
 
-插件包通过 `package.json` 的 `name` 和 `contributes` 声明贡献，入口默认导出 `activate(options)` 返回四类贡献。`contributes` 只需声明该包实际提供的类别；名称必须匹配实际贡献。详细格式和示例见 [plugins/README.md](plugins/README.md)。
+插件包通过 `package.json` 的 `name` 和 `contributes` 声明贡献，入口默认导出 `activate(options)` 返回四类贡献。`contributes` 只需声明该包实际提供的类别；名称必须匹配实际贡献。详细格式和示例见 [plugins.md](plugins.md)。
 
 ## 13. 关键约束与已知边界
 
@@ -389,11 +392,11 @@ CommandReader.next()
 
 ## 14. 相关文档
 
-- [CLI 验收资料](acceptance/README.md)
-- [CLI 运行与配置](README.md)
-- [课程交付文档：Phase 2 CLI](../doc/README.md#phase-2-cli)
-- [Phase 2 需求总纲](../doc/prd/phase2/20261125_PHASE2_DELIVERY.md)
-- [插件编写说明](plugins/README.md)
-- [回放样例说明](test/fixtures/transcript/README.md)
-- 决策记录：[属性处理器](../doc/adr/phase2-01-attributes.md)、[Box 读回](../doc/adr/phase2-02-box-readback.md)、[树标签](../doc/adr/phase2-03-modified-star.md)、[插件装配](../doc/adr/phase2-04-plugin-assembly.md)
-- [当前仓库布局与迁移记录](../doc/update/20261127_REFACT_CLI_DIRECTORY.md)
+- [CLI 验收资料](acceptance.md)
+- [CLI 运行与配置](../README.md)
+- [课程交付文档：Phase 2 CLI](../../doc/README.md#phase-2-cli)
+- [Phase 2 需求总纲](../../doc/prd/phase2/20261125_PHASE2_DELIVERY.md)
+- [插件编写说明](plugins.md)
+- [回放样例说明](acceptance.md#回放样例)
+- 决策记录：[属性处理器](../../doc/adr/phase2-01-attributes.md)、[Box 读回](../../doc/adr/phase2-02-box-readback.md)、[树标签](../../doc/adr/phase2-03-modified-star.md)、[插件装配](../../doc/adr/phase2-04-plugin-assembly.md)
+- [当前仓库布局与迁移记录](../../doc/update/20261127_REFACT_CLI_DIRECTORY.md)

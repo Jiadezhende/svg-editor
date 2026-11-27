@@ -1,0 +1,38 @@
+{
+  "name": "svg-editor-vscode",
+  "displayName": "SVG Editor for VS Code",
+  "description": "Explorer badge and native outline for SVG files.",
+  "version": "0.1.0",
+  "publisher": "svg-editor",
+  "private": true,
+  "type": "commonjs",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "watch": "tsc -w -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "metrics": "node scripts/vscode-metrics.mjs final HEAD --out docs/evidence/vscode-metrics.md",
+    "metrics:worktree": "node scripts/vscode-metrics.mjs final WORKTREE --out docs/evidence/vscode-metrics.md"
+  },
+  "devDependencies": {
+    "@babel/parser": "7.29.9",
+    "@types/node": "^22.14.0",
+    "@types/vscode": "1.90.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.2"
+  }
+}

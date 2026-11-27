@@ -4,3 +4,6 @@ coverage/
 *.log
 .DS_Store
 .claude/settings.local.json
+vscode-extension/out/
+vscode-extension/.vscode-test/
+*.vsix

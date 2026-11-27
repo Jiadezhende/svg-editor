@@ -45,7 +45,7 @@ Windows PowerShell 5.1 的 `npm.ps1` 会吞掉 `--config`；启动 CLI 时请使
 
 ## CLI 检查点
 
-Phase 2 总纲中的 CLI 检查点全部通过。详细条目见 `doc/prd/phase2/20261125_PHASE2_DELIVERY.md` 的「验收清单」，对应证据如下：
+Phase 2 总纲中的 CLI 检查点全部通过。详细条目见 [`doc/prd/phase2/20261125_PHASE2_DELIVERY.md`](../../doc/prd/phase2/20261125_PHASE2_DELIVERY.md) 的「验收清单」，对应证据如下：
 
 | 工作包 | 检查点 | 主要证据 | 状态 |
 | --- | --- | --- | --- |
@@ -68,6 +68,8 @@ Phase 2 总纲中的 CLI 检查点全部通过。详细条目见 `doc/prd/phase2
 | `results/help.txt` | 完整配置下的 `help` 输出 |
 | `results/metrics.txt` | `final` → `5107f84` 的源码指标报告 |
 | `../../doc/README.md#phase-2-cli` | 架构说明、扩展点清单与验收证据 |
+| [`../../doc/prd/phase2/20261125_PHASE2_DELIVERY.md`](../../doc/prd/phase2/20261125_PHASE2_DELIVERY.md) | Phase 2 总纲与 CLI 验收清单 |
+| [`20261125_CLI_*.md`](../../doc/prd/phase2/20261125_CLI_EXTENSION_CONTRACTS.md) | 六个 CLI 工作包的需求、决策与验证入口 |
 | `../../doc/adr/phase2-01-attributes.md` 等 | 属性处理、Box 读回、树标签与装配决策 |
 | `../plugins/README.md` | 插件包结构与贡献声明 |
 

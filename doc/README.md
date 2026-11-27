@@ -185,7 +185,7 @@ git diff --exit-code 9e1edd1 3124971 -- plugins/box
 | `plugins/core` | 内置图形（6 种）与命令形式（17 个）；插件按配置装配 |
 | `backend/receiver/` | 编辑会话的接收者 `Receiver`：当前文档与路径、图形工厂、文件读写、Handler 注册表、树渲染器 |
 | `backend/receiver/document/` | 图形树：画布根 `Document`、`ShapeNode`、结构快照 |
-| `backend/receiver/document/shape/` | Shape 类层次、图形工厂 `ShapeFactory`、快照与视图、属性 Handler |
+| `backend/receiver/document/shape/` | Shape 类层次、`toSvg` 的纯数据元素描述 `SvgElement`、图形工厂 `ShapeFactory`、快照与视图、属性 Handler |
 | `backend/receiver/document/shape/attribute/` | 属性种类（解析、约束、展示、默认值）与数值文本规则 `DecimalFormat` |
 | `backend/receiver/svg/` | SVG 序列化 `SvgWriter`、解析 `SvgReader`、文件读写 `SvgFile` |
 | `backend/receiver/tree/` | 树渲染与装饰链 |
@@ -241,8 +241,9 @@ plugins ..> backend : 只依赖公共契约
 | **Factory（注册表）** | 按类型名创建图形，插件类型可加入 | `ShapeFactory`：类型名 → 图形类；create / parse 用 `lookup`，使用侧用 `has` / `definition` 查询。注册由宿主按插件装配，工厂不导入具体图形；按名分派属于课程允许的两处之一 |
 | **Memento** | move / scale / set 的撤销要精确还原，浮点反向运算做不到 | `Shape.capture()` 生成 `ShapeMemento`（容器连同子树），恢复动作以闭包保存私有属性，属性值不对外暴露 |
 | **Template Method** | 所有编辑命令都要“取快照 → 修改 → 失败恢复 / 成功记录撤销” | `EditCommand.execute`：基类取快照并调用 `apply`，失败恢复，成功后保存快照与撤销回显；子类只实现 `snapshot` 与 `apply` |
+| **多态写出** | 不同图形的 SVG 元素结构不同，但文档遍历、id 校验与文本格式统一 | `Shape.toSvg()` 基类通过受保护的 `parts()` 递归生成自身及私有部件；复合模型只声明部件，Writer 追加文档成员并格式化。`parse` 与 `toSvg` 分别负责读入构造和写出表示，都不需要 Writer/Reader 判断具体类型 |
 
-"静态成员即定义、构造函数即工厂"是贯穿全项目的写法：命令类以静态 `command` / `usage` / `accepts` 自描述，图形类以静态 `type` / `params` / `paint` / `anchor` / `content` 自描述。类声明、解析方法与注册名在装配时校验，写错会在启动时报错；锚点只作为移动回显的属性名，不参与校验。
+"静态成员即定义、构造函数即工厂"是贯穿全项目的写法：命令类以静态 `command` / `usage` / `accepts` 自描述，图形类以静态 `type` / `params` / `paint` / `anchor` / `content` 自描述。类声明、解析方法与注册名在装配时校验，写错会在启动时报错；锚点只作为移动回显的属性名，不参与校验。读入由静态 `parse`、写出由实例 `toSvg` 多态完成，装配只注册 Shape 类。
 
 ### 3. 依赖方向规则
 
@@ -252,7 +253,7 @@ plugins ..> backend : 只依赖公共契约
 | 2 | backend 只有 `Client` 对外；Client 可依赖 invoker、command、receiver | Client 是后端唯一入口，负责分发命令，并把 Receiver 交给命令 |
 | 3 | invoker 只依赖 command（含 EditCommand、DocumentCommand 两个类别基类） | Invoker 只管执行与历史，不认识任何 Receiver |
 | 4 | command 可依赖 receiver；**receiver 不得依赖 command、invoker、Client** | 领域模型不知道自己被谁操作，可以脱离命令单独测试与复用 |
-| 5 | receiver 内部：Receiver → document、svg、tree；svg → document；**document 不依赖 svg、tree**；shape → attribute | 图形树是最核心的领域，文件格式与会话状态都建立在它之上 |
+| 5 | receiver 内部：Receiver → document、svg、tree；svg → document；**document 不依赖 svg、tree**；shape → attribute | 图形树是最核心的领域，文件格式与会话状态都建立在它之上。`SvgElement` 是 `document/shape/` 中的纯数据契约，`Shape.toSvg()` 只返回它，不依赖 svg 模块 |
 | 6 | `backend/error` 可被所有后端模块依赖，自身不依赖任何模块 | 各层都会做业务校验，错误类型必须位于最底层 |
 | 7 | 第三方与系统依赖收口：`@xmldom/xmldom` 只在 `SvgReader` 中使用，`node:fs` 只在 `SvgFile` 与 `main.ts` 中使用 | 更换解析库或文件访问方式时只改一个类 |
 
@@ -260,7 +261,7 @@ plugins ..> backend : 只依赖公共契约
 
 | 变化点 | 预留 / 不预留的理由 |
 | --- | --- |
-| 新图形类型（后续阶段的插件 `box`） | **已预留**：图形类声明 `type`、`params`、`paint`、`anchor`、`content`，并实现 `move` / `scale`；`element()` 默认返回 `type`，复合模型可覆写为实际写出的底层 SVG 标签。create、显示、set、读写按声明通用处理。`ShapeFactory.register` 由宿主装配调用，注册时校验类、类型名与解析方法 |
+| 新图形类型（后续阶段的插件 `box`） | **已预留**：图形类声明 `type`、`params`、`paint`、`anchor`、`content`，并实现 `move` / `scale`；`element()` 默认返回 `type`，复合模型可覆写为实际写出的底层 SVG 标签，并通过受保护的 `parts()` 声明私有部件。读入覆写 `parse`，写出由基类 `toSvg` 多态组合；`ShapeFactory.register` 由宿主装配调用，注册时校验类、类型名与解析方法 |
 | 新命令 | **已预留**：在插件包里新增一个 `EditCommand` / `DocumentCommand` 类并在 `activate` 中贡献即可被装配；同一命令名的多种形式由各形式的 `accepts` 按参数结构唯一命中（如 `canvas` 与 `canvas <w> <h>`），不依赖注册顺序 |
 | 新属性种类（如带单位的长度） | **已预留**：新增 `Attribute` 子类，实现解析、约束、展示、默认值即可，其余代码不改 |
 | 新输入输出通道（agent、文件脚本、GUI） | **已预留**：`InputSource` / `OutputSink` 接口；前后端以"参数数组 + 结果字符串"为边界，命令文本是唯一协议 |
@@ -371,3 +372,4 @@ command → receiver 属于允许的方向：Command 基类使用 `DecimalFormat
 - 读入外部文件时，不支持的元素被跳过、未知属性被丢弃，svg 根元素上的其他属性不保留，再次保存时这些内容会丢失；只有 viewBox 的文件保存后会带上明确的 width / height。
 - `scale` 以坐标原点为中心，图形的位置会随之变化。
 - 回显未做单复数处理（如 `1 children`）。
+- 复合模型的私有部件目前只支持“根 + 直接叶子子元素”；若模型在 `toSvg` 中写出嵌套包装，读回时会成为普通文档节点，而不会还原为私有部件。

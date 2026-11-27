@@ -14,12 +14,14 @@
 - 保证自身不变量，例如 Box 必须具有有效的矩形和文字；由 `validate()` 检查必填属性、跨属性约束与部件结构；不承担整份文档的全局 id 检查。
 - Shape 维护 SVG id，不维护 index、文档归属、文档父节点或通用 children 字段，不提供文档树 insert/remove/relocate。业务复合模型的内部成员默认不成为独立文档节点。
 - Shape 区分模型身份与文件身份：`modelLabel()` 是命令回显的 `<type>#<id>`；`fileLabel()` 是 tree/show 使用的 `<element>#<id>`。`element()` 返回图形写出的底层 SVG 标签，默认与 `type` 相同，复合模型可覆写（如 Box 的 `g`）。
-- Shape.identifiers() 声明自身及私有部件占用的全部 id；默认仅自身，复合模型覆写，必须包含根 id、不得重复或非法。声明只读且随模型身份保持稳定，不暴露内部对象或文档关系。
+- Shape.identifiers() 声明自身及私有部件占用的全部 id；默认由 `parts()` 递归汇总，特殊模型可覆写，必须包含根 id、不得重复或非法。声明只读且随模型身份保持稳定，不暴露内部对象或文档关系。
+- Shape.toSvg() 返回自身及私有部件的元素描述 `SvgElement`；默认实现通过多态 `parts()` 递归组合，复合模型通常只需覆写受保护的 `parts()`，需要额外包装或根属性时再覆写 `toSvg()`。`element() !== type()` 时基类自动写 `data-kind`。
+- `SvgElement` 是位于 `document/shape/` 的纯数据契约，不含 XML 文本、节点关系或解析能力；SvgWriter 负责转成文本。
 - Handler、Command 和 Document 都不能绕过图形公开方法直接修改其内部状态。Shape 不依赖 Handler 注册表、Command、CLI 或 SVG 解析器。
 - 属性对象或模型负责共享的值解析、校验与基础修改规则，避免创建、属性设置和读回各写一套。
 - `Shape.move` / `Shape.scale` 是抽象方法，由各模型按自身属性实现；`Attribute` 只负责值的解析、校验、展示与默认值。
 - 图形属性的值与规则位于 `shape/attribute/`。命令、属性对象、SVG 读写和树渲染共用 `backend/utils/DecimalFormat.ts` 的十进制文本规则。
-- 静态 Shape.parse(id, attributes, readChildren) 提供可覆写的数据构造能力，默认通过属性对象解析文本及默认值。结果 ShapeParseResult 包含构造出的 shape 和仍应作为文档成员的 children；Shape 本身不保存这份文档关系。
+- 静态 Shape.parse(id, attributes, readChildren) 提供可覆写的数据构造能力，默认通过属性对象解析文本及默认值。结果 ShapeParseResult 包含构造出的 shape、消费的私有部件 parts 和仍应作为文档成员的 children；Shape 本身不保存这份文档关系。
 - 复合图形在构造时建立内部部件，完整性由 `validate()` 检查。内部部件通过模型公开入口访问，属性修改由 Handler 组合模型的公开操作完成；跨部件约束（例如标题位置）仍由模型保证。
 
 ## Document：上层内存文档结构
@@ -31,7 +33,7 @@
 - Document 通过 ShapeNode 组织 Shape 抽象，Shape 保持独立于具体 Document 和节点树实现。节点不另设 id 或 index，index 来自父节点列表；父子关系只读公开，由 Document 统一修改。
 - insert(shape, parentNode = null, index?) 支持顶层与容器插入并返回节点；relocate/remove 以已有节点为对象。节点父子关系直接读取 node.parent()/children()；Document.children() 只返回顶层节点，indexOf(node) 计算位置。
 - Document 编排文档子树变换与属性快照；结构命令使用绑定原文档的结构快照恢复节点身份、层级和顺序。
-- Document 在 insert 和结构快照恢复前统一验证节点及私有部件的全部 id，失败不修改关系；节点索引仍仅包含 ShapeNode。Writer 的最终映射校验继续作为独立的持久化保护。
+- Document 在 insert 和结构快照恢复前统一验证节点及私有部件的全部 id，失败不修改关系；节点索引仍仅包含 ShapeNode。Writer 的最终元素树校验继续作为独立的持久化保护。
 - 不集中实现各具体图形的标题、填充等内部行为；定位目标后，由图形公开方法或相应 Handler 完成操作。
 - 不依赖 Command、Handler 注册表、CLI 或 SVG 解析器。
 
@@ -66,11 +68,12 @@
 - 读回通过图形注册契约及模型公开的构造、恢复能力生成有效对象；恢复数据不通过编辑 Handler 模拟用户命令，避免触发编辑语义或历史。
 - 读入先构建候选文档并完成校验，成功后再替换当前文档；创建子树同样先校验再提交，失败不留下半成品。
 - 类型特有的恢复信息通过图形类注册契约提供，通用解析器负责统一流程，接口需明确子元素递归职责。
-- SvgReader 通过 ShapeFactory.parse 调用注册类；模型按需调用 readChildren 获得子 Shape，递归和缓存仍由 Reader 完成。复合类型消费必要部件，返回的成员必须是输入子 Shape 的非重复引用；Reader 保留这些成员的完整节点关系。不能静默消费仍带文档子节点的普通容器。
+- SvgReader 通过 ShapeFactory.parse 调用注册类；模型按需调用 readChildren 获得子 Shape，递归和缓存仍由 Reader 完成。`ShapeParseResult` 显式返回消费的 `parts` 与仍作为文档成员的 `children`；二者必须是输入子 Shape 的非重复引用，未归属输入报错。不能静默消费仍带文档子节点的普通容器。
+- Reader 校验解析结果：模型类型、`element()` 与输入标签一致；消费的 part id 必须属于 `identifiers()`；文档成员不得占用私有 id。
 - data-kind 对应已注册类型时使用该类型，未安装则按原标签降级；已安装但结构无效时拒绝读入，不降级或调用编辑 Handler。全输入 id（含根、私有部件和跳过子树）统一检查。
 - 当前持久化格式为 SVG，解析与映射围绕现有格式实现。普通 SVG 的多层 g 完整恢复为文档节点树，不自动封装为业务复合 Shape。
-- 业务复合模型内部组成的写出通过 SvgShapeMapping 显式映射。宿主注册到 SvgWriter，Receiver 的保存操作复用该 writer；不把模型内部成员伪装为文档子节点。
-- 映射只生成模型自身及私有部件，Writer 将文档成员按原顺序追加到映射子元素之后。完整映射树校验 id 后才生成文本和写文件；重复/非法 id、重复 id 属性及同时具有文本和子元素的歧义结果拒绝写出。
+- 形状的写出由模型多态提供：`Shape.toSvg()` 生成自身及私有部件，`element() !== type()` 时自动带 `data-kind`。Writer 不持有类型映射表，也不按类型分支；它只把文档成员按原顺序追加到模型自身元素之后。
+- Writer 在生成文本前校验元素名、`data-kind` 和声明 id 是否都已写出，再做整棵元素树的重复/非法 id、重复 id 属性及文本与子元素并存的检查；失败不写文件。
 
 ## 树展示与装饰链
 
@@ -91,7 +94,7 @@ CLI 输入 → 分词 → Client 创建并分派命令 → Invoker → Command�
                                                        └─ Receiver 提供编辑器操作
                                                             ├─ Document → 已有 Shape
                                                             ├─ Handler 查找 → 领域属性操作
-                                                            └─ 文件访问与 SVG 映射
+                                                            └─ 文件访问与 SVG 文本
 
 持久化路径：
 SVG 文件 ⇄ 文件访问 ⇄ SvgReader / SvgWriter ⇄ Document（内部为 Shape 树）
@@ -105,7 +108,7 @@ Document（画布、节点树、全局约束）
 业务复合 Shape 可直接持有内部 Shape 成员，不持有 ShapeNode。
 
 装配路径：
-宿主 → 注册 Shape 类、Handler、TreeDecorator 及 SVG 写出映射 → 构建 Receiver
+宿主 → 注册 Shape 类、Handler、TreeDecorator → 构建 Receiver
 宿主 → 将 Receiver 绑定到命令创建函数 → 构建并校验命令表 → 注入 Client
 ```
 
@@ -122,7 +125,7 @@ Document（画布、节点树、全局约束）
 
 - 正式 CLI 要求显式指定配置路径。宿主按配置顺序解析插件模块，跳过禁用项，向入口默认导出的 `activate(options)` 传递选项。有效空配置只提供五个框架入口。配置整体无效时报告错误并装配基础包。
 - 代码装配静态取得插件。两种入口调用同一个 `registerPlugin`，也可直接传入已分类的类。包通过 `package.json` 的 `name`、`contributes` 声明贡献。名称须匹配实际贡献，跨包同类重名拒绝，单包仍可注册同一命令的多个互斥形式。
-- Shape 可随其贡献附带 SVG 映射。宿主核对清单后构建候选注册表、writer、装饰链和 Client，全部通过才接纳。单包失败时报告并继续，保留此前接纳的插件。插件激活负责返回贡献，外部副作用不参与候选会话回滚。
+- Shape 的读写能力由类自身提供（`parse` / `toSvg`），装配只注册模型类。宿主核对清单后构建候选注册表、writer、装饰链和 Client，全部通过才接纳。单包失败时报告并继续，保留此前接纳的插件。插件激活负责返回贡献，外部副作用不参与候选会话回滚。
 - `plugins/core` 提供六种基础图形和 17 个命令形式。插件包可组合任意贡献类别，测试也可直接提供分类后的类，与 CLI 共用整包装配与清单校验。
 
 ## 依赖与装配边界

@@ -43,6 +43,7 @@ README 只保留仓库入口和 CLI 入口两级；CLI 的详细文档集中在 
 | [cli/docs/architecture.md](cli/docs/architecture.md) | CLI 详细架构 |
 | [cli/docs/acceptance.md](cli/docs/acceptance.md) | CLI 验收结果、检查点、证据与回放样例 |
 | [cli/docs/plugins.md](cli/docs/plugins.md) | 插件包与贡献声明 |
+| [doc/DOCUMENTATION.md](doc/DOCUMENTATION.md) | 文档撰写规则与目录约定 |
 | [vscode-extension/README.md](vscode-extension/README.md) | VS Code 扩展的安装、运行与结构 |
 
 ## 分支与基线

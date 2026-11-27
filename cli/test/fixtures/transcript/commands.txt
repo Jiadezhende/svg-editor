@@ -1,0 +1,16 @@
+dir
+help
+init
+stats
+create g flowchart
+create box start 10 20 60 50 "Start" in flowchart
+create circle next 10 20 4 in flowchart
+create rect last 10 20 40 40
+stats
+undo
+dir
+redo
+stats
+read docs/diagram.svg
+dir
+quit

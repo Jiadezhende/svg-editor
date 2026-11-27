@@ -1,0 +1,66 @@
+svg-editor 0.1 — type 'help' for commands
+svg> dir
+[DIR]  docs
+[DIR]  plugins
+[FILE]  .hidden
+[FILE]  other.svg
+svg> help
+addto <gid> <id>
+back <id>
+canvas <w> <h>
+canvas
+create <type> <id> [params…] [in <containerId>]
+delete <id>
+front <id>
+group <newGid> <id1> <id2>…
+init [w] [h]
+move <id> <dx> <dy>
+read <file.svg>
+save [file.svg]
+scale <id> <factor>
+set <id> <attr> <value>
+show <id>
+tree [id]
+ungroup <gid>
+stats
+dir
+help
+undo
+redo
+exit
+quit
+svg> init
+canvas 800x600 created
+svg> stats
+(total 0, containers 0)
+svg> create g flowchart
+g#flowchart created
+svg> create box start 10 20 60 50 "Start" in flowchart
+box#start created in g#flowchart
+svg> create circle next 10 20 4 in flowchart
+circle#next created in g#flowchart
+svg> create rect last 10 20 40 40
+rect#last created
+svg> stats
+rect: 2  text: 1  circle: 1  (total 4, containers 2)
+svg> undo
+rect#last removed
+svg> dir
+[DIR]  docs
+[DIR]  plugins
+[FILE]  .hidden
+[FILE]  other.svg
+svg> redo
+rect#last created
+svg> stats
+rect: 2  text: 1  circle: 1  (total 4, containers 2)
+svg> read docs/diagram.svg
+warning: assigned id rect1 to unnamed <rect>
+warning: previous document discarded
+read docs/diagram.svg (7 elements)
+svg> dir
+[DIR]  docs
+[DIR]  plugins
+[FILE]  .hidden
+[FILE]  other.svg
+svg> quit

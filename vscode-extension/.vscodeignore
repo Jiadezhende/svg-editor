@@ -1,0 +1,10 @@
+src/**
+test/**
+scripts/**
+tsconfig.json
+tsconfig.build.json
+vitest.config.mts
+.vscode/**
+node_modules/**
+package-lock.json
+*.vsix

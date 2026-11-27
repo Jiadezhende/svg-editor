@@ -1,0 +1,10 @@
+{
+  "name": "stats",
+  "type": "module",
+  "main": "./index.ts",
+  "contributes": {
+    "commands": [
+      "stats"
+    ]
+  }
+}

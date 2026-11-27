@@ -1,0 +1,27 @@
+{
+  "name": "svg-editor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "命令行 SVG 编辑器",
+  "type": "module",
+  "scripts": {
+    "cli": "node --experimental-import-meta-resolve --import tsx src/main.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "coverage": "vitest run --coverage",
+    "cli:code": "tsx src/cli-code.ts",
+    "verify:transcripts": "node scripts/verify-transcripts.mjs",
+    "metrics": "node scripts/phase2-metrics.mjs"
+  },
+  "devDependencies": {
+    "@babel/parser": "7.29.9",
+    "@types/node": "^26.6.5",
+    "@vitest/coverage-v8": "^5.0.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.9.12"
+  }
+}

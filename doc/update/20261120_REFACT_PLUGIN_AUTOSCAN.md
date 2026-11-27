@@ -3,7 +3,7 @@
 - 提案时间：2026-11-20
 - 完成时间：2026-11-20
 - 类型：REFACT
-- 关联 prd：[doc/prd/phase2/20261120_PLUGIN_AUTOSCAN.md](../prd/phase2/20261120_PLUGIN_AUTOSCAN.md)
+- 相关设计记录 [插件贡献自动扫描 ADR](../adr/20261120_PLUGIN_AUTOSCAN.md)
 
 ## 动因
 

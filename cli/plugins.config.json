@@ -1,0 +1,19 @@
+{
+  "plugins": [
+    {
+      "module": "./plugins/core"
+    },
+    {
+      "module": "./plugins/stats"
+    },
+    {
+      "module": "./plugins/dir"
+    },
+    {
+      "module": "./plugins/modified-star"
+    },
+    {
+      "module": "./plugins/box"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+svg-editor 0.1 — type 'help' for commands
+svg> init 800 600
+canvas 800x600 created
+svg> create box n1 120 100 160 60 "开始"
+box#n1 created
+svg> create box n2 520 100 160 60 "处理数据"
+box#n2 created
+svg> create line arrow1 280 130 520 130 black
+line#arrow1 created
+svg> group flowchart n1 n2 arrow1
+g#flowchart created with 3 children
+svg> move n2 0 100
+box#n2 moved by (0,100)
+svg> undo
+box#n2 moved back by (0,-100)
+svg> set n2 fill #f5a623
+box#n2 updated: fill=#f5a623
+svg> set n2 label "处理数据 v2"
+box#n2 updated: label="处理数据 v2"
+svg> undo
+box#n2 updated: label="处理数据"
+svg> tree
+svg (800x600) *
+└── g#flowchart *
+    ├── g#n1 * (box)
+    │   ├── rect#n1-rect  x=120 y=100 width=160 height=60 *
+    │   └── text#n1-label  x=140 y=135 text="开始" *
+    ├── g#n2 * (box)
+    │   ├── rect#n2-rect  x=520 y=100 width=160 height=60 *
+    │   └── text#n2-label  x=540 y=135 text="处理数据" *
+    └── line#arrow1  x1=280 y1=130 x2=520 y2=130 *
+svg> save flowchart-box.svg
+saved to flowchart-box.svg (8 elements)
+svg> quit

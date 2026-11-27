@@ -1,0 +1,93 @@
+import { createReceiver } from '../../support/Plugins';
+import { describe, expect, it } from 'vitest';
+import Invoker from '../../../src/backend/invoker/Invoker';
+import Document from '../../../src/backend/receiver/document/Document';
+import Group from '../../../plugins/core/Group';
+import Rect from '../../../plugins/core/Rect';
+import CreateCommand from '../../../plugins/core/CreateCommand';
+import DeleteCommand from '../../../plugins/core/DeleteCommand';
+import GroupCommand from '../../../plugins/core/GroupCommand';
+import MoveCommand from '../../../plugins/core/MoveCommand';
+import ScaleCommand from '../../../plugins/core/ScaleCommand';
+import SetCommand from '../../../plugins/core/SetCommand';
+
+async function scene() {
+  const receiver = (await createReceiver());
+  const doc = new Document(100, 100);
+  const group = doc.insert(new Group('g'));
+  const child = doc.insert(new Rect('r', new Map([['x', 10], ['y', 20], ['width', 30], ['height', 40]])), group);
+  receiver.replace(doc);
+  return { receiver, doc, group, child, invoker: new Invoker() };
+}
+
+function contents(doc: Document) {
+  return doc.nodes().map((node) => ({
+    id: node.value.id(), parent: node.parent()?.value.id() ?? null, values: node.value.entries(),
+  }));
+}
+
+describe('真实编辑命令的历史组合', () => {
+  it('编辑失败恢复本次快照，并保留上一次成功的撤销记录', async () => {
+    const { receiver, doc, invoker } = (await scene());
+    invoker.execute(new SetCommand(receiver, ['r', 'y', `1${'0'.repeat(308)}`]));
+    expect(() => invoker.execute(new ScaleCommand(receiver, ['g', '2']))).toThrow('y must be a finite number');
+    expect(doc.requireNode('r').value.value('y')).toBe(1e308);
+    expect(doc.requireNode('r').value.value('x')).toBe(10);
+    expect(invoker.undo().lines()).toEqual(['rect#r updated: y=20']);
+  });
+
+  it('属性、变换和分组可多轮整体撤销与重做，不丢失原节点身份', async () => {
+    const { receiver, doc, group, child, invoker } = (await scene());
+    const original = contents(doc);
+    invoker.execute(new SetCommand(receiver, ['r', 'fill', 'red']));
+    invoker.execute(new MoveCommand(receiver, ['g', '5', '10']));
+    invoker.execute(new GroupCommand(receiver, ['outer', 'g']));
+    const edited = contents(doc);
+    for (let round = 0; round < 2; round += 1) {
+      expect(invoker.undo().lines()).toEqual(['g#outer removed, 1 children restored']);
+      expect(invoker.undo().lines()).toEqual(['g#g moved back by (-5,-10)']);
+      expect(invoker.undo().lines()).toEqual(['rect#r updated: fill unset']);
+      expect(contents(doc)).toEqual(original);
+      expect(doc.requireNode('g')).toBe(group);
+      expect(doc.requireNode('r')).toBe(child);
+      invoker.redo();
+      invoker.redo();
+      expect(invoker.redo().lines()).toEqual(['g#outer created with 1 children']);
+      expect(contents(doc)).toEqual(edited);
+      expect(doc.requireNode('r')).toBe(child);
+    }
+  });
+
+  it('失败的新编辑不清空 redo，重做遇到 id 冲突也可在冲突消除后重试', async () => {
+    const { receiver, doc, invoker } = (await scene());
+    invoker.execute(new CreateCommand(receiver, ['g', 'new']));
+    invoker.undo();
+    expect(() => invoker.execute(new CreateCommand(receiver, ['g', 'g']))).toThrow('id already exists: g');
+    const conflict = doc.insert(new Group('new'));
+    expect(() => invoker.redo()).toThrow('id already exists: new');
+    expect(doc.requireNode('new')).toBe(conflict);
+    expect(() => invoker.undo()).toThrow('nothing to undo');
+    doc.remove(conflict);
+    expect(invoker.redo().lines()).toEqual(['g#new created']);
+    expect(invoker.undo().lines()).toEqual(['g#new removed']);
+    expect(doc.findNode('new')).toBeNull();
+  });
+
+  it('跨文档归属冲突使撤销失败，历史不转移，释放后恢复原节点与顺序', async () => {
+    const { receiver, doc, group, child, invoker } = (await scene());
+    invoker.execute(new DeleteCommand(receiver, ['g']));
+    const other = new Document(20, 20);
+    const foreign = other.insert(child.value);
+    expect(() => invoker.undo()).toThrow('shape already attached: r');
+    expect(doc.children()).toEqual([]);
+    expect(other.requireNode('r')).toBe(foreign);
+    expect(() => invoker.redo()).toThrow('nothing to redo');
+    other.remove(foreign);
+    expect(invoker.undo().lines()).toEqual(['g#g restored into svg']);
+    expect(doc.children()).toEqual([group]);
+    expect(group.children()).toEqual([child]);
+    expect(doc.requireNode('r')).toBe(child);
+    invoker.redo();
+    expect(doc.children()).toEqual([]);
+  });
+});

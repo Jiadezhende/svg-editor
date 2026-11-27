@@ -1,0 +1,27 @@
+svg-editor 0.1 — type 'help' for commands
+svg> help
+addto <gid> <id>
+back <id>
+canvas <w> <h>
+canvas
+create <type> <id> [params…] [in <containerId>]
+delete <id>
+front <id>
+group <newGid> <id1> <id2>…
+init [w] [h]
+move <id> <dx> <dy>
+read <file.svg>
+save [file.svg]
+scale <id> <factor>
+set <id> <attr> <value>
+show <id>
+tree [id]
+ungroup <gid>
+stats
+dir
+help
+undo
+redo
+exit
+quit
+svg> quit
